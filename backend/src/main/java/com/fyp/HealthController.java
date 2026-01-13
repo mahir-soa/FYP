@@ -1,4 +1,4 @@
-package com.fyp.backend;
+package com.fyp;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
