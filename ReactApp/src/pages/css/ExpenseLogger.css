@@ -1,0 +1,243 @@
+.daily-tracker {
+    max-width: 700px;
+    margin: 30px auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #fafafa;
+    color: #333;
+  }
+  
+  .daily-tracker h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .filter-bar input,
+  .filter-bar select,
+  .filter-bar button {
+    padding: 8px 12px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  
+  .filter-bar button {
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    border: none;
+  }
+  
+  .filter-bar button:hover {
+    background-color: #0056b3;
+  }
+  
+  .daily-total {
+    text-align: center;
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  .category-icon-group {
+    display: flex;
+    justify-content: space-around;
+    margin: 15px 0;
+    flex-wrap: wrap;
+  }
+  
+  .category-icon-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    width: 80px;
+    transition: transform 0.2s;
+  }
+  
+  .category-icon-card:hover {
+    transform: scale(1.05);
+  }
+  
+  .category-icon-card.active {
+    background-color: #e3f2fd;
+    border-radius: 10px;
+  }
+  
+  .category-icon-img {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 6px;
+  }
+  
+  .travel-type-select,
+  .peak-toggle,
+  .zone-pickers select {
+    margin: 8px 0;
+    padding: 6px 10px;
+    font-size: 14px;
+    width: 100%;
+  }
+  
+  .zone-pickers {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    position: relative;
+  }
+  
+  .modal-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .modal-content input,
+  .modal-content select,
+  .modal-content button {
+    padding: 10px;
+    font-size: 14px;
+  }
+  
+  .modal-content button[type='submit'] {
+    background-color: #28a745;
+    color: white;
+    border: none;
+  }
+  
+  .modal-content button[type='submit']:hover {
+    background-color: #218838;
+  }
+  
+  .modal-content button[type='button'] {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+  }
+  
+  .modal-content button[type='button']:hover {
+    background-color: #5a6268;
+  }
+  
+  /* Expense card list */
+  .expense-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  .expense-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #ccc;
+    background: white;
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+  
+  .expense-info p {
+    margin: 4px 0;
+  }
+  
+  /* Small right-aligned buttons */
+  .expense-buttons {
+    display: flex;
+    gap: 5px;
+  }
+  
+  .expense-buttons button {
+    padding: 4px 6px;
+    font-size: 12px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  
+  .edit-btn {
+    background-color: #ffc107;
+    color: white;
+  }
+  
+  .edit-btn:hover {
+    background-color: #e0a800;
+  }
+  
+  .delete-btn {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  .delete-btn:hover {
+    background-color: #c82333;
+  }
+  
+  /* Category badge colors */
+  .category-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    border-radius: 12px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 4px;
+  }
+  
+  .category-food {
+    background-color: #ff6f61;
+  }
+  
+  .category-travel {
+    background-color: #5bc0de;
+  }
+  
+  .category-education {
+    background-color: #f0ad4e;
+  }
+  
+  .category-entertainment {
+    background-color: #6f42c1;
+  }
+  
+  .category-other {
+    background-color: #adb5bd;
+  }
+  
+  .no-expenses {
+    text-align: center;
+    font-style: italic;
+    color: #777;
+    margin-top: 30px;
+  }
+  
