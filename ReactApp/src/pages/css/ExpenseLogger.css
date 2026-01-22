@@ -31,10 +31,38 @@ body {
   color: #333;
 }
 
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
 .daily-tracker h2 {
   text-align: center;
-  margin: 0 0 26px;
+  margin: 0;
   font-size: 30px;
+}
+
+.chat-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.chat-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .filter-bar {
@@ -270,4 +298,44 @@ body {
   color: #777;
   margin-top: 34px;
   font-size: 16px;
+}
+
+.amount-input-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.amount-input-wrapper input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fare-status {
+  font-size: 12px;
+  margin-top: 4px;
+  color: #666;
+}
+
+.fare-status.fare-auto {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.error-banner {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.loading-banner {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  text-align: center;
 }

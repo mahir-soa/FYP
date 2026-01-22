@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react"
+import { Link } from "react-router-dom"
 import axios from "axios"
 import "./css/ExpenseLogger.css"
 
@@ -10,6 +11,7 @@ import otherIcon from "../assets/other.png"
 
 const HEALTH_URL = "http://localhost:8080/api/health"
 const API_BASE = "http://localhost:8080/api/expenses"
+const TFL_FARE_API = "http://localhost:8080/api/tfl/fare"
 
 const categories = ["Food", "Travel", "Education", "Leisure", "Other"]
 const categoryIcons = {
@@ -46,6 +48,8 @@ export default function ExpenseLogger() {
 
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
+  const [fareAutoCalculated, setFareAutoCalculated] = useState(false)
+  const [calculatingFare, setCalculatingFare] = useState(false)
 
   const reloadExpenses = async () => {
     setLoading(true)
@@ -73,6 +77,56 @@ export default function ExpenseLogger() {
     reloadExpenses()
   }, [])
 
+  // Auto-calculate TfL fare when travel details change
+  useEffect(() => {
+    const fetchTflFare = async () => {
+      if (category !== "Travel" || !subType) {
+        setFareAutoCalculated(false)
+        return
+      }
+
+      // For Bus, we can calculate immediately
+      if (subType === "Bus") {
+        setCalculatingFare(true)
+        try {
+          const res = await axios.get(TFL_FARE_API, {
+            params: { type: "Bus" }
+          })
+          setAmount(res.data.fare.toString())
+          setFareAutoCalculated(true)
+        } catch (err) {
+          console.error("Failed to fetch bus fare:", err)
+        } finally {
+          setCalculatingFare(false)
+        }
+        return
+      }
+
+      // For Train, we need zones
+      if (subType === "Train" && fromZone && toZone && fromZone !== toZone) {
+        setCalculatingFare(true)
+        try {
+          const res = await axios.get(TFL_FARE_API, {
+            params: {
+              type: "Train",
+              fromZone: Number(fromZone),
+              toZone: Number(toZone),
+              isPeak: isPeak
+            }
+          })
+          setAmount(res.data.fare.toString())
+          setFareAutoCalculated(true)
+        } catch (err) {
+          console.error("Failed to fetch train fare:", err)
+        } finally {
+          setCalculatingFare(false)
+        }
+      }
+    }
+
+    fetchTflFare()
+  }, [category, subType, fromZone, toZone, isPeak])
+
   const resetForm = () => {
     setDate(today)
     setDescription("")
@@ -85,6 +139,8 @@ export default function ExpenseLogger() {
     setIsPeak(true)
     setEditId(null)
     setErrorMsg("")
+    setFareAutoCalculated(false)
+    setCalculatingFare(false)
   }
 
   const closeForm = () => {
@@ -197,12 +253,17 @@ export default function ExpenseLogger() {
 
   return (
     <div className="daily-tracker">
-      <h2>
-        Daily spending journal{" "}
-        <span style={{ fontSize: "14px", fontWeight: "normal" }}>
-          Backend: {backendStatus}
-        </span>
-      </h2>
+      <div className="header-row">
+        <h2>
+          Daily spending journal{" "}
+          <span style={{ fontSize: "14px", fontWeight: "normal" }}>
+            Backend: {backendStatus}
+          </span>
+        </h2>
+        <Link to="/chat" className="chat-link">
+          💬 Financial Assistant
+        </Link>
+      </div>
 
       <div className="filter-bar">
         <input
@@ -352,13 +413,22 @@ export default function ExpenseLogger() {
                 onChange={(e) => setMood(e.target.value)}
               />
 
-              <input
-                type="number"
-                placeholder="Amount (£)"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-              />
+              <div className="amount-input-wrapper">
+                <input
+                  type="number"
+                  placeholder="Amount (£)"
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(e.target.value)
+                    setFareAutoCalculated(false)
+                  }}
+                  required
+                />
+                {calculatingFare && <span className="fare-status">Calculating...</span>}
+                {fareAutoCalculated && !calculatingFare && (
+                  <span className="fare-status fare-auto">TfL fare auto-applied</span>
+                )}
+              </div>
 
               <button type="submit">{editId ? "Update" : "Save"}</button>
               <button type="button" onClick={closeForm}>

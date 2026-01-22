@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fyp-postgres
+    environment:
+      POSTGRES_DB: fypdb
+      POSTGRES_USER: fyp
+      POSTGRES_PASSWORD: fyp123
+    ports:
+      - "5432:5432"
+    volumes:
+      - fyp_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  fyp_postgres_data:

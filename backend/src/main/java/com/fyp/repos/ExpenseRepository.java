@@ -1,7 +1,8 @@
 package com.fyp.repos;
 
-import com.fyp.models.Expense;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.fyp.models.Expense;
 
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 }

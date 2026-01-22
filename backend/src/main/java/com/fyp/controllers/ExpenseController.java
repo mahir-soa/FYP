@@ -27,6 +27,24 @@ public class ExpenseController {
         return expenseRepository.save(expense);
     }
 
+    @PutMapping("/{id}")
+    public Expense updateExpense(@PathVariable Long id, @RequestBody Expense expense) {
+        return expenseRepository.findById(id)
+                .map(existing -> {
+                    existing.setDate(expense.getDate());
+                    existing.setDescription(expense.getDescription());
+                    existing.setAmount(expense.getAmount());
+                    existing.setCategory(expense.getCategory());
+                    existing.setMood(expense.getMood());
+                    existing.setSubType(expense.getSubType());
+                    existing.setFromZone(expense.getFromZone());
+                    existing.setToZone(expense.getToZone());
+                    existing.setIsPeak(expense.getIsPeak());
+                    return expenseRepository.save(existing);
+                })
+                .orElseThrow(() -> new RuntimeException("Expense not found with id: " + id));
+    }
+
     @DeleteMapping("/{id}")
     public void deleteExpense(@PathVariable Long id) {
         expenseRepository.deleteById(id);
