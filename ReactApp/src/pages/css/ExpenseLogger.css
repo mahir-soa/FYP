@@ -1,7 +1,31 @@
+/* ExpenseLogger.css (copy + paste the whole file) */
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #fafafa;
+}
+
+/* fixes Vite default #root max-width + padding */
+#root {
+  max-width: none;
+  padding: 0;
+}
+
 .daily-tracker {
-  max-width: 700px;
-  margin: 30px auto;
-  padding: 20px;
+  width: 100%;
+  min-height: 100vh;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px;
+  box-sizing: border-box;
   font-family: Arial, sans-serif;
   background-color: #fafafa;
   color: #333;
@@ -9,24 +33,25 @@
 
 .daily-tracker h2 {
   text-align: center;
-  margin-bottom: 20px;
+  margin: 0 0 26px;
+  font-size: 30px;
 }
 
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 14px;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 26px;
 }
 
 .filter-bar input,
 .filter-bar select,
 .filter-bar button {
-  padding: 8px 12px;
-  font-size: 14px;
-  border-radius: 5px;
+  padding: 12px 16px;
+  font-size: 16px;
+  border-radius: 8px;
   border: 1px solid #ccc;
 }
 
@@ -43,15 +68,16 @@
 
 .daily-total {
   text-align: center;
-  font-size: 16px;
-  margin-bottom: 10px;
+  font-size: 18px;
+  margin-bottom: 14px;
 }
 
 .category-icon-group {
   display: flex;
   justify-content: space-around;
-  margin: 15px 0;
+  margin: 18px 0;
   flex-wrap: wrap;
+  gap: 10px;
 }
 
 .category-icon-card {
@@ -59,39 +85,40 @@
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  padding: 10px;
-  width: 80px;
+  padding: 14px;
+  width: 110px;
   transition: transform 0.2s;
+  font-size: 15px;
 }
 
 .category-icon-card:hover {
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 
 .category-icon-card.active {
   background-color: #e3f2fd;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .category-icon-img {
-  width: 36px;
-  height: 36px;
-  margin-bottom: 6px;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 8px;
 }
 
 .travel-type-select,
 .peak-toggle,
 .zone-pickers select {
-  margin: 8px 0;
-  padding: 6px 10px;
-  font-size: 14px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  font-size: 16px;
   width: 100%;
 }
 
 .zone-pickers {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 14px;
 }
 
 .modal-overlay {
@@ -109,52 +136,56 @@
 
 .modal-content {
   background: white;
-  padding: 20px;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 400px;
+  padding: 26px;
+  border-radius: 14px;
+  width: 92%;
+  max-width: 560px;
   position: relative;
+}
+
+.modal-content h3 {
+  font-size: 22px;
+  margin: 0 0 10px;
 }
 
 .modal-content form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .modal-content input,
 .modal-content select,
 .modal-content button {
-  padding: 10px;
-  font-size: 14px;
+  padding: 12px;
+  font-size: 16px;
 }
 
-.modal-content button[type='submit'] {
+.modal-content button[type="submit"] {
   background-color: #28a745;
   color: white;
   border: none;
 }
 
-.modal-content button[type='submit']:hover {
+.modal-content button[type="submit"]:hover {
   background-color: #218838;
 }
 
-.modal-content button[type='button'] {
+.modal-content button[type="button"] {
   background-color: #6c757d;
   color: white;
   border: none;
 }
 
-.modal-content button[type='button']:hover {
+.modal-content button[type="button"]:hover {
   background-color: #5a6268;
 }
 
-/* Expense card list */
 .expense-cards {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .expense-card {
@@ -163,25 +194,25 @@
   align-items: center;
   border: 1px solid #ccc;
   background: white;
-  padding: 10px 15px;
-  font-size: 14px;
+  padding: 14px 18px;
+  font-size: 16px;
+  border-radius: 10px;
 }
 
 .expense-info p {
-  margin: 4px 0;
+  margin: 6px 0;
 }
 
-/* Small right-aligned buttons */
 .expense-buttons {
   display: flex;
-  gap: 5px;
+  gap: 8px;
 }
 
 .expense-buttons button {
-  padding: 4px 6px;
-  font-size: 12px;
+  padding: 8px 10px;
+  font-size: 14px;
   border: none;
-  border-radius: 3px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
@@ -203,15 +234,14 @@
   background-color: #c82333;
 }
 
-/* Category badge colors */
 .category-badge {
   display: inline-block;
-  padding: 2px 8px;
-  font-size: 0.75rem;
-  border-radius: 12px;
+  padding: 4px 10px;
+  font-size: 0.95rem;
+  border-radius: 14px;
   font-weight: bold;
   color: white;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .category-food {
@@ -238,5 +268,6 @@
   text-align: center;
   font-style: italic;
   color: #777;
-  margin-top: 30px;
+  margin-top: 34px;
+  font-size: 16px;
 }

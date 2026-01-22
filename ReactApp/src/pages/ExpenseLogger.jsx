@@ -27,6 +27,8 @@ export default function ExpenseLogger() {
 
   const [backendStatus, setBackendStatus] = useState("checking...")
   const [expenses, setExpenses] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState("")
 
   const [date, setDate] = useState(today)
   const [filterDate, setFilterDate] = useState(today)
@@ -45,18 +47,30 @@ export default function ExpenseLogger() {
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
 
+  const reloadExpenses = async () => {
+    setLoading(true)
+    setErrorMsg("")
+    try {
+      const res = await axios.get(API_BASE)
+      setExpenses(Array.isArray(res.data) ? res.data : [])
+    } catch (err) {
+      setExpenses([])
+      setErrorMsg("Could not load expenses from the backend.")
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     axios
       .get(HEALTH_URL)
-      .then((res) => setBackendStatus(String(res.data)))
+      .then((res) => setBackendStatus(typeof res.data === "string" ? res.data : "online"))
       .catch(() => setBackendStatus("offline"))
   }, [])
 
   useEffect(() => {
-    axios
-      .get(API_BASE)
-      .then((res) => setExpenses(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setExpenses([]))
+    reloadExpenses()
   }, [])
 
   const resetForm = () => {
@@ -70,6 +84,7 @@ export default function ExpenseLogger() {
     setToZone("")
     setIsPeak(true)
     setEditId(null)
+    setErrorMsg("")
   }
 
   const closeForm = () => {
@@ -104,41 +119,80 @@ export default function ExpenseLogger() {
     return filteredExpenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0)
   }, [filteredExpenses])
 
+  const buildPayload = () => {
+    const base = {
+      date,
+      description: description || "",
+      amount: Number(amount),
+      category,
+      mood: mood || "",
+    }
+
+    if (category !== "Travel") return base
+
+    const travel = {
+      subType,
+      isPeak: Boolean(isPeak),
+    }
+
+    if (subType === "Train") {
+      travel.fromZone = fromZone === "" ? null : Number(fromZone)
+      travel.toZone = toZone === "" ? null : Number(toZone)
+    }
+
+    return { ...base, ...travel }
+  }
+
+  const validate = () => {
+    if (!category) return "Pick a category."
+    if (amount === "" || Number.isNaN(Number(amount))) return "Enter a valid amount."
+
+    if (category === "Travel") {
+      if (!subType) return "Select Travel Type."
+      if (subType === "Train") {
+        if (!fromZone || !toZone) return "Select From Zone and To Zone."
+        if (fromZone === toZone) return "From Zone and To Zone can’t be the same."
+      }
+    }
+
+    return ""
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (amount === "" || category === "") return
+    setErrorMsg("")
 
-    const payload = {
-      date,
-      description,
-      amount: parseFloat(amount),
-      category,
-      mood,
-      subType,
-      fromZone,
-      toZone,
-      isPeak,
+    const v = validate()
+    if (v) {
+      setErrorMsg(v)
+      return
     }
+
+    const payload = buildPayload()
 
     try {
       if (editId) {
-        const res = await axios.put(`${API_BASE}/${editId}`, payload)
-        const updated = res.data?.id ? res.data : { id: editId, ...payload }
-        setExpenses((prev) => prev.map((x) => (x.id === editId ? updated : x)))
+        await axios.put(`${API_BASE}/${editId}`, payload)
       } else {
-        const res = await axios.post(API_BASE, payload)
-        const created = res.data?.id ? res.data : { id: Date.now(), ...payload }
-        setExpenses((prev) => [created, ...prev])
+        await axios.post(API_BASE, payload)
       }
+      await reloadExpenses()
       closeForm()
-    } catch (err) {}
+    } catch (err) {
+      setErrorMsg("Save failed. Check backend logs / CORS / validation.")
+      console.error(err)
+    }
   }
 
   const handleDelete = async (id) => {
+    setErrorMsg("")
     try {
       await axios.delete(`${API_BASE}/${id}`)
-      setExpenses((prev) => prev.filter((x) => x.id !== id))
-    } catch (err) {}
+      await reloadExpenses()
+    } catch (err) {
+      setErrorMsg("Delete failed.")
+      console.error(err)
+    }
   }
 
   return (
@@ -178,9 +232,13 @@ export default function ExpenseLogger() {
             setShowForm(true)
           }}
         >
-          {showForm ? "Cancel" : editId ? "Cancel Edit" : "Add Expense"}
+          {showForm ? "Cancel" : "Add Expense"}
         </button>
       </div>
+
+      {errorMsg && <div className="error-banner">{errorMsg}</div>}
+
+      {loading && <div className="loading-banner">Loading…</div>}
 
       {filteredExpenses.length > 0 && (
         <div className="daily-total">
@@ -205,9 +263,7 @@ export default function ExpenseLogger() {
                 {categories.map((cat) => (
                   <div
                     key={cat}
-                    className={`category-icon-card ${
-                      category === cat ? "active" : ""
-                    }`}
+                    className={`category-icon-card ${category === cat ? "active" : ""}`}
                     onClick={() => {
                       setCategory(cat)
                       setSubType("")
@@ -318,11 +374,7 @@ export default function ExpenseLogger() {
           {filteredExpenses.map((exp) => (
             <div key={exp.id} className="expense-card">
               <div className="expense-info">
-                <span
-                  className={`category-badge ${getCategoryBadgeClass(
-                    exp.category
-                  )}`}
-                >
+                <span className={`category-badge ${getCategoryBadgeClass(exp.category)}`}>
                   {exp.category}
                 </span>
 
@@ -335,9 +387,7 @@ export default function ExpenseLogger() {
                   <p>
                     {exp.subType}
                     {exp.subType === "Train" && exp.fromZone && exp.toZone
-                      ? ` • Zone ${exp.fromZone} → ${exp.toZone} • ${
-                          exp.isPeak ? "Peak" : "Off-Peak"
-                        }`
+                      ? ` • Zone ${exp.fromZone} → ${exp.toZone} • ${exp.isPeak ? "Peak" : "Off-Peak"}`
                       : ""}
                   </p>
                 )}
@@ -354,8 +404,8 @@ export default function ExpenseLogger() {
                     setCategory(exp.category || "")
                     setMood(exp.mood || "")
                     setSubType(exp.subType || "")
-                    setFromZone(exp.fromZone || "")
-                    setToZone(exp.toZone || "")
+                    setFromZone(exp.fromZone?.toString?.() || "")
+                    setToZone(exp.toZone?.toString?.() || "")
                     setIsPeak(exp.isPeak ?? true)
                     setShowForm(true)
                   }}
@@ -363,10 +413,7 @@ export default function ExpenseLogger() {
                   Edit
                 </button>
 
-                <button
-                  className="delete-btn"
-                  onClick={() => handleDelete(exp.id)}
-                >
+                <button className="delete-btn" onClick={() => handleDelete(exp.id)}>
                   Delete
                 </button>
               </div>
