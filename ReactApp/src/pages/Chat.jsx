@@ -1,15 +1,17 @@
 import React, { useState, useRef, useEffect } from "react"
 import axios from "axios"
 import { Link } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 import "./css/Chat.css"
 
 const CHAT_API = "http://localhost:8080/api/chat"
 
 export default function Chat() {
+  const { user, logout } = useAuth()
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "Hi! I'm your financial assistant. I can help you understand your spending habits, offer budgeting advice, or just chat. How can I help you today?"
+      content: "Hi! I'm your AI financial assistant. I can help you understand your spending habits, offer budgeting advice, and answer questions about your finances. How can I help you today?"
     }
   ])
   const [input, setInput] = useState("")
@@ -32,7 +34,6 @@ export default function Chat() {
     const userMessage = input.trim()
     setInput("")
 
-    // Add user message to chat
     setMessages(prev => [...prev, { role: "user", content: userMessage }])
     setIsLoading(true)
 
@@ -59,75 +60,140 @@ export default function Chat() {
 
   const suggestedQuestions = [
     "How much did I spend this week?",
-    "What's my biggest expense category?",
-    "Give me tips to save money",
-    "Analyze my spending habits"
+    "What's my biggest expense?",
+    "Tips to save money",
+    "Analyze my spending"
   ]
 
-  const handleSuggestion = (question) => {
-    setInput(question)
-  }
-
   return (
-    <div className="chat-container">
-      <div className="chat-header">
-        <Link to="/" className="back-link">← Back to Expenses</Link>
-        <h2>Financial Assistant</h2>
-        <label className="context-toggle">
-          <input
-            type="checkbox"
-            checked={includeContext}
-            onChange={(e) => setIncludeContext(e.target.checked)}
-          />
-          Include my expense data
-        </label>
-      </div>
+    <div className="chat-page">
+      <nav className="chat-nav">
+        <div className="nav-left">
+          <Link to="/" className="logo">
+            <span className="logo-icon">£</span>
+            <span className="logo-text">ExpenseTracker</span>
+          </Link>
+        </div>
+        <div className="nav-center">
+          <h1>AI Financial Assistant</h1>
+        </div>
+        <div className="nav-right">
+          <Link to="/expenses" className="nav-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            Dashboard
+          </Link>
+          <button onClick={logout} className="nav-btn logout">Logout</button>
+        </div>
+      </nav>
 
-      <div className="chat-messages">
-        {messages.map((msg, index) => (
-          <div key={index} className={`message ${msg.role}`}>
-            <div className="message-content">
-              {msg.content}
+      <div className="chat-container">
+        <div className="chat-sidebar">
+          <div className="sidebar-section">
+            <h3>Settings</h3>
+            <label className="toggle-option">
+              <div className="toggle-info">
+                <span className="toggle-label">Include expense data</span>
+                <span className="toggle-desc">Let AI analyze your spending</span>
+              </div>
+              <div className={`toggle-switch ${includeContext ? 'active' : ''}`} onClick={() => setIncludeContext(!includeContext)}>
+                <div className="toggle-handle"></div>
+              </div>
+            </label>
+          </div>
+
+          <div className="sidebar-section">
+            <h3>Quick Questions</h3>
+            <div className="quick-questions">
+              {suggestedQuestions.map((q, i) => (
+                <button key={i} onClick={() => setInput(q)} className="quick-btn">
+                  {q}
+                </button>
+              ))}
             </div>
           </div>
-        ))}
-        {isLoading && (
-          <div className="message assistant">
-            <div className="message-content typing">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
 
-      {messages.length === 1 && (
-        <div className="suggestions">
-          <p>Try asking:</p>
-          <div className="suggestion-chips">
-            {suggestedQuestions.map((q, i) => (
-              <button key={i} onClick={() => handleSuggestion(q)}>
-                {q}
-              </button>
-            ))}
+          <div className="sidebar-section tips">
+            <h3>Tips</h3>
+            <p>Ask me about your spending patterns, budget recommendations, or financial goals!</p>
           </div>
         </div>
-      )}
 
-      <form onSubmit={handleSubmit} className="chat-input-form">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask me about your finances..."
-          disabled={isLoading}
-        />
-        <button type="submit" disabled={isLoading || !input.trim()}>
-          Send
-        </button>
-      </form>
+        <div className="chat-main">
+          <div className="messages-container">
+            {messages.map((msg, index) => (
+              <div key={index} className={`message ${msg.role}`}>
+                <div className="message-avatar">
+                  {msg.role === "assistant" ? (
+                    <div className="avatar ai">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
+                        <path d="M12 2a7 7 0 0 1 7 7"/>
+                      </svg>
+                    </div>
+                  ) : (
+                    <div className="avatar user">
+                      {user?.name?.charAt(0) || "U"}
+                    </div>
+                  )}
+                </div>
+                <div className="message-content">
+                  <div className="message-header">
+                    <span className="message-author">
+                      {msg.role === "assistant" ? "AI Assistant" : user?.name || "You"}
+                    </span>
+                  </div>
+                  <div className="message-text">{msg.content}</div>
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="message assistant">
+                <div className="message-avatar">
+                  <div className="avatar ai">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
+                      <path d="M12 2a7 7 0 0 1 7 7"/>
+                    </svg>
+                  </div>
+                </div>
+                <div className="message-content">
+                  <div className="message-header">
+                    <span className="message-author">AI Assistant</span>
+                  </div>
+                  <div className="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <form onSubmit={handleSubmit} className="input-form">
+            <div className="input-wrapper">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask me anything about your finances..."
+                disabled={isLoading}
+              />
+              <button type="submit" disabled={isLoading || !input.trim()}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </div>
+            <p className="input-hint">Press Enter to send</p>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }
