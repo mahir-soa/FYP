@@ -35,6 +35,39 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            String otp = request.get("otp");
+
+            if (email == null || otp == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Email and verification code are required"));
+            }
+
+            Map<String, Object> response = authService.verifyOtp(email, otp);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendOtp(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+
+            if (email == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+            }
+
+            Map<String, Object> response = authService.resendOtp(email);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
         try {
