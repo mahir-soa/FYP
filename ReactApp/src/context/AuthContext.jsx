@@ -37,6 +37,20 @@ export function AuthProvider({ children }) {
     return res.data
   }
 
+  const verifyOtp = async (email, otp) => {
+    const res = await api.post("/auth/verify-otp", { email, otp })
+    const { token, user } = res.data
+    localStorage.setItem("token", token)
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`
+    setUser(user)
+    return res.data
+  }
+
+  const resendOtp = async (email) => {
+    const res = await api.post("/auth/resend-otp", { email })
+    return res.data
+  }
+
   const verifyEmail = async (token) => {
     const res = await api.post("/auth/verify-email", { token })
     return res.data
@@ -69,6 +83,8 @@ export function AuthProvider({ children }) {
       loading,
       login,
       register,
+      verifyOtp,
+      resendOtp,
       verifyEmail,
       resendVerification,
       forgotPassword,

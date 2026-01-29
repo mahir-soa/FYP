@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import "./css/Register.css"
 
@@ -10,9 +10,8 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
-  const [resending, setResending] = useState(false)
-  const { register, resendVerification } = useAuth()
+  const { register } = useAuth()
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -32,55 +31,12 @@ export default function Register() {
 
     try {
       await register(name, email, password)
-      setEmailSent(true)
+      navigate("/verify-otp", { state: { email } })
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed. Please try again.")
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleResendEmail = async () => {
-    setResending(true)
-    setError("")
-    try {
-      await resendVerification(email)
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to resend email")
-    } finally {
-      setResending(false)
-    }
-  }
-
-  if (emailSent) {
-    return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <div className="success-icon">✉️</div>
-          <h2>Check Your Email</h2>
-          <p className="auth-subtitle">
-            We've sent a verification link to <strong>{email}</strong>
-          </p>
-          <p className="auth-info">
-            Click the link in the email to verify your account and get started.
-          </p>
-
-          {error && <div className="error-banner">{error}</div>}
-
-          <button
-            onClick={handleResendEmail}
-            className="auth-btn secondary"
-            disabled={resending}
-          >
-            {resending ? "Sending..." : "Resend Email"}
-          </button>
-
-          <p className="auth-footer">
-            <Link to="/login">Back to Sign In</Link>
-          </p>
-        </div>
-      </div>
-    )
   }
 
   return (
