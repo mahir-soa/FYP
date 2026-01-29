@@ -27,6 +27,49 @@ public class EmailService {
         this.mailSender = mailSender;
     }
 
+    public void sendOtpEmail(String to, String name, String otp) {
+        // Always log the OTP for development/testing
+        logger.info("========================================");
+        logger.info("OTP VERIFICATION EMAIL for {}", to);
+        logger.info("OTP Code: {}", otp);
+        logger.info("========================================");
+
+        String subject = "Your Verification Code - ExpenseTracker";
+
+        String htmlContent = """
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #16a34a; padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">ExpenseTracker</h1>
+                </div>
+                <div style="padding: 30px; background: #f9fafb;">
+                    <h2 style="color: #111827;">Hi %s,</h2>
+                    <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+                        Thanks for signing up! Use the verification code below to complete your registration.
+                    </p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <div style="background: #111827; color: white; padding: 20px 40px; border-radius: 12px; display: inline-block;">
+                            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px;">%s</span>
+                        </div>
+                    </div>
+                    <p style="color: #6b7280; font-size: 14px; text-align: center;">
+                        This code will expire in <strong>10 minutes</strong>.
+                    </p>
+                    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+                    <p style="color: #9ca3af; font-size: 12px;">
+                        If you didn't create an account, you can safely ignore this email.
+                    </p>
+                </div>
+            </div>
+            """.formatted(name, otp);
+
+        try {
+            sendHtmlEmail(to, subject, htmlContent);
+            logger.info("OTP email sent successfully to {}", to);
+        } catch (Exception e) {
+            logger.warn("Failed to send OTP email to {}: {}. Use the logged OTP above to verify manually.", to, e.getMessage());
+        }
+    }
+
     public void sendVerificationEmail(String to, String name, String token) {
         String verifyUrl = frontendUrl + "/verify-email?token=" + token;
 
