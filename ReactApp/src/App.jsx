@@ -8,6 +8,7 @@ import VerifyEmail from "./pages/VerifyEmail"
 import ForgotPassword from "./pages/ForgotPassword"
 import ResetPassword from "./pages/ResetPassword"
 import ExpenseLogger from "./pages/ExpenseLogger"
+import SubscriptionTracker from "./pages/SubscriptionTracker"
 import Chat from "./pages/Chat"
 
 function ProtectedRoute({ children }) {
@@ -39,6 +40,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ExpenseLogger />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/subscriptions"
+        element={
+          <ProtectedRoute>
+            <SubscriptionTracker />
           </ProtectedRoute>
         }
       />
