@@ -2,7 +2,7 @@
 
 .home {
   min-height: 100vh;
-  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 35%, #ecfdf5 65%, #d1fae5 100%);
+  background: transparent;
 }
 
 /* Buttons */

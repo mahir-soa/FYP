@@ -2,7 +2,7 @@
 
 .subscription-page {
   min-height: 100vh;
-  background: var(--gray-50);
+  background: transparent;
 }
 
 /* Main Content */
