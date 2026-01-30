@@ -48,6 +48,7 @@ public class SubscriptionController {
                     existing.setLastUsedDate(subscription.getLastUsedDate());
                     existing.setStatus(subscription.getStatus());
                     existing.setProviderKey(subscription.getProviderKey());
+                    existing.setCategory(subscription.getCategory());
                     return subscriptionRepository.save(existing);
                 })
                 .orElseThrow(() -> new RuntimeException("Subscription not found with id: " + id));

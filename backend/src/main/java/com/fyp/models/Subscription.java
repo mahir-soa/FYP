@@ -20,7 +20,8 @@ public class Subscription {
     private String nextPaymentDate; // YYYY-MM-DD
     private String lastUsedDate; // YYYY-MM-DD
     private String status; // ACTIVE, PAUSED, CANCELLED
-    private String providerKey; // netflix, spotify, prime, disney, hulu, youtube, apple, hbo, other
+    private String providerKey; // netflix, spotify, prime, disney, hulu, youtube, apple, hbo, gym, puregym, davidlloyd, virgin, other
+    private String category; // STREAMING, GYM, MUSIC, GAMING, SOFTWARE, OTHER
 
     public Subscription() {
     }
@@ -83,5 +84,13 @@ public class Subscription {
 
     public void setProviderKey(String providerKey) {
         this.providerKey = providerKey;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 }
