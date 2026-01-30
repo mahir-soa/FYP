@@ -1,6 +1,7 @@
 import { useState, useRef } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import nudgeLogo from "../assets/nudge logo.PNG"
 
 export default function Navbar() {
   const { user, logout, updateProfile, changePassword } = useAuth()
@@ -110,8 +111,7 @@ export default function Navbar() {
       <nav className="navbar">
         <div className="nav-container">
           <Link to="/" className="logo">
-            <span className="logo-icon">N</span>
-            <span className="logo-text">Nudge</span>
+            <img src={nudgeLogo} alt="Nudge" className="logo-img" />
           </Link>
           <div className="nav-right">
             {user ? (
