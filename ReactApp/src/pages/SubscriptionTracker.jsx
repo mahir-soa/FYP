@@ -8,16 +8,48 @@ const API_BASE = "http://localhost:8080/api/subscriptions"
 
 const billingCycles = ["WEEKLY", "MONTHLY", "YEARLY"]
 
+const categories = [
+  { key: "STREAMING", name: "Streaming", icon: "📺" },
+  { key: "GYM", name: "Gym & Fitness", icon: "💪" },
+  { key: "MUSIC", name: "Music", icon: "🎵" },
+  { key: "GAMING", name: "Gaming", icon: "🎮" },
+  { key: "SOFTWARE", name: "Software", icon: "💻" },
+  { key: "OTHER", name: "Other", icon: "📦" },
+]
+
 const providers = [
-  { key: "netflix", name: "Netflix", color: "#E50914" },
-  { key: "spotify", name: "Spotify", color: "#1DB954" },
-  { key: "prime", name: "Prime", color: "#00A8E1" },
-  { key: "disney", name: "Disney+", color: "#113CCF" },
-  { key: "hulu", name: "Hulu", color: "#1CE783" },
-  { key: "youtube", name: "YouTube", color: "#FF0000" },
-  { key: "apple", name: "Apple", color: "#A2AAAD" },
-  { key: "hbo", name: "HBO Max", color: "#B388FF" },
-  { key: "other", name: "Other", color: "#6B7280" },
+  // Streaming
+  { key: "netflix", name: "Netflix", color: "#E50914", category: "STREAMING" },
+  { key: "prime", name: "Prime Video", color: "#00A8E1", category: "STREAMING" },
+  { key: "disney", name: "Disney+", color: "#113CCF", category: "STREAMING" },
+  { key: "hulu", name: "Hulu", color: "#1CE783", category: "STREAMING" },
+  { key: "hbo", name: "HBO Max", color: "#B388FF", category: "STREAMING" },
+  { key: "youtube", name: "YouTube Premium", color: "#FF0000", category: "STREAMING" },
+  { key: "other-streaming", name: "Other", color: "#6B7280", category: "STREAMING" },
+  // Music
+  { key: "spotify", name: "Spotify", color: "#1DB954", category: "MUSIC" },
+  { key: "apple", name: "Apple Music", color: "#FA2D48", category: "MUSIC" },
+  { key: "other-music", name: "Other", color: "#6B7280", category: "MUSIC" },
+  // Gym & Fitness
+  { key: "puregym", name: "PureGym", color: "#FFD700", category: "GYM" },
+  { key: "thegym", name: "The Gym", color: "#00BFFF", category: "GYM" },
+  { key: "davidlloyd", name: "David Lloyd", color: "#1E3A5F", category: "GYM" },
+  { key: "virgin", name: "Virgin Active", color: "#ED1C24", category: "GYM" },
+  { key: "nuffield", name: "Nuffield Health", color: "#00A651", category: "GYM" },
+  { key: "gymshark", name: "Gymshark", color: "#000000", category: "GYM" },
+  { key: "other-gym", name: "Other", color: "#6B7280", category: "GYM" },
+  // Gaming
+  { key: "xbox", name: "Xbox Game Pass", color: "#107C10", category: "GAMING" },
+  { key: "playstation", name: "PlayStation Plus", color: "#003791", category: "GAMING" },
+  { key: "nintendo", name: "Nintendo Online", color: "#E60012", category: "GAMING" },
+  { key: "other-gaming", name: "Other", color: "#6B7280", category: "GAMING" },
+  // Software
+  { key: "adobe", name: "Adobe CC", color: "#FF0000", category: "SOFTWARE" },
+  { key: "microsoft", name: "Microsoft 365", color: "#0078D4", category: "SOFTWARE" },
+  { key: "notion", name: "Notion", color: "#000000", category: "SOFTWARE" },
+  { key: "other-software", name: "Other", color: "#6B7280", category: "SOFTWARE" },
+  // Other
+  { key: "other", name: "Other", color: "#6B7280", category: "OTHER" },
 ]
 
 const ProviderIcon = ({ providerKey, size = 24 }) => {
@@ -72,10 +104,61 @@ const ProviderIcon = ({ providerKey, size = 24 }) => {
           <path d="M7.042 16.896H4.414v-3.754H2.708v3.754H.038V7.104h2.67v3.588h1.706V7.104h2.628v9.792zm4.266 0H8.62V7.104h5.374v2.238h-2.686v1.406h2.457v2.238h-2.457v1.672h2.686v2.238zm10.654-4.896c0 2.934-1.896 5.016-4.584 5.016-2.664 0-4.56-2.082-4.56-5.016s1.896-5.016 4.56-5.016c2.688 0 4.584 2.082 4.584 5.016zm-2.73 0c0-1.656-.768-2.604-1.854-2.604-1.074 0-1.854.948-1.854 2.604s.78 2.604 1.854 2.604c1.086 0 1.854-.948 1.854-2.604z"/>
         </svg>
       )
+    // Gym icons
+    case "puregym":
+    case "thegym":
+    case "davidlloyd":
+    case "virgin":
+    case "nuffield":
+    case "gymshark":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill={providerKey === "puregym" ? "#FFD700" : providerKey === "thegym" ? "#00BFFF" : providerKey === "davidlloyd" ? "#1E3A5F" : providerKey === "virgin" ? "#ED1C24" : providerKey === "nuffield" ? "#00A651" : "#000000"}>
+          <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/>
+        </svg>
+      )
+    // Gaming icons
+    case "xbox":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#107C10">
+          <path d="M4.102 21.033C6.211 22.881 8.977 24 12 24c3.026 0 5.789-1.119 7.902-2.967 1.877-1.912-4.316-8.709-7.902-11.417-3.582 2.708-9.779 9.505-7.898 11.417zm11.16-14.406c2.5 2.961 7.484 10.313 6.076 12.912C23.056 17.036 24 14.61 24 12c0-4.09-2.148-7.666-5.332-9.561a.077.077 0 0 0-.105.031c-.156.26-2.025 2.637-3.301 4.157zM2.665 19.539c-1.41-2.6 3.574-9.951 6.074-12.912C7.465 5.158 5.598 2.79 5.438 2.47a.077.077 0 0 0-.104-.031C2.148 4.334 0 7.91 0 12c0 2.614.948 5.04 2.665 7.539zM12 .845S8.387 4.468 5.5 7.5C8.5 4.5 12 1.845 12 .845zm0 0S15.613 4.468 18.5 7.5C15.5 4.5 12 1.845 12 .845z"/>
+        </svg>
+      )
+    case "playstation":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#003791">
+          <path d="M8.985 2.596v17.548l3.915 1.261V6.688c0-.69.304-1.151.794-.991.636.181.76.814.76 1.505v5.876c2.441 1.193 4.362-.002 4.362-3.153 0-3.237-1.126-4.675-4.438-5.827-1.307-.448-3.728-1.186-5.393-1.502zm5.525 16.673l7.175-2.545c.818-.306.94-.691.275-1.024-.665-.334-1.863-.238-2.681.068l-4.77 1.729V15.51l.273-.097s1.363-.49 3.285-.707c1.923-.216 4.276.066 6.127.925 2.093.86 2.327 2.13 1.79 3.022-.536.893-1.863 1.588-1.863 1.588l-9.611 3.486v-2.958zM1.79 18.285c-2.03-.604-2.373-1.866-1.455-2.593.84-.658 2.28-1.152 2.28-1.152l5.94-2.163v2.974l-4.267 1.547c-.818.305-.94.69-.274 1.023.665.334 1.863.238 2.68-.068l1.861-.696v2.635c-.138.025-.287.048-.442.07-1.792.263-3.712.026-5.383-.577z"/>
+        </svg>
+      )
+    case "nintendo":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#E60012">
+          <path d="M0 .6h7.1l9.85 15.9V.6H24v22.8h-7.04L7.06 7.5v15.9H0V.6z"/>
+        </svg>
+      )
+    // Software icons
+    case "adobe":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#FF0000">
+          <path d="M13.966 22.624l-1.69-4.281H8.122l3.892-9.144 5.662 13.425h-3.71zm-8.469 0H0l6.305-14.904h5.192L5.497 22.624zm18.503 0h-5.497L13.842 7.72h5.192l5.166 14.904z"/>
+        </svg>
+      )
+    case "microsoft":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#0078D4">
+          <path d="M0 0h11.377v11.372H0zm12.623 0H24v11.372H12.623zM0 12.623h11.377V24H0zm12.623 0H24V24H12.623z"/>
+        </svg>
+      )
+    case "notion":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#000000">
+          <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.98-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.934zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"/>
+        </svg>
+      )
     default:
+      // Subscription/recurring payment icon
       return (
         <svg style={iconStyle} viewBox="0 0 24 24" fill="#6B7280">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
         </svg>
       )
   }
@@ -135,6 +218,7 @@ export default function SubscriptionTracker() {
   const [lastUsedDate, setLastUsedDate] = useState("")
   const [status, setStatus] = useState("ACTIVE")
   const [providerKey, setProviderKey] = useState("other")
+  const [category, setCategory] = useState("OTHER")
 
   const [upcomingDays, setUpcomingDays] = useState(7)
   const [inactiveDays, setInactiveDays] = useState(30)
@@ -167,6 +251,7 @@ export default function SubscriptionTracker() {
     setLastUsedDate("")
     setStatus("ACTIVE")
     setProviderKey("other")
+    setCategory("OTHER")
     setEditId(null)
     setErrorMsg("")
   }
@@ -244,6 +329,7 @@ export default function SubscriptionTracker() {
       lastUsedDate: lastUsedDate || null,
       status,
       providerKey,
+      category,
     }
 
     try {
@@ -302,8 +388,19 @@ export default function SubscriptionTracker() {
     setLastUsedDate(sub.lastUsedDate || "")
     setStatus(sub.status || "ACTIVE")
     setProviderKey(sub.providerKey || "other")
+    setCategory(sub.category || "OTHER")
     setShowForm(true)
   }
+
+  const groupedSubscriptions = useMemo(() => {
+    const groups = {}
+    categories.forEach(cat => {
+      groups[cat.key] = filteredSubscriptions.filter(sub =>
+        (sub.category || "OTHER") === cat.key
+      )
+    })
+    return groups
+  }, [filteredSubscriptions])
 
   return (
     <div className="subscription-page">
@@ -431,60 +528,73 @@ export default function SubscriptionTracker() {
                 {filteredSubscriptions.length} subscription{filteredSubscriptions.length !== 1 ? "s" : ""}
               </span>
             </div>
-            <div className="subscription-list">
-              {filteredSubscriptions.map((sub) => {
-                const provider = getProviderInfo(sub.providerKey)
-                const daysUntil = getDaysUntil(sub.nextPaymentDate)
-                const daysSince = getDaysSince(sub.lastUsedDate)
-                return (
-                  <div key={sub.id} className={`subscription-card ${sub.status.toLowerCase()}`}>
-                    <div className="subscription-icon" style={{ backgroundColor: provider.color + "15" }}>
-                      <ProviderIcon providerKey={sub.providerKey} size={28} />
-                    </div>
-                    <div className="subscription-details">
-                      <div className="subscription-top">
-                        <span className="subscription-name">{sub.name}</span>
-                        <span className={`subscription-status status-${sub.status.toLowerCase()}`}>
-                          {sub.status}
-                        </span>
-                      </div>
-                      <div className="subscription-meta">
-                        <span className="subscription-cycle">
-                          £{sub.cost.toFixed(2)} / {sub.billingCycle.toLowerCase()}
-                        </span>
-                        {sub.nextPaymentDate && (
-                          <span className="subscription-payment">
-                            Next: {formatDisplayDate(sub.nextPaymentDate)}
-                            {daysUntil !== null && daysUntil >= 0 && daysUntil <= 7 && (
-                              <span className="payment-soon"> ({daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `${daysUntil}d`})</span>
-                            )}
-                          </span>
-                        )}
-                      </div>
-                      {sub.lastUsedDate && (
-                        <p className="subscription-used">
-                          Last used: {formatDisplayDate(sub.lastUsedDate)}
-                          {daysSince !== null && daysSince >= 30 && (
-                            <span className="unused-warning"> ({daysSince}d ago)</span>
-                          )}
-                        </p>
-                      )}
-                    </div>
-                    <span className="subscription-cost">£{sub.cost.toFixed(2)}</span>
-                    <div className="subscription-actions">
-                      {sub.status === "ACTIVE" && (
-                        <button className="action-btn mark" onClick={() => handleMarkUsed(sub.id)}>Mark Used</button>
-                      )}
-                      <button className="action-btn edit" onClick={() => handleEdit(sub)}>Edit</button>
-                      {sub.status === "ACTIVE" && (
-                        <button className="action-btn cancel" onClick={() => handleCancel(sub.id)}>Cancel</button>
-                      )}
-                      <button className="action-btn delete" onClick={() => handleDelete(sub.id)}>Delete</button>
-                    </div>
+            {categories.map(cat => {
+              const catSubs = groupedSubscriptions[cat.key]
+              if (!catSubs || catSubs.length === 0) return null
+              return (
+                <div key={cat.key} className="category-section">
+                  <div className="category-header">
+                    <span className="category-icon">{cat.icon}</span>
+                    <span className="category-name">{cat.name}</span>
+                    <span className="category-count">{catSubs.length}</span>
                   </div>
-                )
-              })}
-            </div>
+                  <div className="subscription-list">
+                    {catSubs.map((sub) => {
+                      const provider = getProviderInfo(sub.providerKey)
+                      const daysUntil = getDaysUntil(sub.nextPaymentDate)
+                      const daysSince = getDaysSince(sub.lastUsedDate)
+                      return (
+                        <div key={sub.id} className={`subscription-card ${sub.status.toLowerCase()}`}>
+                          <div className="subscription-icon" style={{ backgroundColor: provider.color + "15" }}>
+                            <ProviderIcon providerKey={sub.providerKey} size={28} />
+                          </div>
+                          <div className="subscription-details">
+                            <div className="subscription-top">
+                              <span className="subscription-name">{sub.name}</span>
+                              <span className={`subscription-status status-${sub.status.toLowerCase()}`}>
+                                {sub.status}
+                              </span>
+                            </div>
+                            <div className="subscription-meta">
+                              <span className="subscription-cycle">
+                                £{sub.cost.toFixed(2)} / {sub.billingCycle.toLowerCase()}
+                              </span>
+                              {sub.nextPaymentDate && (
+                                <span className="subscription-payment">
+                                  Next: {formatDisplayDate(sub.nextPaymentDate)}
+                                  {daysUntil !== null && daysUntil >= 0 && daysUntil <= 7 && (
+                                    <span className="payment-soon"> ({daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `${daysUntil}d`})</span>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                            {sub.lastUsedDate && (
+                              <p className="subscription-used">
+                                Last used: {formatDisplayDate(sub.lastUsedDate)}
+                                {daysSince !== null && daysSince >= 30 && (
+                                  <span className="unused-warning"> ({daysSince}d ago)</span>
+                                )}
+                              </p>
+                            )}
+                          </div>
+                          <span className="subscription-cost">£{sub.cost.toFixed(2)}</span>
+                          <div className="subscription-actions">
+                            {sub.status === "ACTIVE" && (
+                              <button className="action-btn mark" onClick={() => handleMarkUsed(sub.id)}>Mark Used</button>
+                            )}
+                            <button className="action-btn edit" onClick={() => handleEdit(sub)}>Edit</button>
+                            {sub.status === "ACTIVE" && (
+                              <button className="action-btn cancel" onClick={() => handleCancel(sub.id)}>Cancel</button>
+                            )}
+                            <button className="action-btn delete" onClick={() => handleDelete(sub.id)}>Delete</button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </>
         ) : (
           <div className="empty-state">
@@ -515,9 +625,29 @@ export default function SubscriptionTracker() {
 
             <form onSubmit={handleSubmit} className="subscription-form">
               <div className="form-group">
+                <label>Category</label>
+                <div className="category-grid">
+                  {categories.map((cat) => (
+                    <div
+                      key={cat.key}
+                      className={`category-option ${category === cat.key ? "selected" : ""}`}
+                      onClick={() => {
+                        setCategory(cat.key)
+                        setProviderKey("other")
+                        setName("")
+                      }}
+                    >
+                      <span className="cat-icon">{cat.icon}</span>
+                      <span>{cat.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
                 <label>Provider</label>
                 <div className="provider-grid">
-                  {providers.map((p) => (
+                  {providers.filter(p => p.category === category).map((p) => (
                     <div
                       key={p.key}
                       className={`provider-option ${providerKey === p.key ? "selected" : ""}`}
