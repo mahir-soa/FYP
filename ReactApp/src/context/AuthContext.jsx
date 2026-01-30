@@ -9,12 +9,25 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem("token")
+    const savedProfilePicture = localStorage.getItem("profilePicture")
+    const savedUserName = localStorage.getItem("userName")
     if (token) {
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`
       api.get("/auth/me")
-        .then(res => setUser(res.data))
+        .then(res => {
+          const userData = res.data
+          if (savedProfilePicture) {
+            userData.profilePicture = savedProfilePicture
+          }
+          if (savedUserName) {
+            userData.name = savedUserName
+          }
+          setUser(userData)
+        })
         .catch(() => {
           localStorage.removeItem("token")
+          localStorage.removeItem("profilePicture")
+          localStorage.removeItem("userName")
           delete api.defaults.headers.common["Authorization"]
         })
         .finally(() => setLoading(false))
@@ -71,8 +84,35 @@ export function AuthProvider({ children }) {
     return res.data
   }
 
+  const changePassword = async (currentPassword, newPassword) => {
+    const res = await api.post("/auth/change-password", { currentPassword, newPassword })
+    return res.data
+  }
+
+  const updateProfile = ({ name, profilePicture }) => {
+    // Update name
+    if (name && name !== user.name) {
+      localStorage.setItem("userName", name)
+    }
+
+    // Update profile picture
+    if (profilePicture) {
+      localStorage.setItem("profilePicture", profilePicture)
+    } else {
+      localStorage.removeItem("profilePicture")
+    }
+
+    setUser(prev => ({
+      ...prev,
+      name: name || prev.name,
+      profilePicture: profilePicture || null
+    }))
+  }
+
   const logout = () => {
     localStorage.removeItem("token")
+    localStorage.removeItem("profilePicture")
+    localStorage.removeItem("userName")
     delete api.defaults.headers.common["Authorization"]
     setUser(null)
   }
@@ -89,6 +129,8 @@ export function AuthProvider({ children }) {
       resendVerification,
       forgotPassword,
       resetPassword,
+      changePassword,
+      updateProfile,
       logout
     }}>
       {children}
