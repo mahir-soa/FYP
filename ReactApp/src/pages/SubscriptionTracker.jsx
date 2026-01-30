@@ -8,6 +8,16 @@ const API_BASE = "http://localhost:8080/api/subscriptions"
 
 const billingCycles = ["WEEKLY", "MONTHLY", "YEARLY"]
 
+const fetchProviderPricing = async (providerKey) => {
+  try {
+    const res = await axios.get(`${API_BASE}/pricing/${providerKey}`)
+    return res.data
+  } catch (err) {
+    console.error("Failed to fetch pricing:", err)
+    return { plans: [], hasPlans: false }
+  }
+}
+
 const categories = [
   { key: "STREAMING", name: "Streaming", icon: "📺" },
   { key: "GYM", name: "Gym & Fitness", icon: "💪" },
@@ -154,8 +164,50 @@ const ProviderIcon = ({ providerKey, size = 24 }) => {
           <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.98-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.934zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"/>
         </svg>
       )
+    // Other - Streaming (TV icon)
+    case "other-streaming":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#6B7280">
+          <path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/>
+        </svg>
+      )
+    // Other - Music (music note icon)
+    case "other-music":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#6B7280">
+          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+        </svg>
+      )
+    // Other - Gym (dumbbell icon)
+    case "other-gym":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#6B7280">
+          <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/>
+        </svg>
+      )
+    // Other - Gaming (game controller icon)
+    case "other-gaming":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#6B7280">
+          <path d="M21.58 16.09l-1.09-7.66C20.21 6.46 18.52 5 16.53 5H7.47C5.48 5 3.79 6.46 3.51 8.43l-1.09 7.66C2.2 17.63 3.39 19 4.94 19c.68 0 1.32-.27 1.8-.75L9 16h6l2.25 2.25c.48.48 1.13.75 1.8.75 1.56 0 2.75-1.37 2.53-2.91zM11 11H9v2H8v-2H6v-1h2V8h1v2h2v1zm4-1c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2 3c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+        </svg>
+      )
+    // Other - Software (code/laptop icon)
+    case "other-software":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#6B7280">
+          <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+        </svg>
+      )
+    // Other - General (box/package icon)
+    case "other":
+      return (
+        <svg style={iconStyle} viewBox="0 0 24 24" fill="#6B7280">
+          <path d="M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H4V5h16v14zm-8-2h2v-2h-2v2zm0-4h2V7h-2v6z"/>
+        </svg>
+      )
     default:
-      // Subscription/recurring payment icon
+      // Fallback recurring payment icon
       return (
         <svg style={iconStyle} viewBox="0 0 24 24" fill="#6B7280">
           <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
@@ -219,6 +271,9 @@ export default function SubscriptionTracker() {
   const [status, setStatus] = useState("ACTIVE")
   const [providerKey, setProviderKey] = useState("other")
   const [category, setCategory] = useState("OTHER")
+  const [availablePlans, setAvailablePlans] = useState([])
+  const [selectedPlan, setSelectedPlan] = useState("custom")
+  const [loadingPlans, setLoadingPlans] = useState(false)
 
   const [upcomingDays, setUpcomingDays] = useState(7)
   const [inactiveDays, setInactiveDays] = useState(30)
@@ -252,6 +307,8 @@ export default function SubscriptionTracker() {
     setStatus("ACTIVE")
     setProviderKey("other")
     setCategory("OTHER")
+    setAvailablePlans([])
+    setSelectedPlan("custom")
     setEditId(null)
     setErrorMsg("")
   }
@@ -259,6 +316,46 @@ export default function SubscriptionTracker() {
   const closeForm = () => {
     resetForm()
     setShowForm(false)
+  }
+
+  const handleProviderSelect = async (provider) => {
+    setProviderKey(provider.key)
+    setSelectedPlan("custom")
+    setAvailablePlans([])
+
+    // For "Other" providers, clear name and cost for manual entry
+    if (provider.key.startsWith("other")) {
+      setName("")
+      setCost("")
+      return
+    }
+
+    // For named providers, auto-fill name if empty or was previously a provider name
+    if (!name || providers.some(p => p.name === name)) {
+      setName(provider.name)
+    }
+
+    setLoadingPlans(true)
+    try {
+      const pricingData = await fetchProviderPricing(provider.key)
+      if (pricingData.hasPlans && pricingData.plans.length > 0) {
+        setAvailablePlans(pricingData.plans)
+      }
+    } finally {
+      setLoadingPlans(false)
+    }
+  }
+
+  const handlePlanSelect = (plan) => {
+    if (plan === "custom") {
+      setSelectedPlan("custom")
+      setCost("")
+      setBillingCycle("MONTHLY")
+    } else {
+      setSelectedPlan(plan.plan)
+      setCost(plan.price.toString())
+      setBillingCycle(plan.cycle)
+    }
   }
 
   const filteredSubscriptions = useMemo(() => {
@@ -635,6 +732,8 @@ export default function SubscriptionTracker() {
                         setCategory(cat.key)
                         setProviderKey("other")
                         setName("")
+                        setAvailablePlans([])
+                        setSelectedPlan("custom")
                       }}
                     >
                       <span className="cat-icon">{cat.icon}</span>
@@ -651,12 +750,7 @@ export default function SubscriptionTracker() {
                     <div
                       key={p.key}
                       className={`provider-option ${providerKey === p.key ? "selected" : ""}`}
-                      onClick={() => {
-                        setProviderKey(p.key)
-                        if (!name && p.key !== "other") {
-                          setName(p.name)
-                        }
-                      }}
+                      onClick={() => handleProviderSelect(p)}
                       style={{ "--provider-color": p.color }}
                     >
                       <ProviderIcon providerKey={p.key} size={24} />
@@ -665,6 +759,35 @@ export default function SubscriptionTracker() {
                   ))}
                 </div>
               </div>
+
+              {loadingPlans && (
+                <div className="loading-plans">Loading plans...</div>
+              )}
+
+              {availablePlans.length > 0 && (
+                <div className="form-group">
+                  <label>Select Plan</label>
+                  <div className="plan-grid">
+                    {availablePlans.map((plan) => (
+                      <div
+                        key={plan.plan}
+                        className={`plan-option ${selectedPlan === plan.plan ? "selected" : ""}`}
+                        onClick={() => handlePlanSelect(plan)}
+                      >
+                        <span className="plan-name">{plan.plan}</span>
+                        <span className="plan-price">£{plan.price.toFixed(2)}/{plan.cycle.toLowerCase()}</span>
+                      </div>
+                    ))}
+                    <div
+                      className={`plan-option custom ${selectedPlan === "custom" ? "selected" : ""}`}
+                      onClick={() => handlePlanSelect("custom")}
+                    >
+                      <span className="plan-name">Custom</span>
+                      <span className="plan-price">Enter manually</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="form-group">
                 <label>Name</label>
