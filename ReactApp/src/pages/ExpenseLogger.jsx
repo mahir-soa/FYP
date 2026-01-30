@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import axios from "axios"
+import Navbar from "../components/Navbar"
 import "./css/ExpenseLogger.css"
 
 import foodIcon from "../assets/fast-food.png"
@@ -171,6 +171,9 @@ export default function ExpenseLogger() {
       case "week":
         setFilterDate(getDateString(-7))
         break
+      case "month":
+        setFilterDate(getDateString(-30))
+        break
       default:
         setFilterDate(getDateString(0))
     }
@@ -183,6 +186,14 @@ export default function ExpenseLogger() {
         (exp) =>
           (filterCategory === "All" || exp.category === filterCategory) &&
           exp.date >= weekAgo && exp.date <= today
+      )
+    }
+    if (quickFilter === "month") {
+      const monthAgo = getDateString(-30)
+      return expenses.filter(
+        (exp) =>
+          (filterCategory === "All" || exp.category === filterCategory) &&
+          exp.date >= monthAgo && exp.date <= today
       )
     }
     return expenses.filter(
@@ -308,20 +319,7 @@ export default function ExpenseLogger() {
 
   return (
     <div className="expense-page">
-      <nav className="expense-nav">
-        <div className="nav-brand">
-          <Link to="/">Expense<span>Tracker</span></Link>
-        </div>
-        <div className="nav-links">
-          <Link to="/chat" className="nav-link chat-btn">
-            Financial Assistant
-          </Link>
-          <span className="nav-user">{user?.name?.split(' ')[0]}</span>
-          <button onClick={logout} className="nav-link logout-btn">
-            Logout
-          </button>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="expense-main">
         <div className="expense-header">
@@ -330,15 +328,24 @@ export default function ExpenseLogger() {
         </div>
 
         <div className="stats-grid">
-          <div className="stat-card primary">
+          <div
+            className={`stat-card ${quickFilter === "today" ? "active" : ""}`}
+            onClick={() => handleQuickFilter("today")}
+          >
             <div className="stat-label">Today</div>
             <div className="stat-value">£{todayTotal.toFixed(2)}</div>
           </div>
-          <div className="stat-card">
+          <div
+            className={`stat-card ${quickFilter === "week" ? "active" : ""}`}
+            onClick={() => handleQuickFilter("week")}
+          >
             <div className="stat-label">This Week</div>
             <div className="stat-value">£{weekTotal.toFixed(2)}</div>
           </div>
-          <div className="stat-card">
+          <div
+            className={`stat-card ${quickFilter === "month" ? "active" : ""}`}
+            onClick={() => handleQuickFilter("month")}
+          >
             <div className="stat-label">This Month</div>
             <div className="stat-value">£{monthTotal.toFixed(2)}</div>
           </div>
@@ -396,7 +403,7 @@ export default function ExpenseLogger() {
           <>
             <div className="section-header">
               <h2 className="section-title">
-                {quickFilter === "week" ? "Past 7 Days" : formatDisplayDate(filterDate)}
+                {quickFilter === "week" ? "This Week" : quickFilter === "month" ? "This Month" : formatDisplayDate(filterDate)}
               </h2>
               <span className="expense-count">
                 {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? "s" : ""} · £{totalForPeriod.toFixed(2)}

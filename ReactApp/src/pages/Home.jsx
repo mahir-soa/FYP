@@ -1,52 +1,25 @@
 import { Link } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import Navbar from "../components/Navbar"
 import "./css/Home.css"
 
 export default function Home() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
 
   return (
     <div className="home">
-      <div className="home-bg">
-        <div className="blob blob-1"></div>
-        <div className="blob blob-2"></div>
-        <div className="blob blob-3"></div>
-      </div>
-
-      <nav className="navbar">
-        <div className="nav-container">
-          <Link to="/" className="logo">
-            <span className="logo-icon">£</span>
-            <span className="logo-text">ExpenseTracker</span>
-          </Link>
-          <div className="nav-right">
-            {user ? (
-              <>
-                <span className="welcome-text">Welcome, {user.name?.split(' ')[0]}</span>
-                <Link to="/expenses" className="nav-link">Dashboard</Link>
-                <Link to="/chat" className="nav-link">AI Assistant</Link>
-                <button onClick={logout} className="btn btn-outline">Logout</button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="nav-link">Sign In</Link>
-                <Link to="/register" className="btn btn-primary">Get Started</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="main-content">
         <section className="hero">
-          <div className="hero-badge">Smart Finance Management</div>
+          <div className="hero-badge">Smart Financial Companion</div>
           <h1 className="hero-title">
-            Take Control of Your
-            <span className="gradient-text"> Finances</span>
+            Your Gentle Push Towards
+            <span className="gradient-text"> Better Habits</span>
           </h1>
           <p className="hero-desc">
-            Track expenses effortlessly, get AI-powered insights, and make smarter
-            financial decisions. Your personal finance assistant is here.
+            Track spending, build better habits, and get AI-powered insights that
+            nudge you towards smarter financial decisions.
           </p>
           <div className="hero-buttons">
             {user ? (
@@ -96,8 +69,8 @@ export default function Home() {
         <section className="features">
           <div className="section-header">
             <span className="section-badge">Features</span>
-            <h2>Everything you need to manage money</h2>
-            <p>Powerful tools designed to help you understand and improve your spending habits.</p>
+            <h2>Small nudges, big changes</h2>
+            <p>Tools designed to gently guide you towards better financial habits.</p>
           </div>
           <div className="features-grid">
             <div className="feature-card">
@@ -135,8 +108,8 @@ export default function Home() {
         <section className="cta-section">
           <div className="cta-card">
             <div className="cta-content">
-              <h2>Ready to start saving?</h2>
-              <p>Join thousands of users who are already managing their finances smarter.</p>
+              <h2>Ready to get nudged?</h2>
+              <p>Join thousands of users building better financial habits every day.</p>
             </div>
             <Link to={user ? "/expenses" : "/register"} className="btn btn-white btn-lg">
               {user ? "Go to Dashboard" : "Get Started Free"}
@@ -148,10 +121,10 @@ export default function Home() {
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-brand">
-            <span className="logo-icon">£</span>
-            <span>ExpenseTracker</span>
+            <span className="logo-icon">N</span>
+            <span>Nudge</span>
           </div>
-          <p>Made with care for better financial decisions</p>
+          <p>Your personal finance companion</p>
         </div>
       </footer>
     </div>
