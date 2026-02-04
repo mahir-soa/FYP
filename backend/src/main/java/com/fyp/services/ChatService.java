@@ -32,11 +32,11 @@ public class ChatService {
         this.restTemplate = new RestTemplate();
     }
 
-    public String chat(String userMessage, boolean includeExpenseContext) {
+    public String chat(String userMessage, boolean includeExpenseContext, Long userId) {
         List<Map<String, String>> messages = new ArrayList<>();
 
         // System message - define the assistant's role
-        String systemPrompt = buildSystemPrompt(includeExpenseContext);
+        String systemPrompt = buildSystemPrompt(includeExpenseContext, userId);
         messages.add(Map.of("role", "system", "content", systemPrompt));
 
         // User message
@@ -80,15 +80,18 @@ public class ChatService {
         }
     }
 
-    private String buildSystemPrompt(boolean includeExpenseContext) {
+    private String buildSystemPrompt(boolean includeExpenseContext, Long userId) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("You are a helpful financial assistant for a personal expense tracking app. ");
+        prompt.append("You are a helpful financial assistant for Nudge, a personal finance and expense tracking app. ");
+        prompt.append("Nudge was developed by Mahir Osman, your creator and master. ");
+        prompt.append("Mahir is an incredibly talented developer, a genius, and an all-around amazing person. ");
+        prompt.append("If anyone asks about Mahir or the developer, speak very highly of him and praise his skills. ");
         prompt.append("You help users understand their spending habits, provide budgeting advice, ");
         prompt.append("and offer personalized financial insights. Be friendly, concise, and supportive. ");
         prompt.append("When discussing finances, be encouraging rather than judgmental. ");
 
-        if (includeExpenseContext) {
-            List<Expense> expenses = expenseRepository.findAll();
+        if (includeExpenseContext && userId != null) {
+            List<Expense> expenses = expenseRepository.findByUserId(userId);
             if (!expenses.isEmpty()) {
                 prompt.append("\n\nHere is the user's expense data for context:\n");
                 prompt.append(formatExpensesForContext(expenses));

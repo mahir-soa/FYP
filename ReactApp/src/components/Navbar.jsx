@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext"
 import nudgeLogo from "../assets/nudge logo.PNG"
 
 export default function Navbar() {
-  const { user, logout, updateProfile, changePassword } = useAuth()
+  const { user, logout, updateProfile, changePassword, deleteAccount } = useAuth()
   const location = useLocation()
   const [showDropdown, setShowDropdown] = useState(false)
   const [showProfileModal, setShowProfileModal] = useState(false)
@@ -20,6 +20,12 @@ export default function Navbar() {
   const [passwordError, setPasswordError] = useState("")
   const [passwordSuccess, setPasswordSuccess] = useState("")
   const [isChangingPassword, setIsChangingPassword] = useState(false)
+
+  // Delete account states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletePassword, setDeletePassword] = useState("")
+  const [deleteError, setDeleteError] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const getInitials = (name) => {
     if (!name) return "U"
@@ -46,6 +52,9 @@ export default function Navbar() {
     setConfirmPassword("")
     setPasswordError("")
     setPasswordSuccess("")
+    setShowDeleteConfirm(false)
+    setDeletePassword("")
+    setDeleteError("")
   }
 
   const handleImageSelect = (e) => {
@@ -103,6 +112,25 @@ export default function Navbar() {
       setPasswordError(error.response?.data?.message || "Failed to change password")
     } finally {
       setIsChangingPassword(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleteError("")
+
+    if (!deletePassword) {
+      setDeleteError("Password is required")
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      await deleteAccount(deletePassword)
+      closeProfileModal()
+    } catch (error) {
+      setDeleteError(error.response?.data?.message || "Failed to delete account")
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -321,6 +349,68 @@ export default function Navbar() {
                 >
                   {isChangingPassword ? "Changing..." : "Change Password"}
                 </button>
+              </div>
+
+              {/* Delete Account Section */}
+              <div className="delete-account-section">
+                <div className="delete-section-header">
+                  <h3>Danger Zone</h3>
+                </div>
+
+                {!showDeleteConfirm ? (
+                  <button
+                    className="delete-account-btn"
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      <line x1="10" y1="11" x2="10" y2="17"/>
+                      <line x1="14" y1="11" x2="14" y2="17"/>
+                    </svg>
+                    Delete Account
+                  </button>
+                ) : (
+                  <div className="delete-confirm-box">
+                    <p className="delete-warning">
+                      This action cannot be undone. All your data will be permanently deleted.
+                    </p>
+
+                    {deleteError && (
+                      <div className="delete-error">{deleteError}</div>
+                    )}
+
+                    <div className="profile-form-group">
+                      <label>Enter your password to confirm</label>
+                      <input
+                        type="password"
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                        placeholder="Your password"
+                      />
+                    </div>
+
+                    <div className="delete-confirm-actions">
+                      <button
+                        className="delete-cancel-btn"
+                        onClick={() => {
+                          setShowDeleteConfirm(false)
+                          setDeletePassword("")
+                          setDeleteError("")
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="delete-confirm-btn"
+                        onClick={handleDeleteAccount}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? "Deleting..." : "Delete My Account"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

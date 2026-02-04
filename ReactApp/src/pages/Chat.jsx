@@ -32,13 +32,16 @@ export default function Chat() {
   }, [messages])
 
   useEffect(() => {
-    loadConversations()
-  }, [])
+    if (user?.id) {
+      loadConversations()
+    }
+  }, [user?.id])
 
   const loadConversations = async () => {
+    if (!user?.id) return
     setLoadingConversations(true)
     try {
-      const res = await axios.get(API_BASE)
+      const res = await axios.get(`${API_BASE}?userId=${user.id}`)
       setConversations(res.data || [])
     } catch (err) {
       console.error("Failed to load conversations:", err)
@@ -62,9 +65,11 @@ export default function Chat() {
     }
   }
 
-  const startNewChat = () => {
+  const startNewChat = (e) => {
+    e.preventDefault()
     setCurrentConversationId(null)
     setMessages([defaultMessage])
+    loadConversations()
   }
 
   const deleteConversation = async (id, e) => {
@@ -95,7 +100,10 @@ export default function Chat() {
 
       // Create new conversation if needed
       if (!conversationId) {
-        const createRes = await axios.post(API_BASE, { title: "New Chat" })
+        const createRes = await axios.post(API_BASE, {
+          title: "New Chat",
+          userId: user?.id
+        })
         conversationId = createRes.data.id
         setCurrentConversationId(conversationId)
       }
@@ -150,7 +158,7 @@ export default function Chat() {
 
       <div className="chat-container">
         <div className="chat-sidebar">
-          <button className="new-chat-btn" onClick={startNewChat}>
+          <button type="button" className="new-chat-btn" onClick={startNewChat}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5" y1="12" x2="19" y2="12"/>

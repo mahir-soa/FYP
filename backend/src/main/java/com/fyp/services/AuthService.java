@@ -223,6 +223,49 @@ public class AuthService {
         return getUserMap(user);
     }
 
+    public Map<String, Object> changePassword(String token, String currentPassword, String newPassword) {
+        if (!jwtUtil.isTokenValid(token)) {
+            throw new RuntimeException("Invalid token");
+        }
+
+        Long userId = jwtUtil.extractUserId(token);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Password changed successfully");
+        return response;
+    }
+
+    @Transactional
+    public Map<String, Object> deleteAccount(String token, String password) {
+        if (!jwtUtil.isTokenValid(token)) {
+            throw new RuntimeException("Invalid token");
+        }
+
+        Long userId = jwtUtil.extractUserId(token);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Password is incorrect");
+        }
+
+        // Delete the user (related data should be handled by cascade or separate cleanup)
+        userRepository.delete(user);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Account deleted successfully");
+        return response;
+    }
+
     private Map<String, Object> getUserMap(User user) {
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("id", user.getId());

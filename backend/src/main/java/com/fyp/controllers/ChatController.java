@@ -18,7 +18,9 @@ public class ChatController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, String>> chat(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<Map<String, String>> chat(
+            @RequestParam(required = false) Long userId,
+            @RequestBody Map<String, Object> request) {
         String message = (String) request.get("message");
         Boolean includeContext = (Boolean) request.getOrDefault("includeExpenseContext", true);
 
@@ -26,7 +28,7 @@ public class ChatController {
             return ResponseEntity.badRequest().body(Map.of("error", "Message is required"));
         }
 
-        String response = chatService.chat(message, includeContext);
+        String response = chatService.chat(message, includeContext, userId);
         return ResponseEntity.ok(Map.of("response", response));
     }
 }
