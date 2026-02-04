@@ -10,6 +10,10 @@ import ResetPassword from "./pages/ResetPassword"
 import ExpenseLogger from "./pages/ExpenseLogger"
 import SubscriptionTracker from "./pages/SubscriptionTracker"
 import Chat from "./pages/Chat"
+import Overview from "./pages/Overview"
+import Income from "./pages/Income"
+import Plans from "./pages/Plans"
+import Budget from "./pages/Budget"
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -56,6 +60,38 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Chat />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/overview"
+        element={
+          <ProtectedRoute>
+            <Overview />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/income"
+        element={
+          <ProtectedRoute>
+            <Income />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/plans"
+        element={
+          <ProtectedRoute>
+            <Plans />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/budget"
+        element={
+          <ProtectedRoute>
+            <Budget />
           </ProtectedRoute>
         }
       />
