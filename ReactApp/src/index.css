@@ -91,11 +91,11 @@ body {
 }
 
 .logo-img {
-  height: 180px;
+  height: 120px;
   width: auto;
   object-fit: contain;
-  margin-left: -120px;
-  margin-top: 15px;
+  margin-left: -60px;
+  margin-top: 10px;
 }
 
 .logo-icon {
@@ -609,6 +609,113 @@ body {
 }
 
 .change-password-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Delete Account Section */
+.delete-account-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--red-100);
+}
+
+.delete-section-header {
+  margin-bottom: 16px;
+}
+
+.delete-section-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--red-500);
+  margin: 0;
+}
+
+.delete-account-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid var(--red-500);
+  background: transparent;
+  color: var(--red-500);
+}
+
+.delete-account-btn:hover {
+  background: var(--red-100);
+}
+
+.delete-confirm-box {
+  background: var(--red-100);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.delete-warning {
+  font-size: 13px;
+  color: var(--red-500);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.delete-error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  background: var(--white);
+  color: var(--red-500);
+  border: 1px solid var(--red-500);
+}
+
+.delete-confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.delete-cancel-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--gray-300);
+  background: var(--white);
+  color: var(--gray-700);
+  transition: all 0.15s;
+}
+
+.delete-cancel-btn:hover {
+  background: var(--gray-100);
+}
+
+.delete-confirm-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: var(--red-500);
+  color: var(--white);
+  transition: all 0.15s;
+}
+
+.delete-confirm-btn:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.delete-confirm-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

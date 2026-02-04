@@ -89,6 +89,16 @@ export function AuthProvider({ children }) {
     return res.data
   }
 
+  const deleteAccount = async (password) => {
+    const res = await api.delete("/auth/delete-account", { data: { password } })
+    localStorage.removeItem("token")
+    localStorage.removeItem("profilePicture")
+    localStorage.removeItem("userName")
+    delete api.defaults.headers.common["Authorization"]
+    setUser(null)
+    return res.data
+  }
+
   const updateProfile = ({ name, profilePicture }) => {
     // Update name
     if (name && name !== user.name) {
@@ -130,6 +140,7 @@ export function AuthProvider({ children }) {
       forgotPassword,
       resetPassword,
       changePassword,
+      deleteAccount,
       updateProfile,
       logout
     }}>

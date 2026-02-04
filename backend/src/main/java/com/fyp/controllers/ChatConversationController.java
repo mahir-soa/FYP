@@ -29,7 +29,10 @@ public class ChatConversationController {
     }
 
     @GetMapping
-    public List<ChatConversation> getAllConversations() {
+    public List<ChatConversation> getAllConversations(@RequestParam(required = false) Long userId) {
+        if (userId != null) {
+            return conversationRepository.findByUserIdOrderByUpdatedAtDesc(userId);
+        }
         return conversationRepository.findAll();
     }
 
@@ -45,9 +48,15 @@ public class ChatConversationController {
     }
 
     @PostMapping
-    public ChatConversation createConversation(@RequestBody Map<String, String> body) {
+    public ChatConversation createConversation(@RequestBody Map<String, Object> body) {
         ChatConversation conversation = new ChatConversation();
-        conversation.setTitle(body.getOrDefault("title", "New Chat"));
+        conversation.setTitle((String) body.getOrDefault("title", "New Chat"));
+        if (body.containsKey("userId")) {
+            Object userIdObj = body.get("userId");
+            if (userIdObj instanceof Number) {
+                conversation.setUserId(((Number) userIdObj).longValue());
+            }
+        }
         return conversationRepository.save(conversation);
     }
 
@@ -85,8 +94,8 @@ public class ChatConversationController {
         ChatMessage userMessage = new ChatMessage(conversation, "user", userContent);
         messageRepository.save(userMessage);
 
-        // Get AI response
-        String aiResponse = chatService.chat(userContent, includeContext);
+        // Get AI response with user context
+        String aiResponse = chatService.chat(userContent, includeContext, conversation.getUserId());
 
         // Save assistant message
         ChatMessage assistantMessage = new ChatMessage(conversation, "assistant", aiResponse);
