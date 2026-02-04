@@ -460,11 +460,13 @@ export default function SubscriptionTracker() {
   const handleMarkUsed = async (id) => {
     setErrorMsg("")
     try {
-      await axios.patch(`${API_BASE}/${id}/mark-used?userId=${user.id}`)
+      const response = await axios.patch(`${API_BASE}/${id}/mark-used?userId=${user.id}`)
+      console.log("Mark used response:", response.data)
       await reloadSubscriptions()
     } catch (err) {
-      setErrorMsg("Update failed.")
-      console.error(err)
+      const errorMessage = err.response?.data?.error || err.message || "Update failed."
+      setErrorMsg(errorMessage)
+      console.error("Mark used error:", err.response?.data || err)
     }
   }
 
@@ -835,12 +837,14 @@ export default function SubscriptionTracker() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Last Used Date</label>
+                  <label>Last Used Date <span className="optional-label">(optional)</span></label>
                   <input
                     type="date"
                     value={lastUsedDate}
                     onChange={(e) => setLastUsedDate(e.target.value)}
+                    placeholder="Leave empty if not tracked"
                   />
+                  <span className="field-hint">You can mark as used later from the subscription card</span>
                 </div>
               </div>
 

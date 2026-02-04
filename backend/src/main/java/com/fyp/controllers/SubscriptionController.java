@@ -185,7 +185,7 @@ public class SubscriptionController {
     @GetMapping("/{id}")
     public ResponseEntity<Subscription> getSubscription(@PathVariable Long id, @RequestParam Long userId) {
         return subscriptionRepository.findById(id)
-                .filter(sub -> sub.getUserId() != null && sub.getUserId().equals(userId))
+                .filter(sub -> sub.getUserId() == null || sub.getUserId().equals(userId))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -202,8 +202,11 @@ public class SubscriptionController {
             @RequestParam Long userId,
             @RequestBody Subscription subscription) {
         return subscriptionRepository.findById(id)
-                .filter(existing -> existing.getUserId() != null && existing.getUserId().equals(userId))
+                .filter(existing -> existing.getUserId() == null || existing.getUserId().equals(userId))
                 .map(existing -> {
+                    if (existing.getUserId() == null) {
+                        existing.setUserId(userId);
+                    }
                     existing.setName(subscription.getName());
                     existing.setCost(subscription.getCost());
                     existing.setBillingCycle(subscription.getBillingCycle());
@@ -220,7 +223,7 @@ public class SubscriptionController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSubscription(@PathVariable Long id, @RequestParam Long userId) {
         return subscriptionRepository.findById(id)
-                .filter(existing -> existing.getUserId() != null && existing.getUserId().equals(userId))
+                .filter(existing -> existing.getUserId() == null || existing.getUserId().equals(userId))
                 .map(existing -> {
                     subscriptionRepository.deleteById(id);
                     return ResponseEntity.ok().<Void>build();
@@ -229,21 +232,35 @@ public class SubscriptionController {
     }
 
     @PatchMapping("/{id}/mark-used")
-    public ResponseEntity<Subscription> markAsUsed(@PathVariable Long id, @RequestParam Long userId) {
-        return subscriptionRepository.findById(id)
-                .filter(existing -> existing.getUserId() != null && existing.getUserId().equals(userId))
-                .map(existing -> {
-                    existing.setLastUsedDate(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
-                    return ResponseEntity.ok(subscriptionRepository.save(existing));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> markAsUsed(@PathVariable Long id, @RequestParam Long userId) {
+        try {
+            Optional<Subscription> subOpt = subscriptionRepository.findById(id);
+            if (subOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("error", "Subscription not found"));
+            }
+            Subscription existing = subOpt.get();
+            if (existing.getUserId() != null && !existing.getUserId().equals(userId)) {
+                return ResponseEntity.status(403).body(Map.of("error", "Not authorized"));
+            }
+            if (existing.getUserId() == null) {
+                existing.setUserId(userId);
+            }
+            existing.setLastUsedDate(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
+            Subscription saved = subscriptionRepository.save(existing);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PatchMapping("/{id}/cancel")
     public ResponseEntity<Subscription> cancelSubscription(@PathVariable Long id, @RequestParam Long userId) {
         return subscriptionRepository.findById(id)
-                .filter(existing -> existing.getUserId() != null && existing.getUserId().equals(userId))
+                .filter(existing -> existing.getUserId() == null || existing.getUserId().equals(userId))
                 .map(existing -> {
+                    if (existing.getUserId() == null) {
+                        existing.setUserId(userId);
+                    }
                     existing.setStatus("CANCELLED");
                     return ResponseEntity.ok(subscriptionRepository.save(existing));
                 })

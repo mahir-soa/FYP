@@ -20,11 +20,19 @@ public class Subscription {
 
     private String name;
     private double cost;
+
+    @Column(name = "billing_cycle")
     private String billingCycle; // WEEKLY, MONTHLY, YEARLY
+    @Column(name = "next_payment_date")
     private String nextPaymentDate; // YYYY-MM-DD
+
+    @Column(name = "last_used_date")
     private String lastUsedDate; // YYYY-MM-DD
     private String status; // ACTIVE, PAUSED, CANCELLED
+
+    @Column(name = "provider_key")
     private String providerKey; // netflix, spotify, prime, disney, hulu, youtube, apple, hbo, gym, puregym, davidlloyd, virgin, other
+
     private String category; // STREAMING, GYM, MUSIC, GAMING, SOFTWARE, OTHER
 
     public Subscription() {

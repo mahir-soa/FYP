@@ -935,3 +935,17 @@
     justify-content: flex-end;
   }
 }
+
+/* Optional Label & Field Hint */
+.optional-label {
+  font-weight: 400;
+  color: var(--gray-400);
+  font-size: 11px;
+}
+
+.field-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--gray-400);
+  margin-top: 4px;
+}
