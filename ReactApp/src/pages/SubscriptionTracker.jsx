@@ -280,10 +280,11 @@ export default function SubscriptionTracker() {
   const [filterStatus, setFilterStatus] = useState("ALL")
 
   const reloadSubscriptions = async () => {
+    if (!user?.id) return
     setLoading(true)
     setErrorMsg("")
     try {
-      const res = await axios.get(API_BASE)
+      const res = await axios.get(`${API_BASE}?userId=${user.id}`)
       setSubscriptions(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
       setSubscriptions([])
@@ -295,8 +296,10 @@ export default function SubscriptionTracker() {
   }
 
   useEffect(() => {
-    reloadSubscriptions()
-  }, [])
+    if (user?.id) {
+      reloadSubscriptions()
+    }
+  }, [user?.id])
 
   const resetForm = () => {
     setName("")
@@ -431,9 +434,9 @@ export default function SubscriptionTracker() {
 
     try {
       if (editId) {
-        await axios.put(`${API_BASE}/${editId}`, payload)
+        await axios.put(`${API_BASE}/${editId}?userId=${user.id}`, payload)
       } else {
-        await axios.post(API_BASE, payload)
+        await axios.post(`${API_BASE}?userId=${user.id}`, payload)
       }
       await reloadSubscriptions()
       closeForm()
@@ -446,7 +449,7 @@ export default function SubscriptionTracker() {
   const handleDelete = async (id) => {
     setErrorMsg("")
     try {
-      await axios.delete(`${API_BASE}/${id}`)
+      await axios.delete(`${API_BASE}/${id}?userId=${user.id}`)
       await reloadSubscriptions()
     } catch (err) {
       setErrorMsg("Delete failed.")
@@ -457,7 +460,7 @@ export default function SubscriptionTracker() {
   const handleMarkUsed = async (id) => {
     setErrorMsg("")
     try {
-      await axios.patch(`${API_BASE}/${id}/mark-used`)
+      await axios.patch(`${API_BASE}/${id}/mark-used?userId=${user.id}`)
       await reloadSubscriptions()
     } catch (err) {
       setErrorMsg("Update failed.")
@@ -468,7 +471,7 @@ export default function SubscriptionTracker() {
   const handleCancel = async (id) => {
     setErrorMsg("")
     try {
-      await axios.patch(`${API_BASE}/${id}/cancel`)
+      await axios.patch(`${API_BASE}/${id}/cancel?userId=${user.id}`)
       await reloadSubscriptions()
     } catch (err) {
       setErrorMsg("Cancel failed.")
