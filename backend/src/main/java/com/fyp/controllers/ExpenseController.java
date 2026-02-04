@@ -2,6 +2,7 @@ package com.fyp.controllers;
 
 import com.fyp.models.Expense;
 import com.fyp.repos.ExpenseRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,18 +19,23 @@ public class ExpenseController {
     }
 
     @GetMapping
-    public List<Expense> getAllExpenses() {
-        return expenseRepository.findAll();
+    public List<Expense> getExpenses(@RequestParam Long userId) {
+        return expenseRepository.findByUserIdOrderByDateDesc(userId);
     }
 
     @PostMapping
-    public Expense createExpense(@RequestBody Expense expense) {
+    public Expense createExpense(@RequestParam Long userId, @RequestBody Expense expense) {
+        expense.setUserId(userId);
         return expenseRepository.save(expense);
     }
 
     @PutMapping("/{id}")
-    public Expense updateExpense(@PathVariable Long id, @RequestBody Expense expense) {
+    public ResponseEntity<Expense> updateExpense(
+            @PathVariable Long id,
+            @RequestParam Long userId,
+            @RequestBody Expense expense) {
         return expenseRepository.findById(id)
+                .filter(existing -> existing.getUserId() != null && existing.getUserId().equals(userId))
                 .map(existing -> {
                     existing.setDate(expense.getDate());
                     existing.setDescription(expense.getDescription());
@@ -40,13 +46,19 @@ public class ExpenseController {
                     existing.setFromZone(expense.getFromZone());
                     existing.setToZone(expense.getToZone());
                     existing.setIsPeak(expense.getIsPeak());
-                    return expenseRepository.save(existing);
+                    return ResponseEntity.ok(expenseRepository.save(existing));
                 })
-                .orElseThrow(() -> new RuntimeException("Expense not found with id: " + id));
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
-    public void deleteExpense(@PathVariable Long id) {
-        expenseRepository.deleteById(id);
+    public ResponseEntity<Void> deleteExpense(@PathVariable Long id, @RequestParam Long userId) {
+        return expenseRepository.findById(id)
+                .filter(existing -> existing.getUserId() != null && existing.getUserId().equals(userId))
+                .map(existing -> {
+                    expenseRepository.deleteById(id);
+                    return ResponseEntity.ok().<Void>build();
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }

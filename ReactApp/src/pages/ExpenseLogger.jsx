@@ -75,10 +75,11 @@ export default function ExpenseLogger() {
   const [calculatingFare, setCalculatingFare] = useState(false)
 
   const reloadExpenses = async () => {
+    if (!user?.id) return
     setLoading(true)
     setErrorMsg("")
     try {
-      const res = await axios.get(API_BASE)
+      const res = await axios.get(`${API_BASE}?userId=${user.id}`)
       setExpenses(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
       setExpenses([])
@@ -90,8 +91,10 @@ export default function ExpenseLogger() {
   }
 
   useEffect(() => {
-    reloadExpenses()
-  }, [])
+    if (user?.id) {
+      reloadExpenses()
+    }
+  }, [user?.id])
 
   useEffect(() => {
     const fetchTflFare = async () => {
@@ -280,9 +283,9 @@ export default function ExpenseLogger() {
 
     try {
       if (editId) {
-        await axios.put(`${API_BASE}/${editId}`, payload)
+        await axios.put(`${API_BASE}/${editId}?userId=${user.id}`, payload)
       } else {
-        await axios.post(API_BASE, payload)
+        await axios.post(`${API_BASE}?userId=${user.id}`, payload)
       }
       await reloadExpenses()
       closeForm()
@@ -295,7 +298,7 @@ export default function ExpenseLogger() {
   const handleDelete = async (id) => {
     setErrorMsg("")
     try {
-      await axios.delete(`${API_BASE}/${id}`)
+      await axios.delete(`${API_BASE}/${id}?userId=${user.id}`)
       await reloadExpenses()
     } catch (err) {
       setErrorMsg("Delete failed.")
