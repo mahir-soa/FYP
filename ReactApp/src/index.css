@@ -15,9 +15,12 @@
   --gray-800: #27272a;
   --gray-900: #18181b;
 
+  --emerald-200: #a7f3d0;
+  --emerald-300: #6ee7b7;
   --emerald-400: #34d399;
   --emerald-500: #10b981;
   --emerald-600: #059669;
+  --emerald-700: #047857;
 
   --red-500: #ef4444;
   --red-100: #fee2e2;
@@ -37,20 +40,12 @@ html {
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background:
-    radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.3) 0%, transparent 40%),
-    radial-gradient(circle at 100% 0%, rgba(52, 211, 153, 0.25) 0%, transparent 35%),
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 1) 0%, transparent 60%),
-    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.9) 0%, transparent 35%),
-    radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.9) 0%, transparent 35%),
-    radial-gradient(circle at 20% 60%, rgba(255, 255, 255, 0.85) 0%, transparent 30%),
-    radial-gradient(circle at 80% 40%, rgba(255, 255, 255, 0.85) 0%, transparent 30%),
-    radial-gradient(circle at 60% 15%, rgba(255, 255, 255, 0.8) 0%, transparent 25%),
-    radial-gradient(circle at 40% 85%, rgba(255, 255, 255, 0.8) 0%, transparent 25%),
-    radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.3) 0%, transparent 40%),
-    radial-gradient(circle at 100% 100%, rgba(52, 211, 153, 0.25) 0%, transparent 35%),
-    radial-gradient(circle at 30% 70%, rgba(16, 185, 129, 0.2) 0%, transparent 30%),
-    radial-gradient(circle at 70% 30%, rgba(52, 211, 153, 0.2) 0%, transparent 30%),
-    linear-gradient(135deg, #ffffff 0%, #ecfdf5 50%, #d1fae5 100%);
+    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(16, 185, 129, 0.25) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 100% 0%, rgba(59, 130, 246, 0.2) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 100% 100%, rgba(139, 92, 246, 0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 50% at 0% 100%, rgba(236, 72, 153, 0.15) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(16, 185, 129, 0.1) 0%, transparent 70%),
+    linear-gradient(135deg, #f0fdf4 0%, #faf5ff 50%, #fdf2f8 100%);
   background-attachment: fixed;
   color: var(--gray-900);
   line-height: 1.5;
@@ -67,10 +62,10 @@ body {
   left: 0;
   right: 0;
   z-index: 100;
-  background: linear-gradient(90deg, rgba(255,255,255,0.95) 0%, rgba(236,253,245,0.95) 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .nav-container {
@@ -138,6 +133,80 @@ body {
 
 .nav-link:hover,
 .nav-link.active {
+  color: var(--emerald-600);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+/* Nav Dropdown */
+.nav-dropdown {
+  position: relative;
+}
+
+.nav-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  color: var(--gray-600);
+  background: none;
+  border: none;
+  font-weight: 500;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-dropdown-trigger:hover,
+.nav-dropdown-trigger.active {
+  color: var(--emerald-600);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.nav-dropdown-trigger svg {
+  transition: transform 0.2s;
+}
+
+.nav-dropdown:hover .nav-dropdown-trigger svg {
+  transform: rotate(180deg);
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  padding: 6px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.2s;
+}
+
+.nav-dropdown:hover .nav-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.nav-dropdown-item {
+  display: block;
+  padding: 10px 14px;
+  color: var(--gray-600);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.nav-dropdown-item:hover,
+.nav-dropdown-item.active {
   color: var(--emerald-600);
   background: rgba(16, 185, 129, 0.08);
 }
