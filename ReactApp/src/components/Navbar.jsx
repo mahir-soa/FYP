@@ -169,7 +169,7 @@ export default function Navbar() {
                   Budget
                 </Link>
                 <div className="nav-dropdown">
-                  <button className={`nav-link nav-dropdown-trigger ${['/subscriptions', '/plans', '/chat'].includes(location.pathname) ? 'active' : ''}`}>
+                  <button className={`nav-link nav-dropdown-trigger ${['/subscriptions', '/bills', '/plans', '/chat'].includes(location.pathname) ? 'active' : ''}`}>
                     More
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M6 9l6 6 6-6"/>
@@ -178,6 +178,9 @@ export default function Navbar() {
                   <div className="nav-dropdown-menu">
                     <Link to="/subscriptions" className={`nav-dropdown-item ${location.pathname === '/subscriptions' ? 'active' : ''}`}>
                       Subscriptions
+                    </Link>
+                    <Link to="/bills" className={`nav-dropdown-item ${location.pathname === '/bills' ? 'active' : ''}`}>
+                      Bills & Utilities
                     </Link>
                     <Link to="/plans" className={`nav-dropdown-item ${location.pathname === '/plans' ? 'active' : ''}`}>
                       Goals

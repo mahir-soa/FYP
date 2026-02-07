@@ -9,6 +9,7 @@ import ForgotPassword from "./pages/ForgotPassword"
 import ResetPassword from "./pages/ResetPassword"
 import ExpenseLogger from "./pages/ExpenseLogger"
 import SubscriptionTracker from "./pages/SubscriptionTracker"
+import Bills from "./pages/Bills"
 import Chat from "./pages/Chat"
 import Overview from "./pages/Overview"
 import Income from "./pages/Income"
@@ -52,6 +53,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <SubscriptionTracker />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bills"
+        element={
+          <ProtectedRoute>
+            <Bills />
           </ProtectedRoute>
         }
       />
