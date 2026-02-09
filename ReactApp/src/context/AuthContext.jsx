@@ -45,6 +45,15 @@ export function AuthProvider({ children }) {
     return user
   }
 
+  const googleLogin = async (credential) => {
+    const res = await api.post("/auth/google", { credential })
+    const { token, user } = res.data
+    localStorage.setItem("token", token)
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`
+    setUser(user)
+    return user
+  }
+
   const register = async (name, email, password) => {
     const res = await api.post("/auth/register", { name, email, password })
     return res.data
@@ -132,6 +141,7 @@ export function AuthProvider({ children }) {
       user,
       loading,
       login,
+      googleLogin,
       register,
       verifyOtp,
       resendOtp,

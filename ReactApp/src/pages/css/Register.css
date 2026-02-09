@@ -3,7 +3,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%);
+  background: transparent;
   padding: 24px;
 }
 
@@ -154,6 +154,48 @@
 
 .auth-btn.secondary:hover:not(:disabled) {
   background: #f0fdf4;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.auth-divider span {
+  padding: 0 16px;
+}
+
+.google-btn-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.google-btn-wrapper > div {
+  width: 100% !important;
+}
+
+.google-btn-wrapper iframe {
+  width: 100% !important;
+  margin: 0 auto;
+}
+
+.google-loading {
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+  margin: 8px 0 0;
 }
 
 @media (max-width: 480px) {

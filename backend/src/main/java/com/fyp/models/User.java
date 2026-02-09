@@ -17,7 +17,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String password;
 
     @Column(name = "email_verified")
@@ -34,6 +34,9 @@ public class User {
 
     @Column(name = "reset_token_expiry")
     private LocalDateTime resetTokenExpiry;
+
+    @Column(name = "google_id", unique = true)
+    private String googleId;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -150,5 +153,13 @@ public class User {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getGoogleId() {
+        return googleId;
+    }
+
+    public void setGoogleId(String googleId) {
+        this.googleId = googleId;
     }
 }

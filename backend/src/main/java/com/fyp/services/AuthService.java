@@ -5,12 +5,18 @@ import com.fyp.models.User;
 import com.fyp.repos.PendingRegistrationRepository;
 import com.fyp.repos.UserRepository;
 import com.fyp.security.JwtUtil;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -24,6 +30,9 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
     private final SecureRandom secureRandom = new SecureRandom();
+
+    @Value("${google.client.id:}")
+    private String googleClientId;
 
     public AuthService(UserRepository userRepository, PendingRegistrationRepository pendingRegistrationRepository,
                        PasswordEncoder passwordEncoder, JwtUtil jwtUtil, EmailService emailService) {
@@ -125,6 +134,11 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
+        // Check if user signed up with Google (they have a googleId and random password)
+        if (user.getGoogleId() != null && !passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("This account uses Google Sign-In. Please sign in with Google.");
+        }
+
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Invalid email or password");
         }
@@ -139,6 +153,64 @@ public class AuthService {
         response.put("token", token);
         response.put("user", getUserMap(user));
         return response;
+    }
+
+    @Transactional
+    public Map<String, Object> googleLogin(String credential) {
+        if (googleClientId == null || googleClientId.isEmpty()) {
+            throw new RuntimeException("Google Sign-In is not configured");
+        }
+
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(credential);
+            if (idToken == null) {
+                throw new RuntimeException("Invalid Google token");
+            }
+
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String googleId = payload.getSubject();
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+
+            // Check if user exists by Google ID
+            User user = userRepository.findByGoogleId(googleId).orElse(null);
+
+            if (user == null) {
+                // Check if user exists by email (they may have registered with email/password)
+                user = userRepository.findByEmail(email).orElse(null);
+
+                if (user != null) {
+                    // Link Google account to existing user
+                    user.setGoogleId(googleId);
+                    user.setEmailVerified(true);
+                    userRepository.save(user);
+                } else {
+                    // Create new user with a random password (Google users won't use it)
+                    user = new User();
+                    user.setName(name);
+                    user.setEmail(email);
+                    user.setGoogleId(googleId);
+                    user.setEmailVerified(true);
+                    user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+                    userRepository.save(user);
+                }
+            }
+
+            String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getName());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("user", getUserMap(user));
+            return response;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Google authentication failed: " + e.getMessage());
+        }
     }
 
     public Map<String, Object> verifyEmail(String token) {

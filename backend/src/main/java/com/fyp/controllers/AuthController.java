@@ -85,6 +85,22 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/google")
+    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request) {
+        try {
+            String credential = request.get("credential");
+
+            if (credential == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Google credential is required"));
+            }
+
+            Map<String, Object> response = authService.googleLogin(credential);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @PostMapping("/verify-email")
     public ResponseEntity<?> verifyEmail(@RequestBody Map<String, String> request) {
         try {
