@@ -15,6 +15,7 @@ import Overview from "./pages/Overview"
 import Income from "./pages/Income"
 import Plans from "./pages/Plans"
 import Budget from "./pages/Budget"
+import Onboarding from "./pages/Onboarding"
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -30,6 +31,7 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+
 function AppRoutes() {
   return (
     <Routes>
@@ -40,6 +42,14 @@ function AppRoutes() {
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <Onboarding />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/expenses"
         element={

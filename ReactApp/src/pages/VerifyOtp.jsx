@@ -77,7 +77,7 @@ export default function VerifyOtp() {
       await verifyOtp(email, otpString)
       setSuccess(true)
       setTimeout(() => {
-        navigate("/")
+        navigate("/onboarding")
       }, 1500)
     } catch (err) {
       setError(err.response?.data?.message || "Verification failed. Please try again.")
@@ -110,7 +110,7 @@ export default function VerifyOtp() {
             Your account has been created successfully.
           </p>
           <p className="auth-info">
-            Signing you in...
+            Let's set up your profile...
           </p>
         </div>
       </div>

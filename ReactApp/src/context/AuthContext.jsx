@@ -136,6 +136,10 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const setOnboardingComplete = () => {
+    setUser(prev => ({ ...prev, onboardingCompleted: true }))
+  }
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -152,7 +156,8 @@ export function AuthProvider({ children }) {
       changePassword,
       deleteAccount,
       updateProfile,
-      logout
+      logout,
+      setOnboardingComplete
     }}>
       {children}
     </AuthContext.Provider>

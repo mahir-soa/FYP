@@ -2,7 +2,9 @@ package com.fyp.services;
 
 import com.fyp.models.PendingRegistration;
 import com.fyp.models.User;
+import com.fyp.models.UserPreferences;
 import com.fyp.repos.PendingRegistrationRepository;
+import com.fyp.repos.UserPreferencesRepository;
 import com.fyp.repos.UserRepository;
 import com.fyp.security.JwtUtil;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -26,6 +28,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PendingRegistrationRepository pendingRegistrationRepository;
+    private final UserPreferencesRepository userPreferencesRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
@@ -35,9 +38,11 @@ public class AuthService {
     private String googleClientId;
 
     public AuthService(UserRepository userRepository, PendingRegistrationRepository pendingRegistrationRepository,
+                       UserPreferencesRepository userPreferencesRepository,
                        PasswordEncoder passwordEncoder, JwtUtil jwtUtil, EmailService emailService) {
         this.userRepository = userRepository;
         this.pendingRegistrationRepository = pendingRegistrationRepository;
+        this.userPreferencesRepository = userPreferencesRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.emailService = emailService;
@@ -344,6 +349,13 @@ public class AuthService {
         userMap.put("name", user.getName());
         userMap.put("email", user.getEmail());
         userMap.put("emailVerified", user.isEmailVerified());
+
+        // Include onboarding status
+        boolean onboardingCompleted = userPreferencesRepository.findByUserId(user.getId())
+                .map(UserPreferences::isOnboardingCompleted)
+                .orElse(false);
+        userMap.put("onboardingCompleted", onboardingCompleted);
+
         return userMap;
     }
 }
