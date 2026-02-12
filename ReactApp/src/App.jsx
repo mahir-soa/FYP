@@ -15,6 +15,7 @@ import Overview from "./pages/Overview"
 import Income from "./pages/Income"
 import Plans from "./pages/Plans"
 import Budget from "./pages/Budget"
+import Persona from "./pages/Persona"
 import Onboarding from "./pages/Onboarding"
 
 function ProtectedRoute({ children }) {
@@ -111,6 +112,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Budget />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/persona"
+        element={
+          <ProtectedRoute>
+            <Persona />
           </ProtectedRoute>
         }
       />

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react"
 import axios from "axios"
 import { useAuth } from "../context/AuthContext"
 import Navbar from "../components/Navbar"
+import Avatar from "../components/Avatar"
 import "./css/Chat.css"
 import budgetBot from "../assets/budget-bot.png"
 
@@ -234,9 +235,7 @@ export default function Chat() {
                       <img src={budgetBot} alt="AI Assistant" />
                     </div>
                   ) : (
-                    <div className="avatar user">
-                      {user?.name?.charAt(0) || "U"}
-                    </div>
+                    <Avatar user={user} size="sm" persona={user?.persona} customOptions={user?.avatarOptions} frame={user?.avatarFrame} />
                   )}
                 </div>
                 <div className="message-content">

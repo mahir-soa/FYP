@@ -1,6 +1,7 @@
 import { useState, useRef } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import Avatar from "./Avatar"
 import nudgeLogo from "../assets/nudge logo.PNG"
 
 export default function Navbar() {
@@ -26,13 +27,6 @@ export default function Navbar() {
   const [deletePassword, setDeletePassword] = useState("")
   const [deleteError, setDeleteError] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
-
-  const getInitials = (name) => {
-    if (!name) return "U"
-    const parts = name.trim().split(" ")
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
-  }
 
   const openProfileModal = () => {
     setEditName(user.name || "")
@@ -195,11 +189,7 @@ export default function Navbar() {
                     className="profile-avatar"
                     onClick={() => setShowDropdown(!showDropdown)}
                   >
-                    {user.profilePicture ? (
-                      <img src={user.profilePicture} alt="Profile" />
-                    ) : (
-                      <span className="avatar-initials">{getInitials(user.name)}</span>
-                    )}
+                    <Avatar user={user} size="md" persona={user.persona} customOptions={user.avatarOptions} frame={user.avatarFrame} />
                   </button>
                   {showDropdown && (
                     <>
@@ -207,11 +197,7 @@ export default function Navbar() {
                       <div className="profile-dropdown">
                         <div className="dropdown-header">
                           <div className="dropdown-avatar">
-                            {user.profilePicture ? (
-                              <img src={user.profilePicture} alt="Profile" />
-                            ) : (
-                              <span>{getInitials(user.name)}</span>
-                            )}
+                            <Avatar user={user} size="lg" persona={user.persona} customOptions={user.avatarOptions} frame={user.avatarFrame} />
                           </div>
                           <div className="dropdown-info">
                             <span className="dropdown-name">{user.name}</span>
@@ -226,6 +212,17 @@ export default function Navbar() {
                           </svg>
                           Edit Profile
                         </button>
+                        <Link
+                          className="dropdown-item"
+                          to="/persona"
+                          onClick={() => setShowDropdown(false)}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
+                            <path d="M12 2a7 7 0 0 1 7 7h-7V2z"/>
+                          </svg>
+                          My Persona
+                        </Link>
                         <div className="dropdown-divider" />
                         <button className="dropdown-item logout" onClick={logout}>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -270,9 +267,15 @@ export default function Navbar() {
                   {previewPicture ? (
                     <img src={previewPicture} alt="Profile preview" />
                   ) : (
-                    <span className="preview-initials">{getInitials(editName || user.name)}</span>
+                    <Avatar user={{ ...user, name: editName || user.name, profilePicture: null }} size="xl" persona={user.persona} customOptions={user.avatarOptions} frame={user.avatarFrame} />
                   )}
                 </div>
+                {user.persona && (
+                  <div className="persona-badge">
+                    <span className="persona-badge-dot" />
+                    {user.persona.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+                  </div>
+                )}
                 <div className="profile-picture-actions">
                   <button
                     className="picture-action-btn upload"

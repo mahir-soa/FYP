@@ -7,6 +7,27 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const fetchPersonaAndAvatar = async (userId) => {
+    const result = { persona: null, avatarOptions: null, avatarFrame: null }
+    try {
+      const [personaRes, avatarRes] = await Promise.all([
+        api.get(`/ml/persona/${userId}`).catch(() => null),
+        api.get(`/avatar?userId=${userId}`).catch(() => null),
+      ])
+      if (personaRes?.data) {
+        result.persona = personaRes.data.persona_type || null
+      }
+      if (avatarRes?.data) {
+        const opts = avatarRes.data.equippedOptions
+        result.avatarOptions = opts && opts !== "{}" ? JSON.parse(opts) : null
+        result.avatarFrame = avatarRes.data.equippedFrame || null
+      }
+    } catch {
+      // silently ignore
+    }
+    return result
+  }
+
   useEffect(() => {
     const token = localStorage.getItem("token")
     const savedProfilePicture = localStorage.getItem("profilePicture")
@@ -14,7 +35,7 @@ export function AuthProvider({ children }) {
     if (token) {
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`
       api.get("/auth/me")
-        .then(res => {
+        .then(async (res) => {
           const userData = res.data
           if (savedProfilePicture) {
             userData.profilePicture = savedProfilePicture
@@ -22,6 +43,10 @@ export function AuthProvider({ children }) {
           if (savedUserName) {
             userData.name = savedUserName
           }
+          const { persona, avatarOptions, avatarFrame } = await fetchPersonaAndAvatar(userData.id)
+          userData.persona = persona
+          userData.avatarOptions = avatarOptions
+          userData.avatarFrame = avatarFrame
           setUser(userData)
         })
         .catch(() => {
@@ -41,8 +66,10 @@ export function AuthProvider({ children }) {
     const { token, user } = res.data
     localStorage.setItem("token", token)
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`
-    setUser(user)
-    return user
+    const { persona, avatarOptions, avatarFrame } = await fetchPersonaAndAvatar(user.id)
+    const userData = { ...user, persona, avatarOptions, avatarFrame }
+    setUser(userData)
+    return userData
   }
 
   const googleLogin = async (credential) => {
@@ -50,8 +77,10 @@ export function AuthProvider({ children }) {
     const { token, user } = res.data
     localStorage.setItem("token", token)
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`
-    setUser(user)
-    return user
+    const { persona, avatarOptions, avatarFrame } = await fetchPersonaAndAvatar(user.id)
+    const userData = { ...user, persona, avatarOptions, avatarFrame }
+    setUser(userData)
+    return userData
   }
 
   const register = async (name, email, password) => {
@@ -64,7 +93,8 @@ export function AuthProvider({ children }) {
     const { token, user } = res.data
     localStorage.setItem("token", token)
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`
-    setUser(user)
+    const { persona, avatarOptions, avatarFrame } = await fetchPersonaAndAvatar(user.id)
+    setUser({ ...user, persona, avatarOptions, avatarFrame })
     return res.data
   }
 

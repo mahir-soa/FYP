@@ -263,7 +263,7 @@ body {
   height: 40px;
   border-radius: 50%;
   border: 2px solid transparent;
-  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
+  background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -323,7 +323,7 @@ body {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -385,6 +385,7 @@ body {
   cursor: pointer;
   transition: all 0.15s;
   text-align: left;
+  text-decoration: none;
 }
 
 .dropdown-item:hover {
@@ -485,7 +486,7 @@ body {
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
