@@ -47,7 +47,7 @@ export default function ResetPassword() {
     return (
       <div className="auth-page">
         <div className="auth-logo">
-          <img src={nudgeLogo} alt="Nudge" />
+          <Link to="/"><img src={nudgeLogo} alt="Nudge" /></Link>
         </div>
 
         <div className="auth-card">
@@ -68,7 +68,7 @@ export default function ResetPassword() {
     return (
       <div className="auth-page">
         <div className="auth-logo">
-          <img src={nudgeLogo} alt="Nudge" />
+          <Link to="/"><img src={nudgeLogo} alt="Nudge" /></Link>
         </div>
 
         <div className="auth-card">
@@ -91,7 +91,7 @@ export default function ResetPassword() {
   return (
     <div className="auth-page">
       <div className="auth-logo">
-        <img src={nudgeLogo} alt="Nudge" />
+        <Link to="/"><img src={nudgeLogo} alt="Nudge" /></Link>
       </div>
 
       <div className="auth-card">

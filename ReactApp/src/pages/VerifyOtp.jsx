@@ -186,16 +186,17 @@ export default function VerifyOtp() {
           text-align: center;
           font-size: 24px;
           font-weight: bold;
-          border: 2px solid #e5e7eb;
+          border: 2px solid #374151;
           border-radius: 12px;
-          background: #f9fafb;
+          background: #111827;
+          color: #f9fafb;
           transition: all 0.25s ease;
         }
         .otp-input:focus {
           outline: none;
           border-color: #16a34a;
-          background: white;
-          box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
+          background: #1f2937;
+          box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.2);
         }
         .success-icon {
           font-size: 64px;
