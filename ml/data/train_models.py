@@ -33,9 +33,81 @@ OVERSPEND_FEATURES = [
 ]
 
 
+def find_optimal_k(X_scaled, user_features, k_range=range(3, 9), preferred_k=5):
+    FRAG_THRESHOLD = 0.10
+    n_users = X_scaled.shape[0]
+    results = {}
+
+    print(f"\nK Selection Analysis (k={k_range.start} to {k_range.stop - 1})")
+    print("\u2550" * 70)
+
+    for k in k_range:
+        kmeans = KMeans(n_clusters=k, random_state=42, n_init=20, max_iter=500)
+        labels = kmeans.fit_predict(X_scaled)
+        sil = silhouette_score(X_scaled, labels)
+
+        sizes = [int(np.sum(labels == c)) for c in range(k)]
+        min_size = min(sizes)
+        min_pct = min_size / n_users
+        fragmented = min_pct < FRAG_THRESHOLD
+
+        user_features_temp = user_features.copy()
+        user_features_temp['cluster'] = labels
+        cluster_to_persona = {}
+        for c in range(k):
+            cluster_users = user_features_temp[user_features_temp['cluster'] == c]
+            dominant = cluster_users['persona'].value_counts().index[0]
+            cluster_to_persona[int(c)] = dominant
+
+        centroid_df = pd.DataFrame(kmeans.cluster_centers_, columns=CLUSTER_FEATURES)
+        top_features = {}
+        for c in range(k):
+            top = centroid_df.iloc[c].abs().nlargest(3)
+            top_features[int(c)] = dict(top.round(3))
+
+        results[k] = {
+            'silhouette': sil,
+            'sizes': sizes,
+            'min_size': min_size,
+            'min_pct': min_pct,
+            'fragmented': fragmented,
+            'cluster_to_persona': cluster_to_persona,
+            'top_features': top_features,
+            'model': kmeans,
+        }
+
+        sizes_str = str(sizes)
+        flag = ""
+        if fragmented:
+            flag = " | \u26a0 Fragmented"
+        elif len(set(cluster_to_persona.values())) < k:
+            flag = " | \u26a0 Merged"
+        print(f"k={k}  | Silhouette: {sil:.4f} | Sizes: {sizes_str:<30s}{flag}")
+
+    if preferred_k in results and not results[preferred_k]['fragmented']:
+        best_k = preferred_k
+    else:
+        best_k = None
+        best_sil = -1
+        for k in k_range:
+            r = results[k]
+            if not r['fragmented'] and r['silhouette'] > best_sil:
+                best_sil = r['silhouette']
+                best_k = k
+
+        if best_k is None:
+            best_k = max(k_range, key=lambda k: results[k]['silhouette'])
+            print(f"\nAll k values show fragmentation — falling back to highest silhouette.")
+
+    print(f"\n\u2192 Selected k={best_k} (silhouette={results[best_k]['silhouette']:.4f},"
+          f" min cluster={results[best_k]['min_pct']:.0%} of users)")
+
+    return best_k, results
+
+
 def train_kmeans(df):
     print("=" * 60)
-    print("MODEL 1: K-Means Clustering (k=5)")
+    print("MODEL 1: K-Means Clustering (data-driven k selection)")
     print("=" * 60)
 
     user_features = df.groupby('user_id')[CLUSTER_FEATURES].mean().reset_index()
@@ -46,28 +118,39 @@ def train_kmeans(df):
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    kmeans = KMeans(n_clusters=5, random_state=42, n_init=20, max_iter=500)
-    clusters = kmeans.fit_predict(X_scaled)
+    best_k, k_results = find_optimal_k(X_scaled, user_features)
 
-    sil_score = silhouette_score(X_scaled, clusters)
-    print(f"\nSilhouette Score: {sil_score:.4f}")
+    best = k_results[best_k]
+    kmeans = best['model']
+    clusters = kmeans.predict(X_scaled)
+    sil_score = best['silhouette']
+    cluster_map = best['cluster_to_persona']
 
     user_features['cluster'] = clusters
 
+    print(f"\nFinal model: k={best_k}, Silhouette: {sil_score:.4f}")
     print("\nCluster -> Actual Persona mapping:")
-    cluster_map = {}
-    for c in range(5):
+    for c in range(best_k):
         cluster_users = user_features[user_features['cluster'] == c]
         persona_counts = cluster_users['persona'].value_counts()
-        dominant = persona_counts.index[0]
-        cluster_map[int(c)] = dominant
         print(f"  Cluster {c} ({len(cluster_users)} users): {persona_counts.to_dict()}")
 
     print("\nCluster centroids (top distinguishing features per cluster):")
     centroid_df = pd.DataFrame(kmeans.cluster_centers_, columns=CLUSTER_FEATURES)
-    for c in range(5):
+    for c in range(best_k):
         top = centroid_df.iloc[c].abs().nlargest(5)
         print(f"  Cluster {c} ({cluster_map[int(c)]}): {dict(top.round(3))}")
+
+    serialisable_results = {}
+    for k, r in k_results.items():
+        serialisable_results[k] = {
+            'silhouette': r['silhouette'],
+            'sizes': r['sizes'],
+            'min_pct': r['min_pct'],
+            'fragmented': r['fragmented'],
+            'cluster_to_persona': r['cluster_to_persona'],
+            'top_features': r['top_features'],
+        }
 
     joblib.dump({
         'model': kmeans,
@@ -75,6 +158,8 @@ def train_kmeans(df):
         'features': CLUSTER_FEATURES,
         'cluster_to_persona': cluster_map,
         'silhouette_score': sil_score,
+        'selected_k': best_k,
+        'k_selection_results': serialisable_results,
     }, 'ml/trained_models/persona_kmeans.pkl')
 
     print(f"\nSaved to ml/trained_models/persona_kmeans.pkl")
