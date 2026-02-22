@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import axios from "axios"
 import { useAuth } from "../context/AuthContext"
 import Navbar from "../components/Navbar"
+import budgetBot from "../assets/budget-bot.png"
 import "./css/Home.css"
 
 const API_BASE = "http://localhost:8080/api"
@@ -471,12 +472,31 @@ function Dashboard({ user }) {
           <p>Savings targets</p>
         </Link>
 
-        <Link to="/chat" className="dash-card dark">
-          <div className="dash-card-icon light">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313-12.454z"/><path d="M17 4a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2"/></svg>
+        <Link to="/chat" className="dash-card ai-widget-card">
+          <div className="ai-widget-header">
+            <div className="ai-widget-avatar">
+              <img src={budgetBot} alt="AI Assistant" />
+            </div>
+            <div className="ai-widget-title">
+              <h3>AI Assistant</h3>
+              <span className="ai-widget-status">
+                <span className="status-dot"></span>
+                Online
+              </span>
+            </div>
           </div>
-          <h3>AI Assistant</h3>
-          <p>Get insights</p>
+          <div className="ai-widget-preview">
+            <div className="ai-preview-bubble bot">
+              Hi! I can help with your budget 👋
+            </div>
+            <div className="ai-preview-bubble user">
+              How much did I spend this week?
+            </div>
+          </div>
+          <div className="ai-widget-cta">
+            Start chatting
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+          </div>
         </Link>
       </div>
     </div>

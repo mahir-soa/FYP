@@ -1,11 +1,13 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import nudgeLogo from "../assets/nudge logo.PNG"
 import "./css/Login.css"
 
 export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [remember, setRemember] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
@@ -27,44 +29,56 @@ export default function Login() {
   }
 
   return (
-    <div className="auth-container">
+    <div className="auth-page">
+      <div className="auth-logo">
+        <img src={nudgeLogo} alt="Nudge" />
+      </div>
+
       <div className="auth-card">
-        <h2>Welcome Back</h2>
-        <p className="auth-subtitle">Sign in to your account</p>
+        <p className="auth-subtitle">Please enter your details</p>
+        <h2>Welcome back</h2>
 
         {error && <div className="error-banner">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
             <input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="Email address"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Password"
               required
             />
           </div>
 
-          <Link to="/forgot-password" className="forgot-link">
-            Forgot your password?
-          </Link>
+          <div className="auth-options-row">
+            <label className="remember-label">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+              />
+              Remember for 30 days
+            </label>
+            <Link to="/forgot-password" className="forgot-link">
+              Forgot password
+            </Link>
+          </div>
 
           <button type="submit" className="auth-btn" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 

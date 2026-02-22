@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import nudgeLogo from "../assets/nudge logo.PNG"
 import "./css/Register.css"
 
 export default function Register() {
@@ -40,64 +41,64 @@ export default function Register() {
   }
 
   return (
-    <div className="auth-container">
+    <div className="auth-page">
+      <div className="auth-logo">
+        <img src={nudgeLogo} alt="Nudge" />
+      </div>
+
       <div className="auth-card">
-        <h2>Create Account</h2>
-        <p className="auth-subtitle">Sign up to get started</p>
+        <p className="auth-subtitle">Get started for free</p>
+        <h2>Create your account</h2>
 
         {error && <div className="error-banner">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="name">Full Name</label>
             <input
               type="text"
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder="Full name"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email</label>
             <input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="Email address"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Create a password"
+              placeholder="Password"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
             <input
               type="password"
               id="confirmPassword"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm your password"
+              placeholder="Confirm password"
               required
             />
           </div>
 
           <button type="submit" className="auth-btn" disabled={loading}>
-            {loading ? "Creating account..." : "Sign Up"}
+            {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
 
