@@ -1,25 +1,19 @@
 package com.fyp.controllers;
 
-import com.fyp.models.Bill;
 import com.fyp.models.Budget;
 import com.fyp.models.Expense;
-import com.fyp.models.Income;
-import com.fyp.models.Plan;
-import com.fyp.models.Subscription;
-import com.fyp.repos.BillRepository;
 import com.fyp.repos.BudgetRepository;
 import com.fyp.repos.ExpenseRepository;
-import com.fyp.repos.IncomeRepository;
-import com.fyp.repos.PlanRepository;
-import com.fyp.repos.SubscriptionRepository;
+import com.fyp.services.BudgetService;
+import com.fyp.services.ChatService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/budgets")
@@ -27,27 +21,18 @@ import java.util.*;
 public class BudgetController {
 
     private final BudgetRepository budgetRepository;
-    private final IncomeRepository incomeRepository;
-    private final SubscriptionRepository subscriptionRepository;
     private final ExpenseRepository expenseRepository;
-    private final PlanRepository planRepository;
-    private final BillRepository billRepository;
-
-    // Reduction factor to encourage better spending habits (10% reduction)
-    private static final double SPENDING_REDUCTION_FACTOR = 0.90;
+    private final BudgetService budgetService;
+    private final ChatService chatService;
 
     public BudgetController(BudgetRepository budgetRepository,
-                           IncomeRepository incomeRepository,
-                           SubscriptionRepository subscriptionRepository,
                            ExpenseRepository expenseRepository,
-                           PlanRepository planRepository,
-                           BillRepository billRepository) {
+                           BudgetService budgetService,
+                           ChatService chatService) {
         this.budgetRepository = budgetRepository;
-        this.incomeRepository = incomeRepository;
-        this.subscriptionRepository = subscriptionRepository;
         this.expenseRepository = expenseRepository;
-        this.planRepository = planRepository;
-        this.billRepository = billRepository;
+        this.budgetService = budgetService;
+        this.chatService = chatService;
     }
 
     @GetMapping
@@ -66,6 +51,11 @@ public class BudgetController {
     @PostMapping
     public Budget createBudget(@RequestParam Long userId, @RequestBody Budget budget) {
         budget.setUserId(userId);
+        if (budget.getBufferAmount() <= 0 && budget.getTotalBudget() > 0) {
+            double buffer = Math.round(budget.getTotalBudget() * 0.05 * 100.0) / 100.0;
+            budget.setBufferAmount(buffer);
+            budget.setBufferRemaining(buffer);
+        }
         return budgetRepository.save(budget);
     }
 
@@ -81,6 +71,13 @@ public class BudgetController {
                     existing.setTotalBudget(budget.getTotalBudget());
                     existing.setCategoryLimits(budget.getCategoryLimits());
                     existing.setSafeToSpend(budget.getSafeToSpend());
+                    if (budget.getBufferAmount() > 0) {
+                        existing.setBufferAmount(budget.getBufferAmount());
+                        existing.setBufferRemaining(budget.getBufferRemaining());
+                    }
+                    if (budget.getCategoryMeta() != null) {
+                        existing.setCategoryMeta(budget.getCategoryMeta());
+                    }
                     return ResponseEntity.ok(budgetRepository.save(existing));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -88,102 +85,89 @@ public class BudgetController {
 
     @GetMapping("/suggest")
     public Map<String, Object> suggestBudget(@RequestParam Long userId) {
-        Map<String, Object> suggestion = new HashMap<>();
-        LocalDate today = LocalDate.now();
-        YearMonth currentYearMonth = YearMonth.from(today);
+        return budgetService.buildSuggestion(userId);
+    }
 
-        // Calculate monthly income
-        double monthlyIncome = incomeRepository.findByUserId(userId).stream()
-                .mapToDouble(inc -> {
-                    if ("MONTHLY".equals(inc.getFrequency())) return inc.getAmount();
-                    if ("YEARLY".equals(inc.getFrequency())) return inc.getAmount() / 12;
-                    if ("WEEKLY".equals(inc.getFrequency())) return inc.getAmount() * 4.33;
-                    return 0;
-                }).sum();
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Object>> getBudgetStatus(@RequestParam Long userId) {
+        return budgetService.buildBudgetStatus(userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-        // Calculate monthly subscriptions
-        double monthlySubscriptions = subscriptionRepository.findByUserId(userId).stream()
-                .filter(sub -> "ACTIVE".equals(sub.getStatus()))
-                .mapToDouble(sub -> {
-                    if ("MONTHLY".equals(sub.getBillingCycle())) return sub.getCost();
-                    if ("YEARLY".equals(sub.getBillingCycle())) return sub.getCost() / 12;
-                    if ("WEEKLY".equals(sub.getBillingCycle())) return sub.getCost() * 4.33;
-                    return 0;
-                }).sum();
+    @PostMapping("/{id}/goal-override")
+    public ResponseEntity<Budget> setGoalOverride(
+            @PathVariable Long id,
+            @RequestParam Long userId,
+            @RequestParam String action) {
+        if (!"KEEP".equals(action) && !"REDUCE".equals(action)) {
+            return ResponseEntity.badRequest().build();
+        }
+        return budgetRepository.findById(id)
+                .filter(b -> b.getUserId() != null && b.getUserId().equals(userId))
+                .map(budget -> {
+                    budget.setGoalOverrideAction(action);
+                    return ResponseEntity.ok(budgetRepository.save(budget));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-        // Calculate monthly bills
-        double monthlyBills = billRepository.findByUserId(userId).stream()
-                .mapToDouble(bill -> {
-                    if ("MONTHLY".equals(bill.getFrequency())) return bill.getAmount();
-                    if ("QUARTERLY".equals(bill.getFrequency())) return bill.getAmount() / 3;
-                    if ("YEARLY".equals(bill.getFrequency())) return bill.getAmount() / 12;
-                    return bill.getAmount();
-                }).sum();
+    @GetMapping("/insights")
+    public ResponseEntity<Map<String, String>> getBudgetInsights(@RequestParam Long userId) {
+        String currentMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
 
-        // Calculate monthly goal allocations (amount needed per month to reach goals)
-        double monthlyGoalAllocations = planRepository.findByUserId(userId).stream()
-                .mapToDouble(plan -> {
-                    if (plan.getTargetDate() == null || plan.getTargetDate().isEmpty()) return 0;
-                    try {
-                        LocalDate targetDate = LocalDate.parse(plan.getTargetDate());
-                        if (targetDate.isBefore(today)) return 0; // Goal already passed
-
-                        double remaining = plan.getTargetAmount() - plan.getCurrentAmount();
-                        if (remaining <= 0) return 0; // Goal already met
-
-                        long monthsRemaining = ChronoUnit.MONTHS.between(
-                            currentYearMonth,
-                            YearMonth.from(targetDate)
-                        );
-                        if (monthsRemaining <= 0) monthsRemaining = 1; // At least 1 month
-
-                        return remaining / monthsRemaining;
-                    } catch (Exception e) {
-                        return 0;
-                    }
-                }).sum();
-
-        // Calculate average spending by category (last 3 months) with reduction factor
-        String threeMonthsAgo = LocalDate.now().minusMonths(3).format(DateTimeFormatter.ISO_LOCAL_DATE);
-        List<Expense> recentExpenses = expenseRepository.findByUserId(userId).stream()
-                .filter(exp -> exp.getDate() != null && exp.getDate().compareTo(threeMonthsAgo) >= 0)
-                .toList();
-
-        Map<String, Double> categoryTotals = new HashMap<>();
-        for (Expense exp : recentExpenses) {
-            String cat = exp.getCategory() != null ? exp.getCategory() : "Other";
-            categoryTotals.merge(cat, exp.getAmount(), Double::sum);
+        Optional<Budget> budgetOpt = budgetRepository.findByUserIdAndMonth(userId, currentMonth);
+        if (budgetOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No budget set for this month"));
         }
 
-        // Apply reduction factor to encourage better spending habits
-        Map<String, Double> categoryLimits = new HashMap<>();
-        categoryTotals.forEach((cat, total) -> {
-            double monthlyAvg = total / 3;
-            double reduced = monthlyAvg * SPENDING_REDUCTION_FACTOR;
-            categoryLimits.put(cat, Math.round(reduced * 100.0) / 100.0);
-        });
+        Budget budget = budgetOpt.get();
+        double totalBudget = budget.getTotalBudget();
+        Map<String, Double> categoryLimits = budgetService.parseCategoryLimits(budget.getCategoryLimits());
 
-        // Total budget = income - subscriptions - bills - goal allocations
-        double totalBudget = monthlyIncome - monthlySubscriptions - monthlyBills - monthlyGoalAllocations;
-        double categoryTotal = categoryLimits.values().stream().mapToDouble(Double::doubleValue).sum();
-        double safeToSpend = Math.max(0, totalBudget - categoryTotal);
+        List<Expense> monthExpenses = expenseRepository.findByUserId(userId).stream()
+                .filter(exp -> exp.getDate() != null && exp.getDate().startsWith(currentMonth))
+                .collect(Collectors.toList());
 
-        // Calculate days remaining in month for daily budget
-        int daysInMonth = currentYearMonth.lengthOfMonth();
-        int dayOfMonth = today.getDayOfMonth();
-        int daysRemaining = daysInMonth - dayOfMonth + 1;
+        double totalSpent = monthExpenses.stream().mapToDouble(Expense::getAmount).sum();
 
-        suggestion.put("monthlyIncome", Math.round(monthlyIncome * 100.0) / 100.0);
-        suggestion.put("monthlySubscriptions", Math.round(monthlySubscriptions * 100.0) / 100.0);
-        suggestion.put("monthlyBills", Math.round(monthlyBills * 100.0) / 100.0);
-        suggestion.put("monthlyGoalAllocations", Math.round(monthlyGoalAllocations * 100.0) / 100.0);
-        suggestion.put("totalBudget", Math.round(totalBudget * 100.0) / 100.0);
-        suggestion.put("categoryLimits", categoryLimits);
-        suggestion.put("safeToSpend", Math.round(safeToSpend * 100.0) / 100.0);
-        suggestion.put("daysInMonth", daysInMonth);
-        suggestion.put("daysRemaining", daysRemaining);
-        suggestion.put("reductionApplied", Math.round((1 - SPENDING_REDUCTION_FACTOR) * 100));
+        Map<String, Double> spentByCategory = new HashMap<>();
+        for (Expense exp : monthExpenses) {
+            String cat = exp.getCategory() != null ? exp.getCategory() : "Other";
+            spentByCategory.merge(cat, exp.getAmount(), Double::sum);
+        }
 
-        return suggestion;
+        LocalDate today = LocalDate.now();
+        YearMonth ym = YearMonth.from(today);
+        int daysRemaining = ym.lengthOfMonth() - today.getDayOfMonth() + 1;
+        double remaining = totalBudget - totalSpent;
+        double safePerDay = daysRemaining > 0 ? Math.max(0, remaining / daysRemaining) : 0;
+
+        Map<String, Object> context = new HashMap<>();
+        context.put("totalBudget", String.format("£%.2f", totalBudget));
+        context.put("totalSpent", String.format("£%.2f", totalSpent));
+        context.put("remaining", String.format("£%.2f", remaining));
+        context.put("daysRemaining", daysRemaining);
+        context.put("safeToSpendPerDay", String.format("£%.2f", safePerDay));
+        context.put("transactions", monthExpenses.size());
+        context.put("bufferRemaining", String.format("£%.2f", budget.getBufferRemaining()));
+
+        StringBuilder catBreakdown = new StringBuilder();
+        Set<String> allCats = new HashSet<>(categoryLimits.keySet());
+        allCats.addAll(spentByCategory.keySet());
+        for (String cat : allCats) {
+            double spent = spentByCategory.getOrDefault(cat, 0.0);
+            double limit = categoryLimits.getOrDefault(cat, 0.0);
+            double pct = limit > 0 ? (spent / limit) * 100 : 0;
+            catBreakdown.append(String.format("- %s: £%.2f spent of £%.2f limit (%.0f%%)\n", cat, spent, limit, pct));
+        }
+        context.put("categoryBreakdown", catBreakdown.toString());
+
+        String result = chatService.generateBudgetInsights(context);
+        if (result == null) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Failed to generate insights"));
+        }
+
+        return ResponseEntity.ok(Map.of("insights", result));
     }
 }
