@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import nudgeLogo from "../assets/nudge logo.PNG"
 import "./css/Register.css"
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
 export default function Register() {
   const [name, setName] = useState("")
@@ -12,55 +11,8 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
-  const { register, googleLogin } = useAuth()
+  const { register } = useAuth()
   const navigate = useNavigate()
-  const googleButtonRef = useRef(null)
-
-  const handleGoogleResponse = useCallback(async (response) => {
-    setError("")
-    setGoogleLoading(true)
-
-    try {
-      await googleLogin(response.credential)
-      navigate("/")
-    } catch (err) {
-      setError(err.response?.data?.message || "Google sign up failed")
-    } finally {
-      setGoogleLoading(false)
-    }
-  }, [googleLogin, navigate])
-
-  useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return
-
-    const initializeGoogle = () => {
-      if (window.google && googleButtonRef.current) {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleResponse,
-        })
-        window.google.accounts.id.renderButton(googleButtonRef.current, {
-          type: "standard",
-          theme: "outline",
-          size: "large",
-          text: "continue_with",
-          width: "100%",
-        })
-      }
-    }
-
-    if (window.google) {
-      initializeGoogle()
-    } else {
-      const script = document.createElement("script")
-      script.src = "https://accounts.google.com/gsi/client"
-      script.async = true
-      script.defer = true
-      script.onload = initializeGoogle
-      document.body.appendChild(script)
-    }
-  }, [handleGoogleResponse])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -89,74 +41,64 @@ export default function Register() {
   }
 
   return (
-    <div className="auth-container">
+    <div className="auth-page">
+      <div className="auth-logo">
+        <img src={nudgeLogo} alt="Nudge" />
+      </div>
+
       <div className="auth-card">
-        <h2>Create Account</h2>
-        <p className="auth-subtitle">Sign up to get started</p>
+        <p className="auth-subtitle">Get started for free</p>
+        <h2>Create your account</h2>
 
         {error && <div className="error-banner">{error}</div>}
 
-        {GOOGLE_CLIENT_ID && (
-          <>
-            <div className="google-btn-wrapper" ref={googleButtonRef}></div>
-            {googleLoading && <p className="google-loading">Signing up with Google...</p>}
-            <div className="auth-divider">
-              <span>or</span>
-            </div>
-          </>
-        )}
-
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="name">Full Name</label>
             <input
               type="text"
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder="Full name"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email</label>
             <input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="Email address"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Create a password"
+              placeholder="Password"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
             <input
               type="password"
               id="confirmPassword"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm your password"
+              placeholder="Confirm password"
               required
             />
           </div>
 
           <button type="submit" className="auth-btn" disabled={loading}>
-            {loading ? "Creating account..." : "Sign Up"}
+            {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
 
