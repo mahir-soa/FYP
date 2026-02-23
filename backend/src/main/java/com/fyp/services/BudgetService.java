@@ -238,7 +238,7 @@ public class BudgetService {
                         Map<String, Object> ex = new LinkedHashMap<>();
                         ex.put("suggested", categoryLimits.get(cat));
                         ex.put("tier", CATEGORY_TIERS.getOrDefault(cat, "FLEXIBLE"));
-                        ex.put("reason", "AI-optimized allocation");
+                        ex.put("reason", "AI-optimised allocation");
                         explanations.put(cat, ex);
                     }
                 }

@@ -1144,7 +1144,7 @@ export default function Budget() {
 
                   {!insights && !insightsLoading && !insightsError && (
                     <div className="insights-empty">
-                      <p>Get personalized spending tips powered by AI</p>
+                      <p>Get personalised spending tips powered by AI</p>
                     </div>
                   )}
                   </>}
@@ -1165,7 +1165,7 @@ export default function Budget() {
                   </svg>
                 </div>
                 <h3>No budget set for this month</h3>
-                <p>Add some income and expenses to get a personalized budget suggestion.</p>
+                <p>Add some income and expenses to get a personalised budget suggestion.</p>
               </div>
             )}
           </>

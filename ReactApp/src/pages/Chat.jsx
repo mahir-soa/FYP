@@ -136,7 +136,7 @@ export default function Chat() {
     "How much did I spend this week?",
     "What's my biggest expense?",
     "Tips to save money",
-    "Analyze my spending"
+    "Analyse my spending"
   ]
 
   const formatDate = (dateStr) => {
@@ -203,7 +203,7 @@ export default function Chat() {
             <label className="toggle-option">
               <div className="toggle-info">
                 <span className="toggle-label">Include expense data</span>
-                <span className="toggle-desc">Let AI analyze your spending</span>
+                <span className="toggle-desc">Let AI analyse your spending</span>
               </div>
               <div className={`toggle-switch ${includeContext ? 'active' : ''}`} onClick={() => setIncludeContext(!includeContext)}>
                 <div className="toggle-handle"></div>

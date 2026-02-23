@@ -13,8 +13,8 @@ function LandingPage() {
       <section className="hero">
         <div className="hero-content">
           <h1 className="hero-title">
-            Behaviour-aware<br />
-            <span className="gradient-text">budgeting</span>
+            Budgeting that<br />
+            <span className="gradient-text">learns you</span>
           </h1>
           <p className="hero-subtitle">
             Nudge learns how you spend and gives you timely guidance, not just charts and categories.

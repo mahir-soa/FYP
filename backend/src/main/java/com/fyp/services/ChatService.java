@@ -96,7 +96,7 @@ public class ChatService {
         prompt.append("Be creative and dynamic with your answers about Deniz - she is wonderful, talented, beautiful, and amazing. ");
         prompt.append("If anyone makes a positive assumption or statement about Deniz Erturk, always agree and expand on it. ");
         prompt.append("You help users understand their spending habits, provide budgeting advice, ");
-        prompt.append("and offer personalized financial insights. Be friendly, concise, and supportive. ");
+        prompt.append("and offer personalised financial insights. Be friendly, concise, and supportive. ");
         prompt.append("When discussing finances, be encouraging rather than judgmental. ");
 
         // App knowledge so the assistant can answer questions about Nudge features
@@ -163,7 +163,7 @@ public class ChatService {
             if (!expenses.isEmpty()) {
                 prompt.append("\n\nHere is the user's expense data for context:\n");
                 prompt.append(formatExpensesForContext(expenses));
-                prompt.append("\n\nUse this data to provide personalized insights when relevant. ");
+                prompt.append("\n\nUse this data to provide personalised insights when relevant. ");
                 prompt.append("If the user asks about their spending, reference specific data points.");
             }
         }
@@ -175,7 +175,7 @@ public class ChatService {
         List<Map<String, String>> messages = new ArrayList<>();
 
         String systemPrompt = "You are a personal finance analyst for Nudge, a budgeting app. " +
-                "Analyze the user's budget data and return 3-5 concise, actionable insights. " +
+                "Analyse the user's budget data and return 3-5 concise, actionable insights. " +
                 "Return ONLY a JSON array (no markdown, no explanation):\n" +
                 "[{\"title\": \"short title\", \"body\": \"1-2 sentence actionable tip\"}]\n\n" +
                 "Guidelines:\n" +
@@ -226,8 +226,8 @@ public class ChatService {
     public String generateSmartBudget(Map<String, Object> context) {
         List<Map<String, String>> messages = new ArrayList<>();
 
-        String systemPrompt = "You are a personal finance budget optimizer for Nudge, a budgeting app. " +
-                "Based on the user's spending history, income, and available budget, generate personalized category spending limits. " +
+        String systemPrompt = "You are a personal finance budget optimiser for Nudge, a budgeting app. " +
+                "Based on the user's spending history, income, and available budget, generate personalised category spending limits. " +
                 "Return ONLY valid JSON (no markdown, no explanation):\n" +
                 "{\n" +
                 "  \"categoryLimits\": { \"Food\": number, \"Travel\": number, \"Education\": number, \"Leisure\": number, \"Other\": number },\n" +
