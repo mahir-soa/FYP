@@ -47,8 +47,8 @@ export default function Login() {
     setError("")
     setLoading(true)
     try {
-      await googleLogin(response.credential)
-      navigate("/")
+      const userData = await googleLogin(response.credential)
+      navigate(userData.onboardingCompleted ? "/" : "/onboarding")
     } catch (err) {
       setError(err.response?.data?.message || "Google sign-in failed")
     } finally {
@@ -62,8 +62,8 @@ export default function Login() {
     setLoading(true)
 
     try {
-      await login(email, password)
-      navigate("/")
+      const userData = await login(email, password)
+      navigate(userData.onboardingCompleted ? "/" : "/onboarding")
     } catch (err) {
       setError(err.response?.data?.message || "Invalid email or password")
     } finally {

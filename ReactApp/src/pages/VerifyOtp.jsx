@@ -74,10 +74,10 @@ export default function VerifyOtp() {
     setLoading(true)
 
     try {
-      await verifyOtp(email, otpString)
+      const result = await verifyOtp(email, otpString)
       setSuccess(true)
       setTimeout(() => {
-        navigate("/")
+        navigate("/onboarding")
       }, 1500)
     } catch (err) {
       setError(err.response?.data?.message || "Verification failed. Please try again.")
