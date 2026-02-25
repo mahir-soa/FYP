@@ -807,6 +807,12 @@ public class AdaptiveBudgetEngine {
                 }
             } else if ("REALLOCATION_ACTION".equals(nudge.getType()) && !reallocationActive) {
                 shouldDismiss = true;
+            } else if ("PACING_WARNING".equals(nudge.getType())) {
+                Map<String, Object> pacing = (Map<String, Object>) status.get("pacing");
+                String pacingStatus = pacing != null ? (String) pacing.get("status") : null;
+                if (pacingStatus == null || "on-track".equals(pacingStatus)) {
+                    shouldDismiss = true;
+                }
             }
 
             if (shouldDismiss) {

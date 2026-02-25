@@ -455,6 +455,17 @@ public class BudgetNudgeService {
                     nudgeRepository.save(n);
                     continue;
                 }
+                // Skip pacing nudges if pacing is fine
+                if ("PACING_WARNING".equals(n.getType())) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> pacing = (Map<String, Object>) status.get("pacing");
+                    String pacingStatus = pacing != null ? (String) pacing.get("status") : null;
+                    if (pacingStatus == null || "on-track".equals(pacingStatus)) {
+                        n.setIsDismissed(true);
+                        nudgeRepository.save(n);
+                        continue;
+                    }
+                }
 
                 Map<String, Object> fallback = new LinkedHashMap<>();
                 fallback.put("nudgeType", n.getType());
