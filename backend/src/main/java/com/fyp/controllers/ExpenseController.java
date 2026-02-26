@@ -38,6 +38,7 @@ public class ExpenseController {
                 .filter(existing -> existing.getUserId() != null && existing.getUserId().equals(userId))
                 .map(existing -> {
                     existing.setDate(expense.getDate());
+                    existing.setTime(expense.getTime());
                     existing.setDescription(expense.getDescription());
                     existing.setAmount(expense.getAmount());
                     existing.setCategory(expense.getCategory());
