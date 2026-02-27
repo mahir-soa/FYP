@@ -211,12 +211,51 @@ def get_persona(user_id: int, db: Session = Depends(get_db)):
     nudge_style = NUDGE_STYLES.get(persona.persona_type, DEFAULT_NUDGE_STYLE)
     spider_explanation = build_spider_explanation(spider_axes, persona.persona_type or 'NEUTRAL')
 
+    # Stage 2 refinement on stored data
+    from app.services.persona_service import refine_persona, compute_profile_stats
+    refinement_reason = None
+    base_persona_type = persona.persona_type
+    refined_persona_type = persona.persona_type
+
+    # If we have a stored feature snapshot, attempt refinement
+    if clustering_snapshot and feature_snapshot:
+        # Reconstruct minimal profile stats from snapshot
+        profile_stats = {
+            'transaction_count': feature_snapshot.get('txn_count', 0),
+            'day_spread': clustering_snapshot.get('day_spread', 0),
+            'late_night_count': feature_snapshot.get('late_night_count', 0),
+            'months_with_data': clustering_snapshot.get('months_with_data', 0),
+            'max_category_share': feature_snapshot.get('hhi_index', 0),
+            'mean_daily_spend': feature_snapshot.get('daily_spend_mean', 999),
+            'budget_adherence': 0,
+        }
+        # Compute budget adherence from feature snapshot
+        adherence_vals = [feature_snapshot.get(f'adherence_{cat.lower()}', 0)
+                          for cat in ['Food', 'Travel', 'Leisure', 'Education', 'Other']]
+        valid_adherence = [a for a in adherence_vals if a > 0]
+        if valid_adherence:
+            within_budget = sum(1 for a in valid_adherence if a <= 1.0)
+            profile_stats['budget_adherence'] = within_budget / len(valid_adherence)
+
+        # Recompute max_category_share properly
+        cat_pcts = [feature_snapshot.get(f'pct_{cat.lower()}', 0)
+                    for cat in ['Food', 'Travel', 'Leisure', 'Education', 'Other']]
+        if cat_pcts:
+            profile_stats['max_category_share'] = max(cat_pcts)
+
+        refined_persona_type, refinement_reason = refine_persona(
+            persona.persona_type, clustering_snapshot, domain_traits, profile_stats
+        )
+
+    from app.services.persona_service import _get_persona_label, _get_persona_description
     return {
         'user_id': user_id,
-        'persona_type': persona.persona_type,
-        'persona_primary': persona.persona_primary or persona.persona_type,
-        'persona_label': result.get('persona_label', persona.persona_type),
-        'description': result.get('description', ''),
+        'base_persona': base_persona_type,
+        'persona_type': refined_persona_type,
+        'persona_primary': refined_persona_type,
+        'persona_label': _get_persona_label(refined_persona_type),
+        'description': _get_persona_description(refined_persona_type),
+        'refinement_reason': refinement_reason,
         'confidence': persona.confidence_score,
         'confidence_level': persona.confidence_level or confidence_data.get('level', ''),
         'confidence_data': confidence_data,

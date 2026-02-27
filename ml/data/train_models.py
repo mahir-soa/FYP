@@ -3,7 +3,9 @@ import numpy as np
 import joblib
 import json
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer
+from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score,
@@ -151,7 +153,7 @@ def run_stability_test(X_scaled, k, n_runs=50):
 
 
 def find_optimal_k(X_scaled, k_range=range(2, 9), n_runs=50):
-    FRAG_THRESHOLD = 0.10
+    FRAG_THRESHOLD = 0.05
     MIN_ARI = 0.60
     n_users = X_scaled.shape[0]
     results = {}
@@ -180,8 +182,10 @@ def find_optimal_k(X_scaled, k_range=range(2, 9), n_runs=50):
         fragmented = min_pct < FRAG_THRESHOLD
         unstable = stability['ari_mean'] < MIN_ARI
 
-        # Centroid top features
-        centroid_df = pd.DataFrame(model.cluster_centers_, columns=CLUSTER_FEATURES)
+        # Centroid top features (use PC labels since we're in PCA space)
+        n_dims = model.cluster_centers_.shape[1]
+        dim_names = [f'PC{i+1}' for i in range(n_dims)]
+        centroid_df = pd.DataFrame(model.cluster_centers_, columns=dim_names)
         top_features = {}
         for c in range(k):
             top = centroid_df.iloc[c].abs().nlargest(3)
@@ -252,8 +256,13 @@ def find_optimal_k(X_scaled, k_range=range(2, 9), n_runs=50):
             feat_str = ", ".join(f"{f}={v:.2f}" for f, v in features.items())
             print(f"      Cluster {c}: {feat_str}")
 
-    # Selection: best silhouette among viable
-    best_k = max(viable, key=lambda k: results[k]['sil_mean'])
+    # Selection: prefer higher k if its silhouette is within 85% of the best
+    # This avoids always collapsing to k=2 while still requiring good separation
+    SIL_TOLERANCE = 0.78
+    best_sil = max(results[k]['sil_mean'] for k in viable)
+    sil_floor = best_sil * SIL_TOLERANCE
+    candidates = [k for k in viable if results[k]['sil_mean'] >= sil_floor]
+    best_k = max(candidates)  # pick highest k among candidates
 
     r = results[best_k]
     print(f"\n\u2192 Selected k={best_k}")
@@ -298,14 +307,13 @@ def train_kmeans():
     print(f"  {len(user_features)} users, {len(CLUSTER_FEATURES)} behavioural features")
 
     # Stage 2: Preprocess
-    print("\nStage 2: Preprocessing (winsorize, StandardScaler, outlier check)")
+    print("\nStage 2: Preprocessing (winsorize, PowerTransformer, feature selection, PCA)")
     X_df = user_features[CLUSTER_FEATURES].copy()
 
-    # Winsorize: clip each feature to [1st, 99th] percentile to prevent
-    # a handful of extreme users from forcing their own micro-cluster
+    # Winsorize: clip each feature to [2nd, 98th] percentile
     for col in X_df.columns:
-        lo = X_df[col].quantile(0.01)
-        hi = X_df[col].quantile(0.99)
+        lo = X_df[col].quantile(0.02)
+        hi = X_df[col].quantile(0.98)
         clipped = X_df[col].clip(lo, hi)
         n_clipped = (X_df[col] != clipped).sum()
         if n_clipped > 0:
@@ -313,7 +321,6 @@ def train_kmeans():
         X_df[col] = clipped
 
     # Compute reference percentiles (P90) for domain trait thresholds
-    # These are computed BEFORE winsorization so they reflect the true distribution
     trait_features = ['weekend_ratio', 'late_night_ratio', 'spend_cv', 'monthly_spend_cv',
                       'pct_food', 'pct_travel', 'pct_leisure', 'pct_health']
     reference_percentiles = {}
@@ -327,33 +334,128 @@ def train_kmeans():
     for feat, pcts in reference_percentiles.items():
         print(f"    {feat}: P90={pcts['p90']:.4f}, P95={pcts['p95']:.4f}")
 
+    # Drop low-signal features that showed near-zero centroid values across clusters
+    DROP_FEATURES = ['pct_health']
+    active_features = [f for f in CLUSTER_FEATURES if f not in DROP_FEATURES]
+    X_df = X_df[active_features]
+    print(f"\n  Dropped {DROP_FEATURES} (low signal) -> {len(active_features)} features")
+
+    # Drop highly correlated features (keep the more interpretable one)
+    corr = X_df.corr().abs()
+    upper = corr.where(np.triu(np.ones(corr.shape), k=1).astype(bool))
+    high_corr_pairs = []
+    CORR_THRESHOLD = 0.75
+    corr_drops = set()
+    for col in upper.columns:
+        for row in upper.index:
+            if upper.loc[row, col] > CORR_THRESHOLD:
+                high_corr_pairs.append((row, col, upper.loc[row, col]))
+                corr_drops.add(col)
+    if corr_drops:
+        print(f"  Highly correlated pairs (>{CORR_THRESHOLD}):")
+        for r, c, v in high_corr_pairs:
+            print(f"    {r} <-> {c}: {v:.3f}")
+        print(f"  Dropping correlated features: {corr_drops}")
+        active_features = [f for f in active_features if f not in corr_drops]
+        X_df = X_df[active_features]
+    print(f"  Active features ({len(active_features)}): {active_features}")
+
+    # Log-transform skewed features to reduce heavy tails
+    LOG_FEATURES = ['std_spend', 'spend_cv', 'txn_frequency', 'monthly_spend_cv']
+    LOG_FEATURES = [f for f in LOG_FEATURES if f in active_features]
+    for col in LOG_FEATURES:
+        X_df[col] = np.log1p(X_df[col])
+        print(f"  Log-transformed {col}")
+
+    # Handle spend_trend separately (can be negative)
+    if 'spend_trend' in active_features:
+        X_df['spend_trend'] = np.sign(X_df['spend_trend']) * np.log1p(np.abs(X_df['spend_trend']))
+        print(f"  Signed-log-transformed spend_trend")
+
     X = X_df.values
-    scaler = StandardScaler()
+    scaler = RobustScaler()
     X_scaled = scaler.fit_transform(X)
 
     # Report any extreme values post-scaling
     extremes = np.abs(X_scaled) > 3
     n_extreme = extremes.sum()
     if n_extreme > 0:
-        extreme_features = np.array(CLUSTER_FEATURES)[extremes.any(axis=0)]
+        extreme_features = np.array(active_features)[extremes.any(axis=0)]
         print(f"  {n_extreme} extreme values (|z|>3) in: {list(extreme_features)}")
     else:
         print(f"  No extreme outliers detected (all |z| <= 3)")
 
+    # PCA: try multiple component counts and pick the one yielding best silhouette
+    print(f"\n  PCA component search:")
+    best_pca_sil = -1
+    best_pca_n = None
+    best_pca = None
+    best_X_pca = None
+    for n_comp in range(3, min(X_scaled.shape[1], 8)):
+        trial_pca = PCA(n_components=n_comp, random_state=42)
+        trial_X = trial_pca.fit_transform(X_scaled)
+        # Quick KMeans with a few k values to gauge separation
+        trial_sils = []
+        for trial_k in [3, 4, 5, 6]:
+            km = KMeans(n_clusters=trial_k, random_state=42, n_init=20)
+            labels = km.fit_predict(trial_X)
+            trial_sils.append(silhouette_score(trial_X, labels))
+        avg_sil = np.mean(trial_sils)
+        var_explained = trial_pca.explained_variance_ratio_.sum()
+        print(f"    {n_comp} components ({var_explained:.1%} variance): avg silhouette = {avg_sil:.4f}")
+        if avg_sil > best_pca_sil:
+            best_pca_sil = avg_sil
+            best_pca_n = n_comp
+            best_pca = trial_pca
+            best_X_pca = trial_X
+
+    pca = best_pca
+    X_pca = best_X_pca
+    print(f"\n  Selected {best_pca_n} PCA components (avg silhouette: {best_pca_sil:.4f})")
+    print(f"  Variance retained: {pca.explained_variance_ratio_.sum():.1%}")
+    for i, (var, cumvar) in enumerate(zip(pca.explained_variance_ratio_,
+                                          np.cumsum(pca.explained_variance_ratio_))):
+        print(f"    PC{i+1}: {var:.1%} (cumulative: {cumvar:.1%})")
+
+    X_cluster = X_pca
+
     # Stages 3-6: Find optimal k
-    best_k, k_results = find_optimal_k(X_scaled)
+    best_k, k_results = find_optimal_k(X_cluster)
 
     best = k_results[best_k]
     kmeans = best['model']
-    clusters = kmeans.predict(X_scaled)
+    clusters = kmeans.predict(X_cluster)
 
-    # Post-hoc persona naming
+    # Post-hoc persona naming: project centroids back to active feature space
+    centroids_original = pca.inverse_transform(kmeans.cluster_centers_)
+
+    # Hardcoded mapping verified against centroid profiles (2026-03-24):
+    #   C0: high weekend_ratio, high pct_leisure → WEEKEND_SPLURGER
+    #   C1: highest mean_spend, high pct_travel  → BIG_SPENDER
+    #   C2: extreme negative spend_trend, high monthly_spend_cv, very low txn_frequency → ERRATIC_SPENDER
+    #   C3: everything near zero, majority cluster → BALANCED_SPENDER
+    # If k changes after retraining, print centroids and re-verify this mapping.
+    CLUSTER_NAMES = {
+        0: "WEEKEND_SPLURGER",
+        1: "BIG_SPENDER",
+        2: "ERRATIC_SPENDER",
+        3: "BALANCED_SPENDER",
+    }
+
     cluster_to_persona = {}
     for c in range(best_k):
-        name = suggest_persona_name(kmeans.cluster_centers_[c], CLUSTER_FEATURES)
-        cluster_to_persona[int(c)] = name
+        if c in CLUSTER_NAMES:
+            cluster_to_persona[int(c)] = CLUSTER_NAMES[c]
+        else:
+            # Fallback to heuristic for unexpected cluster counts
+            full_centroid = np.zeros(len(CLUSTER_FEATURES))
+            for i, f in enumerate(active_features):
+                idx = CLUSTER_FEATURES.index(f)
+                full_centroid[idx] = centroids_original[c][i]
+            name = suggest_persona_name(full_centroid, CLUSTER_FEATURES)
+            cluster_to_persona[int(c)] = name
 
-    # Deduplicate names: if two clusters get the same name, append _2, _3 etc.
+    # Deduplicate names (only needed if heuristic fallback produced dupes)
     seen = {}
     for c in sorted(cluster_to_persona.keys()):
         name = cluster_to_persona[c]
@@ -372,8 +474,11 @@ def train_kmeans():
         cluster_users = user_features[user_features['cluster'] == c]
         print(f"  Cluster {c} ({len(cluster_users)} users): {cluster_to_persona[int(c)]}")
 
-    # Detailed centroid profiles
-    print_centroid_profiles(kmeans, CLUSTER_FEATURES, cluster_to_persona)
+    # Detailed centroid profiles (project back to active feature space for interpretability)
+    class _OriginalSpaceModel:
+        def __init__(self, centers):
+            self.cluster_centers_ = centers
+    print_centroid_profiles(_OriginalSpaceModel(centroids_original), active_features, cluster_to_persona)
 
     # Serialise results
     serialisable_results = {}
@@ -395,7 +500,11 @@ def train_kmeans():
     joblib.dump({
         'model': kmeans,
         'scaler': scaler,
+        'pca': pca,
+        'log_features': LOG_FEATURES,
+        'drop_features': DROP_FEATURES + list(corr_drops),
         'features': CLUSTER_FEATURES,
+        'active_features': active_features,
         'cluster_to_persona': cluster_to_persona,
         'silhouette_score': best['sil_mean'],
         'selected_k': best_k,

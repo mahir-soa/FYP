@@ -351,6 +351,9 @@ export default function Persona() {
   const tips = activePersonaType ? (PERSONA_TIPS[activePersonaType] || PERSONA_TIPS[personaData?.persona_type] || DEFAULT_TIPS) : []
   const accentColor = activePersonaType ? (PERSONA_COLORS[activePersonaType] || DEFAULT_COLOR) : DEFAULT_COLOR
   const displayLabel = activePersonaType ? (PERSONA_LABELS[activePersonaType] || personaData?.persona_label || activePersonaType.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())) : ""
+  const basePersonaType = personaData?.base_persona || null
+  const isRefined = basePersonaType && basePersonaType !== activePersonaType
+  const baseLabel = isRefined ? (PERSONA_LABELS[basePersonaType] || basePersonaType.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())) : null
 
 
   return (
@@ -431,6 +434,12 @@ export default function Persona() {
                   </div>
                   <h2>{user.name}</h2>
                   <p className="persona-description">{personaData.description}</p>
+                  {isRefined && (
+                    <div className="persona-refinement-info">
+                      <p className="refinement-base">Base profile: {baseLabel} (from spending pattern analysis)</p>
+                      <p className="refinement-reason">Refined profile: {displayLabel} — {personaData.refinement_reason}</p>
+                    </div>
+                  )}
                   {personaData.domain_traits && personaData.domain_traits.length > 0 && (
                     <div className="persona-domain-traits">
                       {personaData.domain_traits.map((trait) => (

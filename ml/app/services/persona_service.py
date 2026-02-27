@@ -8,7 +8,23 @@ import pandas as pd
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'trained_models')
 
-# Known persona labels
+# Stage 1 — K-means base personas (from pickle)
+BASE_PERSONAS = {
+    0: "WEEKEND_SPLURGER",
+    1: "BIG_SPENDER",
+    2: "ERRATIC_SPENDER",
+    3: "BALANCED_SPENDER",
+}
+
+# Stage 2 — Domain refinement can promote to these
+REFINED_PERSONAS = [
+    "LATE_NIGHT_SPENDER",
+    "VOLATILE_SPENDER",
+    "CATEGORY_FOCUSED",
+    "CAUTIOUS_SAVER",
+]
+
+# All known persona labels (base + refined)
 PERSONA_LABELS = {
     'ERRATIC_SPENDER': 'Erratic Spender',
     'CAUTIOUS_SAVER': 'Cautious Saver',
@@ -20,6 +36,19 @@ PERSONA_LABELS = {
     'BIG_SPENDER': 'Big Spender',
     'INSUFFICIENT_DATA': 'Insufficient Data',
 }
+
+# Domain refinement thresholds
+LATE_NIGHT_RATIO_THRESHOLD = 0.30
+LATE_NIGHT_MIN_COUNT = 5
+VOLATILITY_CV_THRESHOLD = 1.0
+VOLATILITY_MIN_MONTHS = 3
+CATEGORY_CONCENTRATION_THRESHOLD = 0.50
+CAUTIOUS_MEAN_DAILY_SPEND_THRESHOLD = 15.0
+CAUTIOUS_CV_THRESHOLD = 0.30
+CAUTIOUS_BUDGET_ADHERENCE_THRESHOLD = 0.85
+CAUTIOUS_MIN_TRANSACTIONS = 30
+REFINEMENT_MIN_TRANSACTIONS = 20
+REFINEMENT_MIN_DAY_SPREAD = 14
 
 PERSONA_DESCRIPTIONS = {
     'ERRATIC_SPENDER': 'Your spending pattern is irregular with high variance between transactions and occasional large purchases.',
@@ -257,11 +286,29 @@ def _predict_base_persona(clustering_features):
     data = load_kmeans()
     model = data['model']
     scaler = data['scaler']
+    pca = data.get('pca')
+    log_features = data.get('log_features', [])
+    drop_features = data.get('drop_features', [])
     feature_names = data['features']
+    active_features = data.get('active_features', feature_names)
     cluster_map = data['cluster_to_persona']
 
-    X = np.array([[clustering_features.get(f, 0) for f in feature_names]])
+    # Build feature vector using only active features (after drops)
+    raw = [clustering_features.get(f, 0) for f in active_features]
+    X = np.array([raw])
+
+    # Apply same log transforms used during training
+    for i, f in enumerate(active_features):
+        if f in log_features:
+            X[0, i] = np.log1p(X[0, i])
+        elif f == 'spend_trend' and 'spend_trend' not in log_features:
+            X[0, i] = np.sign(X[0, i]) * np.log1p(np.abs(X[0, i]))
+
     X_scaled = scaler.transform(X)
+
+    # Apply PCA if the model was trained with it
+    if pca is not None:
+        X_scaled = pca.transform(X_scaled)
 
     cluster = model.predict(X_scaled)[0]
     distances = model.transform(X_scaled)[0]
@@ -271,13 +318,14 @@ def _predict_base_persona(clustering_features):
 
     persona_type = cluster_map.get(int(cluster), 'BALANCED_SPENDER')
 
-    # Top features: those closest to centroid (strongest match reasons)
-    centroid = model.cluster_centers_[cluster]
-    feature_vals = X_scaled[0]
-    # Use absolute centroid values as "importance": which features define this cluster
-    centroid_abs = np.abs(centroid)
+    # Top features: project centroid back to active feature space for interpretability
+    if pca is not None:
+        centroid_original = pca.inverse_transform(model.cluster_centers_[cluster].reshape(1, -1))[0]
+        centroid_abs = np.abs(centroid_original)
+    else:
+        centroid_abs = np.abs(model.cluster_centers_[cluster])
     top_indices = np.argsort(centroid_abs)[::-1][:3]
-    top_features = [feature_names[i] for i in top_indices]
+    top_features = [active_features[i] for i in top_indices]
 
     return {
         'persona_type': persona_type,
@@ -287,6 +335,136 @@ def _predict_base_persona(clustering_features):
         'top_features': top_features,
         'cluster_fit': round(float(confidence) * 100, 1),
     }
+
+
+def compute_profile_stats(expenses, clustering_features, features, budgets):
+    """Compute profile statistics needed for refinement from raw expense data."""
+    stats = {
+        'transaction_count': 0,
+        'day_spread': 0,
+        'late_night_count': 0,
+        'months_with_data': 0,
+        'max_category_share': 0,
+        'mean_daily_spend': 999,
+        'budget_adherence': 0,
+    }
+
+    if not expenses:
+        return stats
+
+    rows = []
+    for e in expenses:
+        try:
+            dt = pd.to_datetime(e.date)
+        except Exception:
+            continue
+        if pd.isna(dt):
+            continue
+        rows.append({
+            'amount': float(e.amount or 0),
+            'category': e.category,
+            'date': dt,
+            'time_of_day': getattr(e, 'time', None) or '',
+        })
+
+    if not rows:
+        return stats
+
+    df = pd.DataFrame(rows)
+    stats['transaction_count'] = len(df)
+
+    dates = df['date'].sort_values()
+    stats['day_spread'] = (dates.iloc[-1] - dates.iloc[0]).days
+
+    # Late night count
+    late_mask = df['time_of_day'].str.strip().str.lower() == 'late night'
+    stats['late_night_count'] = int(late_mask.sum())
+
+    # Months with data
+    df['month'] = df['date'].dt.to_period('M')
+    stats['months_with_data'] = df['month'].nunique()
+
+    # Max category share
+    total_spend = df['amount'].sum()
+    if total_spend > 0:
+        cat_spend = df.groupby('category')['amount'].sum()
+        stats['max_category_share'] = float(cat_spend.max() / total_spend)
+
+    # Mean daily spend
+    active_days = df['date'].dt.date.nunique()
+    if active_days > 0 and total_spend > 0:
+        stats['mean_daily_spend'] = float(total_spend / active_days)
+
+    # Budget adherence
+    if budgets and features:
+        adherence_vals = [features.get(f'adherence_{cat.lower()}', 0)
+                          for cat in ['Food', 'Travel', 'Leisure', 'Education', 'Other']]
+        valid = [a for a in adherence_vals if a > 0]
+        if valid:
+            within_budget = sum(1 for a in valid if a <= 1.0)
+            stats['budget_adherence'] = within_budget / len(valid)
+
+    return stats
+
+
+def refine_persona(base_persona, clustering_features, domain_traits, profile_stats):
+    """
+    Stage 2: Domain-informed refinement layer.
+    Priority order: risk signals first (timing -> magnitude -> structure),
+    positive identification last.
+    Only runs after profile unlock.
+    """
+    txn_count = profile_stats.get('transaction_count', 0)
+    day_spread = profile_stats.get('day_spread', 0)
+
+    # Gate: refinement requires minimum data
+    if txn_count < REFINEMENT_MIN_TRANSACTIONS or day_spread < REFINEMENT_MIN_DAY_SPREAD:
+        return base_persona, None
+
+    # Priority 1: Late-Night Spender
+    late_night_ratio = clustering_features.get('late_night_ratio', 0)
+    late_night_count = profile_stats.get('late_night_count', 0)
+    if (late_night_ratio >= LATE_NIGHT_RATIO_THRESHOLD
+            and late_night_count >= LATE_NIGHT_MIN_COUNT):
+        return 'LATE_NIGHT_SPENDER', (
+            f"late_night_ratio of {late_night_ratio:.2f} with "
+            f"{late_night_count} late-night transactions exceeds threshold"
+        )
+
+    # Priority 2: Volatile Spender (needs 3+ months, skip if already ERRATIC)
+    months_with_data = profile_stats.get('months_with_data', 0)
+    monthly_cv = clustering_features.get('monthly_spend_cv', 0)
+    if (months_with_data >= VOLATILITY_MIN_MONTHS
+            and monthly_cv > VOLATILITY_CV_THRESHOLD
+            and base_persona != 'ERRATIC_SPENDER'):
+        return 'VOLATILE_SPENDER', (
+            f"monthly_spend_cv of {monthly_cv:.2f} exceeds threshold with "
+            f"{months_with_data} months of data"
+        )
+
+    # Priority 3: Category Focused
+    max_category_share = profile_stats.get('max_category_share', 0)
+    if max_category_share > CATEGORY_CONCENTRATION_THRESHOLD:
+        return 'CATEGORY_FOCUSED', (
+            f"single category accounts for {max_category_share:.0%} of total spend"
+        )
+
+    # Priority 4: Cautious Saver (hardest to earn — 4 conditions + stricter txn floor)
+    mean_daily_spend = profile_stats.get('mean_daily_spend', 999)
+    budget_adherence = profile_stats.get('budget_adherence', 0)
+    if (base_persona == 'BALANCED_SPENDER'
+            and mean_daily_spend < CAUTIOUS_MEAN_DAILY_SPEND_THRESHOLD
+            and monthly_cv < CAUTIOUS_CV_THRESHOLD
+            and budget_adherence >= CAUTIOUS_BUDGET_ADHERENCE_THRESHOLD
+            and txn_count >= CAUTIOUS_MIN_TRANSACTIONS):
+        return 'CAUTIOUS_SAVER', (
+            f"low mean daily spend ({mean_daily_spend:.2f}), "
+            f"low volatility (CV {monthly_cv:.2f}), "
+            f"strong budget adherence ({budget_adherence:.0%})"
+        )
+
+    # Default: keep base persona
+    return base_persona, None
 
 
 # B. EMOTIONAL SPENDING (data-driven)
@@ -664,18 +842,26 @@ def predict_persona(features):
 
 
 def predict_persona_full(clustering_features, features, expenses, budgets, subscriptions, incomes):
-    # A. Base persona
+    # A. Base persona (Stage 1 — K-means)
     base = _predict_base_persona(clustering_features)
 
     # B. Domain traits
     domain_traits = compute_domain_traits(features, clustering_features)
+
+    # Profile stats for refinement
+    profile_stats = compute_profile_stats(expenses, clustering_features, features, budgets)
+
+    # Stage 2 — Domain refinement
+    refined_persona, refinement_reason = refine_persona(
+        base['persona_type'], clustering_features, domain_traits, profile_stats
+    )
 
     # C. Spider axes
     spider = compute_spider_axes(features, clustering_features)
 
     # D. Explanation
     explanation = generate_explanation(
-        base['persona_type'], base['top_features'], clustering_features
+        refined_persona, base['top_features'], clustering_features
     )
 
     # E. Confidence
@@ -684,8 +870,8 @@ def predict_persona_full(clustering_features, features, expenses, budgets, subsc
     # Discipline
     discipline = compute_discipline(features, expenses, budgets)
 
-    # Nudge style
-    nudge_style = NUDGE_STYLES.get(base['persona_type'], DEFAULT_NUDGE_STYLE)
+    # Nudge style — use refined persona for nudge tuning
+    nudge_style = NUDGE_STYLES.get(refined_persona, DEFAULT_NUDGE_STYLE)
 
     # Emotional spending — data-driven from expenditure patterns
     emotional = compute_emotional_spending(features)
@@ -695,10 +881,12 @@ def predict_persona_full(clustering_features, features, expenses, budgets, subsc
     provisional = clustering_features.get('provisional', False)
 
     return {
-        'persona_type': base['persona_type'],
-        'persona_primary': base['persona_type'],
-        'persona_label': base['persona_label'],
-        'description': base['description'],
+        'base_persona': base['persona_type'],
+        'persona_type': refined_persona,
+        'persona_primary': refined_persona,
+        'persona_label': _get_persona_label(refined_persona),
+        'description': _get_persona_description(refined_persona),
+        'refinement_reason': refinement_reason,
         'confidence': base['confidence'],
         'confidence_data': confidence,
         'domain_traits': domain_traits,

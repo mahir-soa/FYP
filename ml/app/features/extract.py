@@ -139,6 +139,8 @@ def extract_clustering_features(expenses):
         'monthly_spend_cv': round(monthly_spend_cv, 6),
         'txn_regularity': round(txn_regularity, 6),
         'spend_trend': round(spend_trend, 4),
+        'day_spread': day_spread,
+        'months_with_data': active_months,
         'low_confidence': low_confidence,
         'provisional': provisional,
     }
