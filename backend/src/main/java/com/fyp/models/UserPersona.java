@@ -17,6 +17,9 @@ public class UserPersona {
     @Column(name = "persona_type", nullable = false)
     private String personaType;
 
+    @Column(name = "base_persona_type")
+    private String basePersonaType;
+
     @Column(name = "persona_primary")
     private String personaPrimary;
 
@@ -78,6 +81,8 @@ public class UserPersona {
     public void setUserId(Long userId) { this.userId = userId; }
     public String getPersonaType() { return personaType; }
     public void setPersonaType(String personaType) { this.personaType = personaType; }
+    public String getBasePersonaType() { return basePersonaType; }
+    public void setBasePersonaType(String basePersonaType) { this.basePersonaType = basePersonaType; }
     public String getPersonaPrimary() { return personaPrimary; }
     public void setPersonaPrimary(String personaPrimary) { this.personaPrimary = personaPrimary; }
     public Double getConfidenceScore() { return confidenceScore; }

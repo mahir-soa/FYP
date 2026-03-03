@@ -53,6 +53,7 @@ class UserPersona(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, unique=True)
     persona_type = Column(String)
+    base_persona_type = Column(String)
     persona_primary = Column(String)
     confidence_score = Column(Float)
     confidence_level = Column(String)

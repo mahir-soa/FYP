@@ -98,6 +98,7 @@ def analyse_user(user_id: int, db: Session = Depends(get_db)):
     existing = db.query(UserPersona).filter(UserPersona.user_id == user_id).first()
     if existing:
         existing.persona_type = persona_result['persona_type']
+        existing.base_persona_type = persona_result.get('base_persona', persona_result['persona_type'])
         existing.persona_primary = persona_result['persona_primary']
         existing.confidence_score = persona_result['confidence']
         existing.confidence_level = confidence_data.get('level', '')
@@ -114,6 +115,7 @@ def analyse_user(user_id: int, db: Session = Depends(get_db)):
         persona_entity = UserPersona(
             user_id=user_id,
             persona_type=persona_result['persona_type'],
+            base_persona_type=persona_result.get('base_persona', persona_result['persona_type']),
             persona_primary=persona_result['persona_primary'],
             confidence_score=persona_result['confidence'],
             confidence_level=confidence_data.get('level', ''),
@@ -214,10 +216,11 @@ def get_persona(user_id: int, db: Session = Depends(get_db)):
     # Stage 2 refinement on stored data
     from app.services.persona_service import refine_persona, compute_profile_stats
     refinement_reason = None
-    base_persona_type = persona.persona_type
+    # Use stored base_persona_type (true K-means result), fall back to persona_type for old records
+    base_persona_type = persona.base_persona_type or persona.persona_type
     refined_persona_type = persona.persona_type
 
-    # If we have a stored feature snapshot, attempt refinement
+    # If we have a stored feature snapshot, attempt refinement from the true base
     if clustering_snapshot and feature_snapshot:
         # Reconstruct minimal profile stats from snapshot
         profile_stats = {
@@ -243,8 +246,9 @@ def get_persona(user_id: int, db: Session = Depends(get_db)):
         if cat_pcts:
             profile_stats['max_category_share'] = max(cat_pcts)
 
+        # Refine from the TRUE K-means base, not from an already-refined value
         refined_persona_type, refinement_reason = refine_persona(
-            persona.persona_type, clustering_snapshot, domain_traits, profile_stats
+            base_persona_type, clustering_snapshot, domain_traits, profile_stats
         )
 
     from app.services.persona_service import _get_persona_label, _get_persona_description
