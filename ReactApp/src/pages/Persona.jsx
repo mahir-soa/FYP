@@ -414,8 +414,8 @@ export default function Persona() {
                 </svg>
                 <div>
                   <strong>Provisional Persona</strong>
-                  <p>Based on {expenseCount} expenses. {expenseCount < 20
-                    ? `Log ${20 - expenseCount} more expenses over at least 2 weeks for a full persona.`
+                  <p>Based on {expenseCount} expenses. {expenseCount < 30
+                    ? `Log ${30 - expenseCount} more expenses over at least 2 weeks for a full persona.`
                     : "Keep logging expenses over a longer period for a more stable persona."}</p>
                 </div>
               </div>

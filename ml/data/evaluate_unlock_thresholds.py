@@ -158,23 +158,36 @@ def compute_features_from_txns(g):
 # ---------------------------------------------------------------------------
 
 def predict_persona(features_dict, model_data):
-    feature_names = model_data['features']
+    active_features = model_data.get('active_features', model_data['features'])
+    log_features = model_data.get('log_features', [])
     scaler = model_data['scaler']
+    pca = model_data.get('pca')
     model = model_data['model']
     cluster_to_persona = model_data['cluster_to_persona']
 
-    # Build feature vector in the correct order
-    feature_vec = np.array([[features_dict[f] for f in feature_names]])
+    # Build feature vector using active features only
+    raw = [features_dict.get(f, 0) for f in active_features]
+    X = np.array([raw])
+
+    # Apply same log transforms used during training
+    for i, f in enumerate(active_features):
+        if f in log_features:
+            X[0, i] = np.log1p(X[0, i])
+        elif f == 'spend_trend' and 'spend_trend' not in log_features:
+            X[0, i] = np.sign(X[0, i]) * np.log1p(np.abs(X[0, i]))
 
     # Scale
-    X_scaled = scaler.transform(feature_vec)
+    X_scaled = scaler.transform(X)
+
+    # Apply PCA if the model was trained with it
+    if pca is not None:
+        X_scaled = pca.transform(X_scaled)
 
     # Predict cluster
     cluster_id = model.predict(X_scaled)[0]
 
     # Confidence: distance-based
-    # 1 - (dist_to_assigned / max_dist_to_any_centroid)
-    distances = model.transform(X_scaled)[0]  # distances to each centroid
+    distances = model.transform(X_scaled)[0]
     dist_to_assigned = distances[cluster_id]
     max_dist = distances.max()
     if max_dist > 0:
