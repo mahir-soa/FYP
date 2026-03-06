@@ -113,15 +113,10 @@ def extract_clustering_features(expenses):
     else:
         spend_trend = 0.0
 
-    # Tiered unlock (empirically validated via self-consistency testing):
-    #   <10 txns: returned None above (insufficient)
-    #   10-29 txns: provisional (78% self-consistency at N=20, 88% at N=30)
-    #   30+ txns but <14-day spread: provisional (temporal features unreliable)
-    #   30+ txns and 14+ day spread: full unlock (88% self-consistency)
     dates = df['date'].sort_values()
     day_spread = (dates.iloc[-1] - dates.iloc[0]).days
     provisional = n_txn < PROVISIONAL_TXNS or day_spread < FULL_UNLOCK_DAYS
-    low_confidence = provisional  # backward compat
+    low_confidence = provisional
 
     return {
         'mean_spend': round(mean_spend, 4),

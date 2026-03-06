@@ -196,7 +196,6 @@ def get_persona(user_id: int, db: Session = Depends(get_db)):
         except json.JSONDecodeError:
             pass
 
-    # Recompute domain traits, emotional spending, and explanation from stored snapshot
     from app.services.persona_service import compute_domain_traits, compute_emotional_spending, generate_explanation, build_spider_explanation, NUDGE_STYLES, DEFAULT_NUDGE_STYLE
     domain_traits = []
     explanation = {'text': '', 'reasons': []}
@@ -213,16 +212,13 @@ def get_persona(user_id: int, db: Session = Depends(get_db)):
     nudge_style = NUDGE_STYLES.get(persona.persona_type, DEFAULT_NUDGE_STYLE)
     spider_explanation = build_spider_explanation(spider_axes, persona.persona_type or 'NEUTRAL')
 
-    # Stage 2 refinement on stored data
     from app.services.persona_service import refine_persona, compute_profile_stats
     refinement_reason = None
-    # Use stored base_persona_type (true K-means result), fall back to persona_type for old records
     base_persona_type = persona.base_persona_type or persona.persona_type
     refined_persona_type = persona.persona_type
 
     # If we have a stored feature snapshot, attempt refinement from the true base
     if clustering_snapshot and feature_snapshot:
-        # Reconstruct minimal profile stats from snapshot
         profile_stats = {
             'transaction_count': feature_snapshot.get('txn_count', 0),
             'day_spread': clustering_snapshot.get('day_spread', 0),
@@ -240,13 +236,11 @@ def get_persona(user_id: int, db: Session = Depends(get_db)):
             within_budget = sum(1 for a in valid_adherence if a <= 1.0)
             profile_stats['budget_adherence'] = within_budget / len(valid_adherence)
 
-        # Recompute max_category_share properly
         cat_pcts = [feature_snapshot.get(f'pct_{cat.lower()}', 0)
                     for cat in ['Food', 'Travel', 'Leisure', 'Education', 'Other']]
         if cat_pcts:
             profile_stats['max_category_share'] = max(cat_pcts)
 
-        # Refine from the TRUE K-means base, not from an already-refined value
         refined_persona_type, refinement_reason = refine_persona(
             base_persona_type, clustering_snapshot, domain_traits, profile_stats
         )

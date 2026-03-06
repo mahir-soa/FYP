@@ -1,23 +1,7 @@
-"""
-Self-consistency test for persona classification at low transaction counts.
-
-For each Sparkov user, at each transaction count N:
-  - Take 10 different random subsamples of N transactions
-  - Classify each subsample with the current model
-  - Check if all 10 agree with each other
-
-No ground truth comparison. The question is:
-"Do 10 random picks of N transactions give the same persona?"
-"""
-
 import os
 import numpy as np
 import pandas as pd
 import joblib
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
 
 CATEGORY_MAP = {
     'food_dining':    'food',
@@ -44,7 +28,6 @@ MIN_USER_TXNS = 200  # only test users with enough transactions to subsample fro
 
 
 # ---------------------------------------------------------------------------
-# Data loading
 # ---------------------------------------------------------------------------
 
 def load_sparkov():
@@ -70,7 +53,6 @@ def prepare_transactions(df):
 
 
 # ---------------------------------------------------------------------------
-# Feature computation
 # ---------------------------------------------------------------------------
 
 def compute_features(g):
@@ -135,7 +117,6 @@ def compute_features(g):
 
 
 # ---------------------------------------------------------------------------
-# Persona prediction (matches current pipeline)
 # ---------------------------------------------------------------------------
 
 def predict_persona(features_dict, model_data):

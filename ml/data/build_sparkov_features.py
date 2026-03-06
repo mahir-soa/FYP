@@ -1,25 +1,6 @@
 """
-Build user-level behavioural features from the Sparkov simulated credit-card
-transaction dataset (fraudTrain.csv + fraudTest.csv).
-
-Output: ml/data/generated/sparkov_user_features.csv
-        One row per user (cc_num), 15 behavioural features.
-
-Feature engineering notes (v2):
-  Dropped from v1:
-    - max_spend: r=0.91 with std_spend (redundant)
-    - category_concentration (HHI): CV=0.086 across users (no discrimination)
-    - pct_other: determined by other 4 pct_* columns (compositional constraint)
-  Added in v2:
-    - spend_cv: std/mean, normalised volatility (separates high-mean-steady
-      from high-mean-erratic spenders, unlike raw std which scales with mean)
-    - merchant_diversity: unique merchants / txn count, shopping breadth
-    - large_txn_ratio: spend in txns > user's 75th percentile / total,
-      separates "few big purchases" from "many small purchases" patterns
-    - monthly_spend_cv: std(monthly totals) / mean(monthly totals),
-      month-to-month consistency
-    - txn_regularity: 1 / (1 + std of inter-txn day gaps), how evenly
-      spaced their transactions are (1 = perfectly regular, ->0 = bursty)
+Build user-level behavioural features from Sparkov (fraudTrain.csv + fraudTest.csv).
+Output: ml/data/generated/sparkov_user_features.csv — one row per user, 15 features.
 """
 
 import pandas as pd

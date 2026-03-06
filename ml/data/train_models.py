@@ -158,7 +158,7 @@ def find_optimal_k(X_scaled, k_range=range(2, 9), n_runs=50):
     n_users = X_scaled.shape[0]
     results = {}
 
-    # Stage 3 & 4: Evaluate each k
+    # Evaluate each k
     print(f"\nStage 3-4: K Selection with Stability Testing (k={k_range.start} to {k_range.stop - 1}, {n_runs} runs each)")
     print("\u2550" * 100)
     header = f"{'k':>3} | {'Sil Mean':>9} {'Sil Std':>8} | {'ARI Mean':>9} {'ARI Std':>8} | {'DB':>7} {'CH':>9} | {'Sizes':<28} | {'Flags'}"
@@ -178,7 +178,6 @@ def find_optimal_k(X_scaled, k_range=range(2, 9), n_runs=50):
         min_size = min(sizes)
         min_pct = min_size / n_users
 
-        # Stage 5: Flag problems
         fragmented = min_pct < FRAG_THRESHOLD
         unstable = stability['ari_mean'] < MIN_ARI
 
@@ -219,7 +218,7 @@ def find_optimal_k(X_scaled, k_range=range(2, 9), n_runs=50):
               f"| {db_score:.3f}  {ch_score:>8.1f}  "
               f"| {str(sizes):<28s} | {flag_str}")
 
-    # Stage 5: Eliminate bad candidates
+    # Eliminate bad candidates
     print(f"\nStage 5: Elimination")
     print("\u2500" * 60)
     viable = []
@@ -240,7 +239,7 @@ def find_optimal_k(X_scaled, k_range=range(2, 9), n_runs=50):
         print("  All k values rejected \u2014 falling back to highest mean silhouette.")
         viable = list(k_range)
 
-    # Stage 6: Compare finalists
+    # Compare finalists
     print(f"\nStage 6: Finalist Comparison (viable: {viable})")
     print("\u2500" * 60)
 
@@ -256,8 +255,6 @@ def find_optimal_k(X_scaled, k_range=range(2, 9), n_runs=50):
             feat_str = ", ".join(f"{f}={v:.2f}" for f, v in features.items())
             print(f"      Cluster {c}: {feat_str}")
 
-    # Selection: prefer higher k if its silhouette is within 85% of the best
-    # This avoids always collapsing to k=2 while still requiring good separation
     SIL_TOLERANCE = 0.78
     best_sil = max(results[k]['sil_mean'] for k in viable)
     sil_floor = best_sil * SIL_TOLERANCE
@@ -301,16 +298,13 @@ def train_kmeans():
     print("MODEL 1: K-Means Persona Clustering (Sparkov)")
     print("=" * 60)
 
-    # Stage 1: Load Sparkov user features
     print("\nStage 1: Loading Sparkov user-level behavioural features")
     user_features = pd.read_csv('ml/data/generated/sparkov_user_features.csv')
     print(f"  {len(user_features)} users, {len(CLUSTER_FEATURES)} behavioural features")
 
-    # Stage 2: Preprocess
     print("\nStage 2: Preprocessing (winsorize, PowerTransformer, feature selection, PCA)")
     X_df = user_features[CLUSTER_FEATURES].copy()
 
-    # Winsorize: clip each feature to [2nd, 98th] percentile
     for col in X_df.columns:
         lo = X_df[col].quantile(0.02)
         hi = X_df[col].quantile(0.98)
@@ -376,7 +370,6 @@ def train_kmeans():
     scaler = RobustScaler()
     X_scaled = scaler.fit_transform(X)
 
-    # Report any extreme values post-scaling
     extremes = np.abs(X_scaled) > 3
     n_extreme = extremes.sum()
     if n_extreme > 0:
@@ -419,22 +412,14 @@ def train_kmeans():
 
     X_cluster = X_pca
 
-    # Stages 3-6: Find optimal k
     best_k, k_results = find_optimal_k(X_cluster)
 
     best = k_results[best_k]
     kmeans = best['model']
     clusters = kmeans.predict(X_cluster)
 
-    # Post-hoc persona naming: project centroids back to active feature space
     centroids_original = pca.inverse_transform(kmeans.cluster_centers_)
 
-    # Hardcoded mapping verified against centroid profiles (2026-03-24):
-    #   C0: high weekend_ratio, high pct_leisure → WEEKEND_SPLURGER
-    #   C1: highest mean_spend, high pct_travel  → BIG_SPENDER
-    #   C2: extreme negative spend_trend, high monthly_spend_cv, very low txn_frequency → ERRATIC_SPENDER
-    #   C3: everything near zero, majority cluster → BALANCED_SPENDER
-    # If k changes after retraining, print centroids and re-verify this mapping.
     CLUSTER_NAMES = {
         0: "WEEKEND_SPLURGER",
         1: "BIG_SPENDER",
@@ -447,7 +432,7 @@ def train_kmeans():
         if c in CLUSTER_NAMES:
             cluster_to_persona[int(c)] = CLUSTER_NAMES[c]
         else:
-            # Fallback to heuristic for unexpected cluster counts
+            # Fallback for unexpected cluster counts
             full_centroid = np.zeros(len(CLUSTER_FEATURES))
             for i, f in enumerate(active_features):
                 idx = CLUSTER_FEATURES.index(f)
@@ -455,7 +440,7 @@ def train_kmeans():
             name = suggest_persona_name(full_centroid, CLUSTER_FEATURES)
             cluster_to_persona[int(c)] = name
 
-    # Deduplicate names (only needed if heuristic fallback produced dupes)
+    # Deduplicate names
     seen = {}
     for c in sorted(cluster_to_persona.keys()):
         name = cluster_to_persona[c]
@@ -474,13 +459,11 @@ def train_kmeans():
         cluster_users = user_features[user_features['cluster'] == c]
         print(f"  Cluster {c} ({len(cluster_users)} users): {cluster_to_persona[int(c)]}")
 
-    # Detailed centroid profiles (project back to active feature space for interpretability)
     class _OriginalSpaceModel:
         def __init__(self, centers):
             self.cluster_centers_ = centers
     print_centroid_profiles(_OriginalSpaceModel(centroids_original), active_features, cluster_to_persona)
 
-    # Serialise results
     serialisable_results = {}
     for k, r in k_results.items():
         serialisable_results[k] = {

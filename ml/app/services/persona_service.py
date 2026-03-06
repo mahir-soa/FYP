@@ -8,7 +8,6 @@ import pandas as pd
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'trained_models')
 
-# Stage 1 — K-means base personas (from pickle)
 BASE_PERSONAS = {
     0: "WEEKEND_SPLURGER",
     1: "BIG_SPENDER",
@@ -16,7 +15,6 @@ BASE_PERSONAS = {
     3: "BALANCED_SPENDER",
 }
 
-# Stage 2 — Domain refinement can promote to these
 REFINED_PERSONAS = [
     "LATE_NIGHT_SPENDER",
     "VOLATILE_SPENDER",
@@ -24,7 +22,6 @@ REFINED_PERSONAS = [
     "CAUTIOUS_SAVER",
 ]
 
-# All known persona labels (base + refined)
 PERSONA_LABELS = {
     'ERRATIC_SPENDER': 'Erratic Spender',
     'CAUTIOUS_SAVER': 'Cautious Saver',
@@ -37,7 +34,6 @@ PERSONA_LABELS = {
     'INSUFFICIENT_DATA': 'Insufficient Data',
 }
 
-# Domain refinement thresholds
 LATE_NIGHT_RATIO_THRESHOLD = 0.30
 LATE_NIGHT_MIN_COUNT = 5
 VOLATILITY_CV_THRESHOLD = 1.0
@@ -62,7 +58,6 @@ PERSONA_DESCRIPTIONS = {
     'INSUFFICIENT_DATA': 'We need more spending data to accurately determine your persona.',
 }
 
-# Nudge style per persona: controls sensitivity and tone
 NUDGE_STYLES = {
     'ERRATIC_SPENDER': {
         'style': 'corrective',
@@ -123,7 +118,6 @@ DEFAULT_NUDGE_STYLE = {
 
 CATEGORIES = ['Food', 'Travel', 'Leisure', 'Education', 'Other']
 
-# Feature display names for explanations
 FEATURE_EXPLANATIONS = {
     'mean_spend': 'average transaction amount',
     'std_spend': 'spending variability',
@@ -280,7 +274,6 @@ def load_kmeans():
     return joblib.load(path)
 
 
-# A. BASE PERSONA
 
 def _predict_base_persona(clustering_features):
     data = load_kmeans()
@@ -408,20 +401,13 @@ def compute_profile_stats(expenses, clustering_features, features, budgets):
 
 
 def refine_persona(base_persona, clustering_features, domain_traits, profile_stats):
-    """
-    Stage 2: Domain-informed refinement layer.
-    Priority order: risk signals first (timing -> magnitude -> structure),
-    positive identification last.
-    Only runs after profile unlock.
-    """
     txn_count = profile_stats.get('transaction_count', 0)
     day_spread = profile_stats.get('day_spread', 0)
 
-    # Gate: refinement requires minimum data
     if txn_count < REFINEMENT_MIN_TRANSACTIONS or day_spread < REFINEMENT_MIN_DAY_SPREAD:
         return base_persona, None
 
-    # Priority 1: Late-Night Spender
+    # Late-Night Spender
     late_night_ratio = clustering_features.get('late_night_ratio', 0)
     late_night_count = profile_stats.get('late_night_count', 0)
     if (late_night_ratio >= LATE_NIGHT_RATIO_THRESHOLD
@@ -431,7 +417,7 @@ def refine_persona(base_persona, clustering_features, domain_traits, profile_sta
             f"{late_night_count} late-night transactions exceeds threshold"
         )
 
-    # Priority 2: Volatile Spender (needs 3+ months, skip if already ERRATIC)
+    # Volatile Spender
     months_with_data = profile_stats.get('months_with_data', 0)
     monthly_cv = clustering_features.get('monthly_spend_cv', 0)
     if (months_with_data >= VOLATILITY_MIN_MONTHS
@@ -442,14 +428,14 @@ def refine_persona(base_persona, clustering_features, domain_traits, profile_sta
             f"{months_with_data} months of data"
         )
 
-    # Priority 3: Category Focused
+    # Category Focused
     max_category_share = profile_stats.get('max_category_share', 0)
     if max_category_share > CATEGORY_CONCENTRATION_THRESHOLD:
         return 'CATEGORY_FOCUSED', (
             f"single category accounts for {max_category_share:.0%} of total spend"
         )
 
-    # Priority 4: Cautious Saver (hardest to earn — 4 conditions + stricter txn floor)
+    # Cautious Saver
     mean_daily_spend = profile_stats.get('mean_daily_spend', 999)
     budget_adherence = profile_stats.get('budget_adherence', 0)
     if (base_persona == 'BALANCED_SPENDER'
@@ -467,18 +453,8 @@ def refine_persona(base_persona, clustering_features, domain_traits, profile_sta
     return base_persona, None
 
 
-# B. EMOTIONAL SPENDING (data-driven)
 
 def compute_emotional_spending(features):
-    """Score emotional spending from user-reported moods on expenses (0-100).
-
-    Uses the mood tags users attach to each expense in the logger.
-    Four signals, each scaled 0-100 then weighted:
-      1. Stressed spending share  (35%) — % of spend logged as Stressed
-      2. Sad spending share       (25%) — % of spend logged as Sad
-      3. Negative mood frequency  (20%) — fraction of transactions tagged Stressed/Sad
-      4. Mood-driven overspend    (20%) — whether Stressed/Sad avg txn > overall avg
-    """
     reasons = []
 
     total_txns = features.get('txn_count', 0)
@@ -495,7 +471,6 @@ def compute_emotional_spending(features):
 
     moods_logged = stressed_count + sad_count + happy_count + excited_count + neutral_count
 
-    # If no moods logged at all, return a clean zero state
     if moods_logged == 0:
         return {
             'score': 0,
@@ -510,28 +485,24 @@ def compute_emotional_spending(features):
             },
         }
 
-    # 1. Stressed spending share — what % of total spend was logged as Stressed
     stressed_spend = stressed_avg * stressed_count
     stressed_share = (stressed_spend / max(total_spend, 0.01)) if total_spend > 0 else 0
     stressed_score = min(100, (stressed_share / 0.40) * 100)
     if stressed_count > 0:
         reasons.append(f"{stressed_count} expense{'s' if stressed_count != 1 else ''} logged as Stressed (£{stressed_spend:.0f} total)")
 
-    # 2. Sad spending share
     sad_spend = sad_avg * sad_count
     sad_share = (sad_spend / max(total_spend, 0.01)) if total_spend > 0 else 0
     sad_score = min(100, (sad_share / 0.30) * 100)
     if sad_count > 0:
         reasons.append(f"{sad_count} expense{'s' if sad_count != 1 else ''} logged as Sad (£{sad_spend:.0f} total)")
 
-    # 3. Negative mood frequency — fraction of mood-tagged txns that are Stressed or Sad
     negative_count = stressed_count + sad_count
     negative_freq = negative_count / max(moods_logged, 1)
     freq_score = min(100, (negative_freq / 0.50) * 100)
     if negative_freq > 0.25:
         reasons.append(f"{round(negative_freq * 100)}% of your mood-tagged expenses are Stressed or Sad")
 
-    # 4. Mood-driven overspend — do you spend more when Stressed/Sad vs your average?
     if negative_count > 0 and avg_txn > 0:
         negative_avg = (stressed_spend + sad_spend) / negative_count
         overspend_ratio = negative_avg / max(avg_txn, 0.01)
@@ -576,38 +547,27 @@ def compute_emotional_spending(features):
     }
 
 
-# C. DOMAIN TRAITS
 
 def compute_domain_traits(features, clustering_features):
-    # Thresholds are set at approximately P90 of the Sparkov reference
-    # population (908 users), meaning the trait fires for users in the
-    # top ~10% for that behaviour.
     traits = []
 
-    # Weekend bias: P90 of clustering weekend_ratio = 0.37
-    # weekend_ratio = weekend_spend / total_spend
     weekend_ratio = clustering_features.get('weekend_ratio', 0)
     if weekend_ratio > 0.37:
         traits.append('WEEKEND_BIAS')
 
-    # Late-night tendency: P90 of late_night_ratio = 0.34
     late_night = clustering_features.get('late_night_ratio', 0)
     if late_night > 0.34:
         traits.append('LATE_NIGHT_TENDENCY')
 
-    # Emotional spender — based on user-reported moods
     emo = compute_emotional_spending(features)
     if emo['score'] >= 40:
         traits.append('EMOTIONAL_SPENDER')
 
-    # High volatility: P90 of spend_cv = 3.2, P90 of monthly_spend_cv = 0.55
     spend_cv = clustering_features.get('spend_cv', 0)
     monthly_cv = clustering_features.get('monthly_spend_cv', 0)
     if spend_cv > 3.2 or monthly_cv > 0.55:
         traits.append('HIGH_VOLATILITY')
 
-    # Category heavy: P90 of pct_food = 0.30, pct_leisure = 0.32
-    # Uses clustering features for consistency with persona model
     for cat in ['food', 'travel', 'leisure', 'health']:
         pct = clustering_features.get(f'pct_{cat}', 0)
         if pct > 0.30:
@@ -628,14 +588,8 @@ def compute_domain_traits(features, clustering_features):
     return traits
 
 
-# C. SPIDER / RADAR CHART
 
 def compute_spider_axes(features, clustering_features):
-    # Impulse: blend of three behavioural signals from clustering features.
-    # Each component scaled 0–100 using Sparkov reference ranges.
-    # - spend_cv: per-transaction volatility (P50≈1.8, P90≈3.2)
-    # - large_txn_ratio: share of spend in big transactions (range 0.45–0.75)
-    # - txn_regularity inverted: bursty/irregular timing (range 0.15–0.85)
     spend_cv = clustering_features.get('spend_cv', 0)
     large_txn = clustering_features.get('large_txn_ratio', 0)
     txn_reg = clustering_features.get('txn_regularity', 0.5)
@@ -646,26 +600,21 @@ def compute_spider_axes(features, clustering_features):
 
     impulse = max(0, min(100, cv_component * 0.4 + lt_component * 0.3 + irreg_component * 0.3))
 
-    # Volatility from clustering's monthly_spend_cv (0–100 scale)
     monthly_cv = clustering_features.get('monthly_spend_cv', 0)
     volatility = min(100, monthly_cv * 100)
 
-    # Budget discipline from adherence
     adherence_vals = [features.get(f'adherence_{cat.lower()}', 0) for cat in CATEGORIES]
     valid_adherence = [a for a in adherence_vals if a > 0]
     avg_adherence = sum(valid_adherence) / len(valid_adherence) if valid_adherence else 0.8
     budget_discipline = 100 - max(0, avg_adherence - 0.8) * 200
     budget_discipline = max(0, min(100, budget_discipline))
 
-    # Weekend bias from full features (weekend_ratio is spend_weekend/spend_weekday)
     weekend_ratio = features.get('weekend_ratio', 0)
     weekend_bias = min(100, weekend_ratio * 40)
 
-    # Late-night activity from clustering features
     late_night_ratio = clustering_features.get('late_night_ratio', 0)
     late_night_activity = min(100, late_night_ratio * 200)
 
-    # Category concentration from clustering pct_* features
     pct_vals = [clustering_features.get(f'pct_{cat}', 0) for cat in ['food', 'travel', 'leisure', 'health']]
     pct_other = max(0, 1.0 - sum(pct_vals))
     all_pcts = pct_vals + [pct_other]
@@ -682,7 +631,6 @@ def compute_spider_axes(features, clustering_features):
     }
 
 
-# D. PERSONA EXPLANATION
 
 def generate_explanation(persona_type, top_features, clustering_features):
     reasons = []
@@ -704,7 +652,6 @@ def generate_explanation(persona_type, top_features, clustering_features):
     }
 
 
-# E. CONFIDENCE
 
 def compute_confidence(clustering_features, expenses):
     from app.features.extract import extract_clustering_features
@@ -753,7 +700,6 @@ def compute_confidence(clustering_features, expenses):
     }
 
 
-# DISCIPLINE
 
 def compute_discipline(features, expenses, budgets):
     adherence_vals = [features.get(f'adherence_{cat.lower()}', 0) for cat in CATEGORIES]
@@ -835,49 +781,29 @@ def compute_discipline(features, expenses, budgets):
     }
 
 
-# PUBLIC API
 
 def predict_persona(features):
     return _predict_base_persona(features)
 
 
 def predict_persona_full(clustering_features, features, expenses, budgets, subscriptions, incomes):
-    # A. Base persona (Stage 1 — K-means)
     base = _predict_base_persona(clustering_features)
-
-    # B. Domain traits
     domain_traits = compute_domain_traits(features, clustering_features)
-
-    # Profile stats for refinement
     profile_stats = compute_profile_stats(expenses, clustering_features, features, budgets)
 
-    # Stage 2 — Domain refinement
     refined_persona, refinement_reason = refine_persona(
         base['persona_type'], clustering_features, domain_traits, profile_stats
     )
 
-    # C. Spider axes
     spider = compute_spider_axes(features, clustering_features)
-
-    # D. Explanation
     explanation = generate_explanation(
         refined_persona, base['top_features'], clustering_features
     )
-
-    # E. Confidence
     confidence = compute_confidence(clustering_features, expenses)
-
-    # Discipline
     discipline = compute_discipline(features, expenses, budgets)
-
-    # Nudge style — use refined persona for nudge tuning
     nudge_style = NUDGE_STYLES.get(refined_persona, DEFAULT_NUDGE_STYLE)
-
-    # Emotional spending — data-driven from expenditure patterns
     emotional = compute_emotional_spending(features)
     emotional_flag = emotional['score'] >= 45
-
-    # Provisional flag from clustering features
     provisional = clustering_features.get('provisional', False)
 
     return {

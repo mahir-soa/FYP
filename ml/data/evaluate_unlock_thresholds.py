@@ -4,9 +4,6 @@ import numpy as np
 import pandas as pd
 import joblib
 
-# ---------------------------------------------------------------------------
-# Constants (mirrored from build_sparkov_features.py)
-# ---------------------------------------------------------------------------
 
 CATEGORY_MAP = {
     'food_dining':    'food',
@@ -29,9 +26,6 @@ APP_CATEGORIES = ['food', 'travel', 'leisure', 'health', 'other']
 
 THRESHOLDS = [5, 10, 15, 20, 25, 30]
 
-# ---------------------------------------------------------------------------
-# Data loading & preparation
-# ---------------------------------------------------------------------------
 
 def load_sparkov():
     base = os.path.dirname(os.path.abspath(__file__))
@@ -64,9 +58,6 @@ def prepare_transactions(df):
     return df
 
 
-# ---------------------------------------------------------------------------
-# Feature computation (from a subset of transactions)
-# ---------------------------------------------------------------------------
 
 def compute_features_from_txns(g):
     n_txn = len(g)
@@ -78,37 +69,30 @@ def compute_features_from_txns(g):
     if total_spend <= 0:
         return None
 
-    # -- Spend level & volatility --
     mean_spend = g['amt'].mean()
     std_spend = g['amt'].std() if n_txn > 1 else 0.0
     spend_cv = std_spend / mean_spend if mean_spend > 0 else 0.0
 
-    # -- Transaction frequency --
     txn_frequency = n_txn / active_months if active_months > 0 else float(n_txn)
 
-    # -- Timing features --
     weekend_spend = g[g['is_weekend']]['amt'].sum()
     weekend_ratio = weekend_spend / total_spend
 
     late_night_spend = g[g['is_late_night']]['amt'].sum()
     late_night_ratio = late_night_spend / total_spend
 
-    # -- Category percentages --
     cat_spend = g.groupby('app_category')['amt'].sum()
     pct = {}
     for cat in APP_CATEGORIES:
         pct[cat] = cat_spend.get(cat, 0) / total_spend
 
-    # -- Merchant diversity --
     unique_merchants = g['merchant'].nunique()
     merchant_diversity = unique_merchants / n_txn
 
-    # -- Large transaction ratio --
     p75 = g['amt'].quantile(0.75)
     large_txn_spend = g[g['amt'] > p75]['amt'].sum()
     large_txn_ratio = large_txn_spend / total_spend
 
-    # -- Monthly consistency --
     monthly_totals = g.groupby('month')['amt'].sum().sort_index()
     if len(monthly_totals) > 1:
         monthly_mean = monthly_totals.mean()
@@ -117,7 +101,6 @@ def compute_features_from_txns(g):
     else:
         monthly_spend_cv = 0.0
 
-    # -- Transaction regularity --
     dates_sorted = g['datetime'].sort_values()
     if len(dates_sorted) > 1:
         gaps = dates_sorted.diff().dropna().dt.total_seconds() / 86400  # days
@@ -126,7 +109,6 @@ def compute_features_from_txns(g):
     else:
         txn_regularity = 0.0
 
-    # -- Spend trend --
     if len(monthly_totals) > 1:
         x = np.arange(len(monthly_totals))
         slope = np.polyfit(x, monthly_totals.values, 1)[0]
@@ -153,9 +135,6 @@ def compute_features_from_txns(g):
     }
 
 
-# ---------------------------------------------------------------------------
-# Persona prediction
-# ---------------------------------------------------------------------------
 
 def predict_persona(features_dict, model_data):
     active_features = model_data.get('active_features', model_data['features'])
@@ -199,9 +178,6 @@ def predict_persona(features_dict, model_data):
     return persona_name, confidence, int(cluster_id)
 
 
-# ---------------------------------------------------------------------------
-# Domain traits
-# ---------------------------------------------------------------------------
 
 def compute_domain_traits(features_dict):
     traits = set()
@@ -227,12 +203,8 @@ def compute_domain_traits(features_dict):
     return frozenset(traits)
 
 
-# ---------------------------------------------------------------------------
-# Main evaluation
-# ---------------------------------------------------------------------------
 
 def main():
-    # -- Load model --
     model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                               '..', 'trained_models', 'persona_kmeans.pkl')
     model_data = joblib.load(model_path)
@@ -240,14 +212,12 @@ def main():
     print(f"  Clusters: {model_data['selected_k']}, "
           f"Personas: {list(model_data['cluster_to_persona'].values())}")
 
-    # -- Load and prepare data --
     df = load_sparkov()
     df = prepare_transactions(df)
 
     # Sort globally by datetime so "first N" is chronologically correct
     df = df.sort_values('datetime').reset_index(drop=True)
 
-    # -- Identify qualifying users (same filter as build_sparkov_features.py) --
     # Users with >= 20 transactions AND >= 2 active months (using full history)
     user_stats = df.groupby('cc_num').agg(
         n_txn=('amt', 'size'),
@@ -259,7 +229,6 @@ def main():
 
     print(f"\nQualifying users (>=20 txns, >=2 months): {len(qualifying_users)}")
 
-    # -- Compute ground truth for each user (all transactions) --
     print("\nComputing ground truth personas (full history)...")
     ground_truth = {}  # cc_num -> {'persona', 'traits', 'features'}
 
@@ -288,7 +257,6 @@ def main():
         persona_counts[p] = persona_counts.get(p, 0) + 1
     print(f"  Persona distribution: {persona_counts}")
 
-    # -- Evaluate each threshold --
     print(f"\nEvaluating thresholds: {THRESHOLDS}")
 
     # Results: threshold -> list of per-user results
@@ -337,7 +305,6 @@ def main():
                 'trait_match': traits == gt['traits'],
             })
 
-    # -- Print results table --
     print()
     print("PERSONA UNLOCK THRESHOLD EVALUATION")
     print("=" * 75)
@@ -371,7 +338,6 @@ def main():
         print(f"{'N='+str(n):>10} | {match_pct:>7.1f}% | {avg_conf:>13.1f}%  | "
               f"{trait_pct:>13.1f}%  | {multi_month:>8d} ({multi_month_pct:.0f}%)")
 
-    # -- Stability after unlock --
     print()
     print("STABILITY AFTER UNLOCK")
     print("=" * 75)
@@ -414,7 +380,6 @@ def main():
 
         print(f"If unlocked at N={unlock_n}: {', '.join(parts)}")
 
-    # -- Per-persona breakdown at key thresholds --
     print()
     print("PER-PERSONA MATCH RATE AT EACH THRESHOLD")
     print("=" * 75)
@@ -445,7 +410,6 @@ def main():
                 row += f" | {pct:>6.1f}%"
         print(row)
 
-    # -- Recommendation --
     print()
     print("RECOMMENDATION")
     print("=" * 75)
