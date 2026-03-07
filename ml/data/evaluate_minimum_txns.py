@@ -1,61 +1,36 @@
-import os
-import numpy as np
 import pandas as pd
+import numpy as np
 import joblib
+import os
+import json
+from collections import Counter
+
+np.random.seed(42)
 
 CATEGORY_MAP = {
-    'food_dining':    'food',
-    'grocery_net':    'food',
-    'grocery_pos':    'food',
-    'gas_transport':  'travel',
-    'travel':         'travel',
-    'entertainment':  'leisure',
-    'shopping_net':   'leisure',
-    'shopping_pos':   'leisure',
+    'food_dining': 'food', 'grocery_net': 'food', 'grocery_pos': 'food',
+    'gas_transport': 'travel', 'travel': 'travel',
+    'entertainment': 'leisure', 'shopping_net': 'leisure', 'shopping_pos': 'leisure',
     'health_fitness': 'health',
-    'home':           'other',
-    'kids_pets':      'other',
-    'misc_net':       'other',
-    'misc_pos':       'other',
-    'personal_care':  'other',
+    'home': 'other', 'kids_pets': 'other', 'misc_net': 'other',
+    'misc_pos': 'other', 'personal_care': 'other',
 }
-
 APP_CATEGORIES = ['food', 'travel', 'leisure', 'health', 'other']
 
-SAMPLE_COUNTS = [10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200]
-N_DRAWS = 10
-MIN_USER_TXNS = 200  # only test users with enough transactions to subsample from
+MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'trained_models', 'persona_kmeans.pkl')
+data = joblib.load(MODEL_PATH)
+model = data['model']
+scaler = data['scaler']
+pca = data.get('pca')
+cluster_map = data['cluster_to_persona']
+active_features = data.get('active_features', [])
+log_features = data.get('log_features', [])
+
+print(f"Model loaded: {len(active_features)} features, PCA={pca.n_components_ if pca else 'None'}")
+print(f"Cluster map: {cluster_map}\n")
 
 
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-def load_sparkov():
-    base = os.path.dirname(os.path.abspath(__file__))
-    train = pd.read_csv(os.path.join(base, 'fraudTrain.csv'))
-    test = pd.read_csv(os.path.join(base, 'fraudTest.csv'))
-    df = pd.concat([train, test], ignore_index=True)
-    print(f"Loaded {len(df):,} transactions")
-    df = df[df['is_fraud'] == 0].copy()
-    print(f"After removing fraud: {len(df):,}")
-    return df
-
-
-def prepare_transactions(df):
-    df['datetime'] = pd.to_datetime(df['trans_date_trans_time'])
-    df['hour'] = df['datetime'].dt.hour
-    df['dow'] = df['datetime'].dt.dayofweek
-    df['month'] = df['datetime'].dt.to_period('M')
-    df['is_weekend'] = df['dow'] >= 5
-    df['is_late_night'] = ((df['hour'] >= 22) | (df['hour'] < 5))
-    df['app_category'] = df['category'].map(CATEGORY_MAP).fillna('other')
-    return df
-
-
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-def compute_features(g):
+def extract_features(g):
     n_txn = len(g)
     if n_txn < 2:
         return None
@@ -66,203 +41,169 @@ def compute_features(g):
         return None
 
     mean_spend = g['amt'].mean()
-    std_spend = g['amt'].std()
+    std_spend = g['amt'].std() if n_txn > 1 else 0.0
     spend_cv = std_spend / mean_spend if mean_spend > 0 else 0.0
     txn_frequency = n_txn / max(active_months, 1)
 
     weekend_spend = g[g['is_weekend']]['amt'].sum()
     weekend_ratio = weekend_spend / total_spend
-
     late_night_spend = g[g['is_late_night']]['amt'].sum()
     late_night_ratio = late_night_spend / total_spend
 
     cat_spend = g.groupby('app_category')['amt'].sum()
     pct = {cat: cat_spend.get(cat, 0) / total_spend for cat in APP_CATEGORIES}
 
-    unique_merchants = g['merchant'].nunique()
-    merchant_diversity = unique_merchants / n_txn
-
+    merchant_diversity = g['merchant'].nunique() / n_txn
     p75 = g['amt'].quantile(0.75)
-    large_txn_spend = g[g['amt'] > p75]['amt'].sum()
-    large_txn_ratio = large_txn_spend / total_spend
+    large_txn_ratio = g[g['amt'] > p75]['amt'].sum() / total_spend
 
     monthly_totals = g.groupby('month')['amt'].sum().sort_index()
     if len(monthly_totals) > 1:
-        monthly_spend_cv = monthly_totals.std() / monthly_totals.mean() if monthly_totals.mean() > 0 else 0.0
+        monthly_spend_cv = monthly_totals.std() / monthly_totals.mean() if monthly_totals.mean() > 0 else 0
     else:
-        monthly_spend_cv = 0.0
+        monthly_spend_cv = 0
 
     dates_sorted = g['datetime'].sort_values()
     if len(dates_sorted) > 1:
         gaps = dates_sorted.diff().dropna().dt.total_seconds() / 86400
         txn_regularity = 1.0 / (1.0 + gaps.std())
     else:
-        txn_regularity = 0.0
+        txn_regularity = 0
 
     if len(monthly_totals) > 1:
-        spend_trend = np.polyfit(np.arange(len(monthly_totals)), monthly_totals.values, 1)[0]
+        slope = np.polyfit(np.arange(len(monthly_totals)), monthly_totals.values, 1)[0]
     else:
-        spend_trend = 0.0
+        slope = 0
 
     return {
         'mean_spend': mean_spend, 'std_spend': std_spend, 'spend_cv': spend_cv,
         'txn_frequency': txn_frequency, 'weekend_ratio': weekend_ratio,
-        'late_night_ratio': late_night_ratio,
-        'pct_food': pct['food'], 'pct_travel': pct['travel'],
-        'pct_leisure': pct['leisure'], 'pct_health': pct['health'],
-        'merchant_diversity': merchant_diversity, 'large_txn_ratio': large_txn_ratio,
-        'monthly_spend_cv': monthly_spend_cv, 'txn_regularity': txn_regularity,
-        'spend_trend': spend_trend,
+        'late_night_ratio': late_night_ratio, 'pct_food': pct['food'],
+        'pct_travel': pct['travel'], 'pct_leisure': pct['leisure'],
+        'pct_health': pct['health'], 'merchant_diversity': merchant_diversity,
+        'large_txn_ratio': large_txn_ratio, 'monthly_spend_cv': monthly_spend_cv,
+        'txn_regularity': txn_regularity, 'spend_trend': slope,
     }
 
 
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-def predict_persona(features_dict, model_data):
-    active_features = model_data.get('active_features', model_data['features'])
-    log_features = model_data.get('log_features', [])
-    scaler = model_data['scaler']
-    pca = model_data.get('pca')
-    model = model_data['model']
-    cluster_to_persona = model_data['cluster_to_persona']
-
-    X = np.array([[features_dict.get(f, 0) for f in active_features]])
-
-    for i, f in enumerate(active_features):
-        if f in log_features:
-            X[0, i] = np.log1p(X[0, i])
-        elif f == 'spend_trend' and 'spend_trend' not in log_features:
-            X[0, i] = np.sign(X[0, i]) * np.log1p(np.abs(X[0, i]))
-
-    X_scaled = scaler.transform(X)
+def predict_persona(features_dict):
+    X_df = pd.DataFrame([{f: features_dict.get(f, 0) for f in active_features}])
+    for col in log_features:
+        if col in X_df.columns:
+            if col == 'spend_trend':
+                X_df[col] = np.sign(X_df[col]) * np.log1p(np.abs(X_df[col]))
+            else:
+                X_df[col] = np.log1p(X_df[col])
+    X_scaled = scaler.transform(X_df.values)
     if pca is not None:
         X_scaled = pca.transform(X_scaled)
+    cluster = model.predict(X_scaled)[0]
+    return cluster_map.get(int(cluster), 'BALANCED_SPENDER')
 
-    cluster_id = model.predict(X_scaled)[0]
-    return cluster_to_persona[int(cluster_id)]
 
+print("Loading Sparkov transactions (train + test)...")
+base_dir = os.path.dirname(__file__)
+raw = pd.concat([
+    pd.read_csv(os.path.join(base_dir, 'fraudTrain.csv')),
+    pd.read_csv(os.path.join(base_dir, 'fraudTest.csv')),
+], ignore_index=True)
+raw = raw[raw['is_fraud'] == 0].copy()
+raw['datetime'] = pd.to_datetime(raw['trans_date_trans_time'])
+raw['hour'] = raw['datetime'].dt.hour
+raw['dow'] = raw['datetime'].dt.dayofweek
+raw['month'] = raw['datetime'].dt.to_period('M')
+raw['is_weekend'] = raw['dow'] >= 5
+raw['is_late_night'] = ((raw['hour'] >= 22) | (raw['hour'] < 5))
+raw['app_category'] = raw['category'].map(CATEGORY_MAP).fillna('other')
+print(f"  {len(raw)} transactions, {raw['cc_num'].nunique()} users\n")
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
+user_groups = {uid: g for uid, g in raw.groupby('cc_num') if len(g) >= 50}
+print(f"Users with 50+ transactions: {len(user_groups)}\n")
 
-def main():
-    model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              '..', 'trained_models', 'persona_kmeans.pkl')
-    model_data = joblib.load(model_path)
-    print(f"Model: k={model_data['selected_k']}, "
-          f"personas={list(model_data['cluster_to_persona'].values())}")
+LEVELS = [5, 8, 10, 15, 20, 25, 30, 35, 40, 50]
+N_SAMPLES = 10
 
-    df = load_sparkov()
-    df = prepare_transactions(df)
+print(f"Running self-consistency test: {len(user_groups)} users x {len(LEVELS)} levels x {N_SAMPLES} samples\n")
 
-    # Filter to users with enough transactions to subsample from
-    user_counts = df.groupby('cc_num').size()
-    eligible = user_counts[user_counts >= MIN_USER_TXNS].index.tolist()
-    print(f"Users with >= {MIN_USER_TXNS} transactions: {len(eligible)}")
+results = {}
 
-    rng = np.random.RandomState(42)
+for level in LEVELS:
+    consistent_users = 0
+    tested_users = 0
+    majority_agreement = 0
 
-    # For each N, for each user, draw 10 subsamples and classify
-    # agreement = fraction of users where all 10 draws give the same persona
-    # majority_agreement = fraction of users where >= 8/10 draws agree
-    print(f"\nDrawing {N_DRAWS} random subsamples per user per N...")
-    print(f"Testing N = {SAMPLE_COUNTS}\n")
-
-    print(f"{'N':>5}  {'Users':>6}  {'All-10 agree':>13}  {'>=8/10 agree':>13}  "
-          f"{'>=6/10 agree':>13}  {'Mean majority%':>15}")
-    print("-" * 75)
-
-    for n in SAMPLE_COUNTS:
-        users_tested = 0
-        all_agree = 0
-        gte8_agree = 0
-        gte6_agree = 0
-        majority_pcts = []
-
-        for cc_num in eligible:
-            user_txns = df[df['cc_num'] == cc_num]
-            if len(user_txns) < n:
-                continue
-
-            personas = []
-            for draw in range(N_DRAWS):
-                sampled = user_txns.sample(n=n, random_state=rng)
-                features = compute_features(sampled)
-                if features is None:
-                    continue
-                persona = predict_persona(features, model_data)
-                personas.append(persona)
-
-            if len(personas) < N_DRAWS:
-                continue
-
-            users_tested += 1
-            unique = set(personas)
-            most_common_count = max(personas.count(p) for p in unique)
-            majority_pct = most_common_count / N_DRAWS
-
-            majority_pcts.append(majority_pct)
-
-            if len(unique) == 1:
-                all_agree += 1
-            if most_common_count >= 8:
-                gte8_agree += 1
-            if most_common_count >= 6:
-                gte6_agree += 1
-
-        if users_tested == 0:
-            print(f"{n:>5}  {'N/A':>6}")
+    for uid, txns in user_groups.items():
+        if len(txns) < level:
             continue
 
-        print(f"{n:>5}  {users_tested:>6}  "
-              f"{all_agree:>6} ({100*all_agree/users_tested:>5.1f}%)  "
-              f"{gte8_agree:>6} ({100*gte8_agree/users_tested:>5.1f}%)  "
-              f"{gte6_agree:>6} ({100*gte6_agree/users_tested:>5.1f}%)  "
-              f"{100*np.mean(majority_pcts):>13.1f}%")
+        tested_users += 1
+        personas = []
 
-    # Per-persona breakdown at key thresholds
-    print(f"\n\nPER-PERSONA SELF-CONSISTENCY (all-10-agree rate)")
-    print("=" * 70)
-
-    detail_ns = [n for n in [20, 30, 50, 100] if n in SAMPLE_COUNTS]
-
-    for n in detail_ns:
-        print(f"\nN={n}:")
-        persona_stats = {}
-
-        for cc_num in eligible:
-            user_txns = df[df['cc_num'] == cc_num]
-            if len(user_txns) < n:
+        for i in range(N_SAMPLES):
+            sampled = txns.sample(n=level, random_state=42 + i * 997 + level * 13)
+            features = extract_features(sampled)
+            if features is None:
                 continue
+            personas.append(predict_persona(features))
 
-            personas = []
-            for draw in range(N_DRAWS):
-                sampled = user_txns.sample(n=n, random_state=rng.randint(0, 100000))
-                features = compute_features(sampled)
-                if features is None:
-                    continue
-                persona = predict_persona(features, model_data)
-                personas.append(persona)
+        if not personas:
+            continue
 
-            if len(personas) < N_DRAWS:
-                continue
+        if len(set(personas)) == 1:
+            consistent_users += 1
 
-            most_common = max(set(personas), key=personas.count)
-            all_same = len(set(personas)) == 1
+        most_common_count = Counter(personas).most_common(1)[0][1]
+        if most_common_count / len(personas) >= 0.8:
+            majority_agreement += 1
 
-            if most_common not in persona_stats:
-                persona_stats[most_common] = {'total': 0, 'all_agree': 0}
-            persona_stats[most_common]['total'] += 1
-            if all_same:
-                persona_stats[most_common]['all_agree'] += 1
+    consistency = consistent_users / tested_users if tested_users > 0 else 0
+    majority = majority_agreement / tested_users if tested_users > 0 else 0
 
-        for persona in sorted(persona_stats.keys()):
-            s = persona_stats[persona]
-            pct = 100 * s['all_agree'] / s['total'] if s['total'] > 0 else 0
-            print(f"  {persona:<22} {s['all_agree']:>4}/{s['total']:<4} ({pct:.1f}%)")
+    results[level] = {
+        'full_consistency': round(consistency, 4),
+        'majority_consistency': round(majority, 4),
+        'consistent_users': int(consistent_users),
+        'majority_users': int(majority_agreement),
+        'tested_users': int(tested_users),
+    }
 
+    print(f"  n={level:3d}  |  100% agree: {consistency:5.1%} ({consistent_users}/{tested_users})  |  >=80% agree: {majority:5.1%} ({majority_agreement}/{tested_users})")
 
-if __name__ == '__main__':
-    main()
+print(f"\n{'=' * 80}")
+print("SELF-CONSISTENCY: At N transactions, how often do different samples agree?")
+print(f"{'=' * 80}")
+print(f"{'Txns':>6} | {'All 10 agree':>13} | {'>=8/10 agree':>13} | {'Tested':>7}")
+print("-" * 55)
+
+recommended = None
+for level in LEVELS:
+    r = results[level]
+    marker = ""
+    if r['majority_consistency'] >= 0.70 and recommended is None:
+        recommended = level
+        marker = " <-- recommended"
+    print(f"{level:>6} | {r['full_consistency']:>12.1%} | {r['majority_consistency']:>12.1%} | {r['tested_users']:>7}{marker}")
+
+print("-" * 55)
+print(f"\nRECOMMENDATION:")
+if recommended:
+    print(f"  At n={recommended}, >=70% of users get a consistent persona across random samples.")
+    if recommended <= 30:
+        print(f"  Current threshold of 30 is at or above the empirical minimum.")
+    else:
+        print(f"  Consider raising the full unlock threshold to {recommended}.")
+else:
+    print(f"  Consistency never reaches 70% at any tested level.")
+
+output = {
+    'experiment': 'persona_self_consistency_vs_transaction_count',
+    'n_users': int(len(user_groups)),
+    'n_samples': int(N_SAMPLES),
+    'results': {str(k): v for k, v in results.items()},
+    'recommended_minimum': int(recommended) if recommended else None,
+}
+
+output_path = os.path.join(os.path.dirname(__file__), 'minimum_txn_evaluation.json')
+with open(output_path, 'w') as f:
+    json.dump(output, f, indent=2)
+print(f"\nSaved to {output_path}")
