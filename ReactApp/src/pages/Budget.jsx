@@ -257,9 +257,27 @@ export default function Budget() {
     if (totalBudget <= 0) return "none"
     const percent = (totalSpent / totalBudget) * 100
     if (percent >= 100) return "exceeded"
+
+    // Check if any category is exceeded or has unresolved reallocation pressure
+    const cats = budgetStatus?.categories
+    if (cats) {
+      const hasExceeded = Object.values(cats).some(c => c.status === "exceeded")
+      if (hasExceeded) return "exceeded"
+      const hasBufferAbsorbing = Object.values(cats).some(c => c.status === "buffer-absorbing")
+      if (hasBufferAbsorbing) return "warning"
+    }
+
+    // Check reallocation pressure — if active and not fully resolved, it's a warning
+    const realloc = budgetStatus?.reallocation
+    if (realloc?.active && !realloc.fullyResolved) return "warning"
+
+    // Check pacing — if the user is ahead of expected spend rate
+    const pacing = budgetStatus?.pacing
+    if (pacing?.status === "warning" || pacing?.status === "exceeded") return "warning"
+
     if (percent >= (personaProfile?.warningThreshold ?? 0.80) * 100) return "warning"
     return "on-track"
-  }, [totalSpent, totalBudget, personaProfile])
+  }, [totalSpent, totalBudget, personaProfile, budgetStatus])
 
   const getCategoryTier = (cat) => {
     if (budgetStatus?.categories?.[cat]?.tier) return budgetStatus.categories[cat].tier
@@ -557,7 +575,10 @@ export default function Budget() {
                     </div>
                     <div className="hero-side">
                       <span className={`status-badge ${overallStatus}`}>
-                        {overallStatus === "exceeded" ? "Exceeded" : overallStatus === "warning" ? "Warning" : "On Track"}
+                        {overallStatus === "exceeded" ? "Exceeded" : overallStatus === "warning" ? (
+                          budgetStatus?.reallocation?.active && !budgetStatus.reallocation.fullyResolved
+                            ? "Pressure" : "Warning"
+                        ) : "On Track"}
                       </span>
                       <div className="hero-metrics">
                         <div className="hero-metric">
