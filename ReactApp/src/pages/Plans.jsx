@@ -37,9 +37,14 @@ export default function Plans() {
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState("")
 
+  // AI input state
+  const [aiInput, setAiInput] = useState("")
+  const [aiLoading, setAiLoading] = useState(false)
+  const [parsedGoal, setParsedGoal] = useState(null)
+
+  // Edit modal state
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
-
   const [title, setTitle] = useState("")
   const [targetAmount, setTargetAmount] = useState("")
   const [currentAmount, setCurrentAmount] = useState("")
@@ -68,14 +73,6 @@ export default function Plans() {
     if (user?.id) reloadPlans()
   }, [user?.id])
 
-  const totalSaved = useMemo(() => {
-    return plans.reduce((sum, p) => sum + (p.currentAmount || 0), 0)
-  }, [plans])
-
-  const totalTarget = useMemo(() => {
-    return plans.reduce((sum, p) => sum + (p.targetAmount || 0), 0)
-  }, [plans])
-
   const resetForm = () => {
     setTitle("")
     setTargetAmount("")
@@ -91,6 +88,58 @@ export default function Plans() {
     setShowForm(false)
   }
 
+  // AI goal parsing
+  const handleAiSubmit = async (e) => {
+    e.preventDefault()
+    if (!aiInput.trim() || aiLoading) return
+
+    setAiLoading(true)
+    setErrorMsg("")
+    setParsedGoal(null)
+
+    try {
+      const res = await axios.post(`${API_BASE}/ai`, { input: aiInput.trim() })
+      const parsed = JSON.parse(res.data.parsed)
+      setParsedGoal(parsed)
+    } catch (err) {
+      setErrorMsg("Couldn't understand that. Try something like: 'Save £5000 for a holiday by December'")
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const handleSaveParsed = async () => {
+    if (!parsedGoal) return
+    setErrorMsg("")
+
+    const payload = {
+      title: parsedGoal.title,
+      targetAmount: Number(parsedGoal.targetAmount) || 0,
+      currentAmount: Number(parsedGoal.currentAmount) || 0,
+      targetDate: parsedGoal.targetDate || null,
+      type: parsedGoal.type || "SAVINGS"
+    }
+
+    if (payload.targetAmount <= 0) {
+      setErrorMsg("Target amount must be greater than 0.")
+      return
+    }
+
+    try {
+      await axios.post(`${API_BASE}?userId=${user.id}`, payload)
+      await reloadPlans()
+      setParsedGoal(null)
+      setAiInput("")
+    } catch (err) {
+      setErrorMsg("Save failed. Please try again.")
+    }
+  }
+
+  const handleDiscardParsed = () => {
+    setParsedGoal(null)
+  }
+
+  // Manual edit form submit (for editing existing plans)
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErrorMsg("")
@@ -171,38 +220,86 @@ export default function Plans() {
     EMERGENCY: "Emergency Fund"
   }
 
+  const aiExamples = [
+    "Save £5,000 for a holiday by December",
+    "Pay off my £2,000 credit card in 6 months",
+    "Buy a new laptop for £1,200 by March",
+    "Build a £10,000 emergency fund"
+  ]
+
   return (
     <div className="plans-page">
       <Navbar />
       <main className="plans-main">
         <div className="plans-header">
           <h1>Financial Goals</h1>
-          <p>Track your savings and financial targets</p>
+          <p>Describe your goal and AI will set it up for you</p>
         </div>
 
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-label">Total Saved</div>
-            <div className="stat-value saved">£{totalSaved.toFixed(2)}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">Total Target</div>
-            <div className="stat-value">£{totalTarget.toFixed(2)}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">Active Goals</div>
-            <div className="stat-value">{plans.length}</div>
-          </div>
+        {/* AI Input Bar */}
+        <div className="ai-goal-section">
+          <form onSubmit={handleAiSubmit} className="ai-goal-form">
+            <div className="ai-input-wrapper">
+              <div className="ai-input-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313-12.454z"/><path d="M17 4a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2"/></svg>
+              </div>
+              <input
+                type="text"
+                value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)}
+                placeholder="Describe your financial goal..."
+                disabled={aiLoading}
+              />
+              <button type="submit" disabled={aiLoading || !aiInput.trim()}>
+                {aiLoading ? (
+                  <div className="ai-spinner"></div>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {!parsedGoal && !aiLoading && (
+            <div className="ai-examples">
+              {aiExamples.map((ex, i) => (
+                <button key={i} className="ai-example-chip" onClick={() => setAiInput(ex)}>
+                  {ex}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="plans-controls">
-          <button className="add-btn" onClick={() => setShowForm(true)}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-            </svg>
-            Add Goal
-          </button>
-        </div>
+        {/* AI Parsed Preview */}
+        {parsedGoal && (
+          <div className="parsed-preview">
+            <div className="parsed-header">
+              <span className="parsed-badge">AI Generated</span>
+              <span className="parsed-hint">Review and save your goal</span>
+            </div>
+            <div className="parsed-card">
+              <div className="parsed-icon">{typeIcons[parsedGoal.type] || "🎯"}</div>
+              <div className="parsed-details">
+                <div className="parsed-title">{parsedGoal.title}</div>
+                <div className="parsed-meta">
+                  <span className="parsed-type">{typeLabels[parsedGoal.type] || parsedGoal.type}</span>
+                  <span className="parsed-amount">£{Number(parsedGoal.targetAmount).toLocaleString()}</span>
+                  {parsedGoal.targetDate && (
+                    <span className="parsed-date">by {formatDisplayDate(parsedGoal.targetDate)}</span>
+                  )}
+                  {parsedGoal.currentAmount > 0 && (
+                    <span className="parsed-current">£{Number(parsedGoal.currentAmount).toLocaleString()} saved</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="parsed-actions">
+              <button className="btn-discard" onClick={handleDiscardParsed}>Discard</button>
+              <button className="btn-save" onClick={handleSaveParsed}>Save Goal</button>
+            </div>
+          </div>
+        )}
 
         {errorMsg && <div className="error-msg">{errorMsg}</div>}
 
@@ -281,19 +378,23 @@ export default function Plans() {
           </div>
         ) : (
           <div className="empty-state">
-            <div className="empty-icon">🎯</div>
-            <h3>No goals yet</h3>
-            <p>Set financial goals to track your progress</p>
-            <button className="add-btn" onClick={() => setShowForm(true)}>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+            <div className="empty-illustration">
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                <circle cx="40" cy="40" r="36" stroke="#d1fae5" strokeWidth="4" fill="#ecfdf5"/>
+                <circle cx="40" cy="40" r="24" stroke="#6ee7b7" strokeWidth="3" fill="#d1fae5"/>
+                <circle cx="40" cy="40" r="12" stroke="#34d399" strokeWidth="3" fill="#a7f3d0"/>
+                <circle cx="40" cy="40" r="4" fill="#10b981"/>
+                <line x1="40" y1="4" x2="40" y2="16" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round"/>
+                <polygon points="36,6 40,0 44,6" fill="#10b981"/>
               </svg>
-              Add Goal
-            </button>
+            </div>
+            <h3>No goals yet</h3>
+            <p>Type a goal above and let AI set it up for you</p>
           </div>
         )}
       </main>
 
+      {/* Edit Modal (for editing existing plans) */}
       {showForm && (
         <div className="modal-overlay" onClick={closeForm}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

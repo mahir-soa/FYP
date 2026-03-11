@@ -29,6 +29,18 @@ public class Budget {
     @Column(name = "safe_to_spend")
     private double safeToSpend;
 
+    @Column(name = "buffer_amount")
+    private double bufferAmount;
+
+    @Column(name = "buffer_remaining")
+    private double bufferRemaining;
+
+    @Column(name = "goal_override_action")
+    private String goalOverrideAction;
+
+    @Column(name = "category_meta", length = 4000)
+    private String categoryMeta;
+
     public Budget() {}
 
     public Long getId() { return id; }
@@ -42,4 +54,12 @@ public class Budget {
     public void setCategoryLimits(String categoryLimits) { this.categoryLimits = categoryLimits; }
     public double getSafeToSpend() { return safeToSpend; }
     public void setSafeToSpend(double safeToSpend) { this.safeToSpend = safeToSpend; }
+    public double getBufferAmount() { return bufferAmount; }
+    public void setBufferAmount(double bufferAmount) { this.bufferAmount = bufferAmount; }
+    public double getBufferRemaining() { return bufferRemaining; }
+    public void setBufferRemaining(double bufferRemaining) { this.bufferRemaining = bufferRemaining; }
+    public String getGoalOverrideAction() { return goalOverrideAction; }
+    public void setGoalOverrideAction(String goalOverrideAction) { this.goalOverrideAction = goalOverrideAction; }
+    public String getCategoryMeta() { return categoryMeta; }
+    public void setCategoryMeta(String categoryMeta) { this.categoryMeta = categoryMeta; }
 }

@@ -2,10 +2,12 @@ package com.fyp.controllers;
 
 import com.fyp.models.Plan;
 import com.fyp.repos.PlanRepository;
+import com.fyp.services.ChatService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/plans")
@@ -13,9 +15,11 @@ import java.util.List;
 public class PlanController {
 
     private final PlanRepository planRepository;
+    private final ChatService chatService;
 
-    public PlanController(PlanRepository planRepository) {
+    public PlanController(PlanRepository planRepository, ChatService chatService) {
         this.planRepository = planRepository;
+        this.chatService = chatService;
     }
 
     @GetMapping
@@ -70,5 +74,20 @@ public class PlanController {
                     return ResponseEntity.ok(planRepository.save(existing));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/ai")
+    public ResponseEntity<Map<String, String>> parseGoalWithAI(@RequestBody Map<String, String> request) {
+        String input = request.get("input");
+        if (input == null || input.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Input is required"));
+        }
+
+        String result = chatService.parseGoal(input.trim());
+        if (result == null) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Failed to parse goal"));
+        }
+
+        return ResponseEntity.ok(Map.of("parsed", result));
     }
 }

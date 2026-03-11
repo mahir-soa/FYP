@@ -107,6 +107,178 @@ public class ChatService {
         return prompt.toString();
     }
 
+    public String generateBudgetInsights(Map<String, Object> budgetContext) {
+        List<Map<String, String>> messages = new ArrayList<>();
+
+        String systemPrompt = "You are a personal finance analyst for Nudge, a budgeting app. " +
+                "Analyze the user's budget data and return 3-5 concise, actionable insights. " +
+                "Return ONLY a JSON array (no markdown, no explanation):\n" +
+                "[{\"title\": \"short title\", \"body\": \"1-2 sentence actionable tip\"}]\n\n" +
+                "Guidelines:\n" +
+                "- Do NOT include emojis anywhere in the response\n" +
+                "- Reference specific numbers from their data\n" +
+                "- Flag categories that are overspent or close to limit\n" +
+                "- Praise categories where they're doing well\n" +
+                "- Suggest practical ways to save based on their spending patterns\n" +
+                "- Consider the pace of spending relative to days remaining\n" +
+                "- Be encouraging, not judgmental\n" +
+                "- Return ONLY the JSON array, nothing else";
+
+        messages.add(Map.of("role", "system", "content", systemPrompt));
+        messages.add(Map.of("role", "user", "content", "Here is my budget data:\n" + budgetContext.toString()));
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", model);
+        requestBody.put("messages", messages);
+        requestBody.put("max_tokens", 800);
+        requestBody.put("temperature", 0.7);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    OPENAI_API_URL, HttpMethod.POST, entity, Map.class);
+
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("choices")) {
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+                if (!choices.isEmpty()) {
+                    Map<String, Object> firstChoice = choices.get(0);
+                    Map<String, String> message = (Map<String, String>) firstChoice.get("message");
+                    return message.get("content");
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public String generateSmartBudget(Map<String, Object> context) {
+        List<Map<String, String>> messages = new ArrayList<>();
+
+        String systemPrompt = "You are a personal finance budget optimizer for Nudge, a budgeting app. " +
+                "Based on the user's spending history, income, and available budget, generate personalized category spending limits. " +
+                "Return ONLY valid JSON (no markdown, no explanation):\n" +
+                "{\n" +
+                "  \"categoryLimits\": { \"Food\": number, \"Travel\": number, \"Education\": number, \"Leisure\": number, \"Other\": number },\n" +
+                "  \"categoryExplanations\": {\n" +
+                "    \"Food\": { \"suggested\": number, \"pastAvg\": number, \"reason\": \"brief explanation\" },\n" +
+                "    \"Travel\": { \"suggested\": number, \"pastAvg\": number, \"reason\": \"brief explanation\" },\n" +
+                "    \"Education\": { \"suggested\": number, \"pastAvg\": number, \"reason\": \"brief explanation\" },\n" +
+                "    \"Leisure\": { \"suggested\": number, \"pastAvg\": number, \"reason\": \"brief explanation\" },\n" +
+                "    \"Other\": { \"suggested\": number, \"pastAvg\": number, \"reason\": \"brief explanation\" }\n" +
+                "  },\n" +
+                "  \"summary\": \"1-2 sentence overall budget strategy\"\n" +
+                "}\n\n" +
+                "Rules:\n" +
+                "- The categoryLimits values MUST sum to no more than the availableBudget provided\n" +
+                "- All 5 categories (Food, Travel, Education, Leisure, Other) MUST be present\n" +
+                "- Use the spending history to allocate more to categories where the user actually spends\n" +
+                "- Aim to reduce overspending categories by 5-15% from their average\n" +
+                "- Keep well-managed categories close to their average\n" +
+                "- Allocate minimal amounts to categories with very low historical spending\n" +
+                "- Be practical — do not suggest unrealistically low limits\n" +
+                "- All amounts should be in GBP, rounded to 2 decimal places\n" +
+                "- Do NOT include emojis in any text\n" +
+                "- Return ONLY the JSON object, nothing else";
+
+        messages.add(Map.of("role", "system", "content", systemPrompt));
+        messages.add(Map.of("role", "user", "content", "Here is my financial data:\n" + context.toString()));
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", model);
+        requestBody.put("messages", messages);
+        requestBody.put("max_tokens", 600);
+        requestBody.put("temperature", 0.4);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    OPENAI_API_URL, HttpMethod.POST, entity, Map.class);
+
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("choices")) {
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+                if (!choices.isEmpty()) {
+                    Map<String, Object> firstChoice = choices.get(0);
+                    Map<String, String> message = (Map<String, String>) firstChoice.get("message");
+                    return message.get("content");
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public String parseGoal(String userInput) {
+        List<Map<String, String>> messages = new ArrayList<>();
+
+        String systemPrompt = "You are a financial goal parser. The user will describe a financial goal in natural language. " +
+                "Extract the following fields and return ONLY valid JSON (no markdown, no explanation):\n" +
+                "{\n" +
+                "  \"title\": \"short descriptive goal name\",\n" +
+                "  \"targetAmount\": number (in GBP, no currency symbol),\n" +
+                "  \"currentAmount\": number (default 0 if not mentioned),\n" +
+                "  \"targetDate\": \"YYYY-MM-DD\" or null if not mentioned,\n" +
+                "  \"type\": one of \"SAVINGS\", \"DEBT\", \"PURCHASE\", \"EMERGENCY\"\n" +
+                "}\n\n" +
+                "Rules:\n" +
+                "- If the user mentions paying off debt or loans, use type DEBT\n" +
+                "- If the user mentions buying something specific, use type PURCHASE\n" +
+                "- If the user mentions emergency or rainy day, use type EMERGENCY\n" +
+                "- Otherwise default to SAVINGS\n" +
+                "- For relative dates like 'in 6 months' or 'by next year', calculate from today's date: " +
+                java.time.LocalDate.now().toString() + "\n" +
+                "- Return ONLY the JSON object, nothing else";
+
+        messages.add(Map.of("role", "system", "content", systemPrompt));
+        messages.add(Map.of("role", "user", "content", userInput));
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", model);
+        requestBody.put("messages", messages);
+        requestBody.put("max_tokens", 300);
+        requestBody.put("temperature", 0.3);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    OPENAI_API_URL, HttpMethod.POST, entity, Map.class);
+
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("choices")) {
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+                if (!choices.isEmpty()) {
+                    Map<String, Object> firstChoice = choices.get(0);
+                    Map<String, String> message = (Map<String, String>) firstChoice.get("message");
+                    return message.get("content");
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     private String formatExpensesForContext(List<Expense> expenses) {
         // Group expenses by category
         Map<String, List<Expense>> byCategory = expenses.stream()
