@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import nudgeLogo from "../assets/nudge logo.PNG"
 import "./css/Login.css"
 
 export default function ForgotPassword() {
@@ -27,7 +28,11 @@ export default function ForgotPassword() {
 
   if (emailSent) {
     return (
-      <div className="auth-container">
+      <div className="auth-page">
+        <div className="auth-logo">
+          <img src={nudgeLogo} alt="Nudge" />
+        </div>
+
         <div className="auth-card">
           <div className="success-icon">✉️</div>
           <h2>Check Your Email</h2>
@@ -37,33 +42,34 @@ export default function ForgotPassword() {
           <p className="auth-info">
             Click the link in the email to reset your password. The link will expire in 1 hour.
           </p>
-          <p className="auth-footer">
-            <Link to="/login">Back to Sign In</Link>
-          </p>
+          <Link to="/login" className="auth-btn">
+            Back to Sign In
+          </Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="auth-container">
+    <div className="auth-page">
+      <div className="auth-logo">
+        <img src={nudgeLogo} alt="Nudge" />
+      </div>
+
       <div className="auth-card">
-        <h2>Forgot Password</h2>
-        <p className="auth-subtitle">
-          Enter your email and we'll send you a reset link
-        </p>
+        <p className="auth-subtitle">Don't worry, it happens</p>
+        <h2>Forgot password</h2>
 
         {error && <div className="error-banner">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
             <input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="Email address"
               required
             />
           </div>

@@ -17,8 +17,23 @@ public class UserPersona {
     @Column(name = "persona_type", nullable = false)
     private String personaType;
 
+    @Column(name = "persona_primary")
+    private String personaPrimary;
+
     @Column(name = "confidence_score")
     private Double confidenceScore;
+
+    @Column(name = "confidence_level")
+    private String confidenceLevel;
+
+    @Column(name = "confidence_data", length = 2000)
+    private String confidenceData;
+
+    @Column(name = "spider_axes", length = 1000)
+    private String spiderAxes;
+
+    @Column(name = "discipline_data", length = 2000)
+    private String disciplineData;
 
     @Column(name = "emotional_spender_flag")
     private Boolean emotionalSpenderFlag = false;
@@ -63,8 +78,18 @@ public class UserPersona {
     public void setUserId(Long userId) { this.userId = userId; }
     public String getPersonaType() { return personaType; }
     public void setPersonaType(String personaType) { this.personaType = personaType; }
+    public String getPersonaPrimary() { return personaPrimary; }
+    public void setPersonaPrimary(String personaPrimary) { this.personaPrimary = personaPrimary; }
     public Double getConfidenceScore() { return confidenceScore; }
     public void setConfidenceScore(Double confidenceScore) { this.confidenceScore = confidenceScore; }
+    public String getConfidenceLevel() { return confidenceLevel; }
+    public void setConfidenceLevel(String confidenceLevel) { this.confidenceLevel = confidenceLevel; }
+    public String getConfidenceData() { return confidenceData; }
+    public void setConfidenceData(String confidenceData) { this.confidenceData = confidenceData; }
+    public String getSpiderAxes() { return spiderAxes; }
+    public void setSpiderAxes(String spiderAxes) { this.spiderAxes = spiderAxes; }
+    public String getDisciplineData() { return disciplineData; }
+    public void setDisciplineData(String disciplineData) { this.disciplineData = disciplineData; }
     public Boolean getEmotionalSpenderFlag() { return emotionalSpenderFlag; }
     public void setEmotionalSpenderFlag(Boolean emotionalSpenderFlag) { this.emotionalSpenderFlag = emotionalSpenderFlag; }
     public String getFeatureSnapshot() { return featureSnapshot; }

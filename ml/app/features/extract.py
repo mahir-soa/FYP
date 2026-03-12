@@ -96,4 +96,29 @@ def extract_features(expenses, budgets, subscriptions, incomes):
     else:
         features['total_income'] = 0
 
+    monthly_spend_values = df.groupby('month')['amount'].sum()
+    features['monthly_spend_mean'] = round(monthly_spend_values.mean(), 2) if len(monthly_spend_values) > 0 else 0
+    features['monthly_spend_std'] = round(monthly_spend_values.std(), 2) if len(monthly_spend_values) > 1 else 0
+
+    cat_pcts = [features.get(f'pct_{cat.lower()}', 0) for cat in CATEGORIES]
+    features['hhi_index'] = round(sum(p ** 2 for p in cat_pcts), 4)
+
+    daily_totals = month_df.groupby(month_df['date'].dt.date)['amount'].sum()
+    features['daily_spend_mean'] = round(daily_totals.mean(), 2) if len(daily_totals) > 0 else 0
+    features['daily_spend_std'] = round(daily_totals.std(), 2) if len(daily_totals) > 1 else 0
+    features['days_with_expenses'] = len(daily_totals)
+
     return features
+
+
+def extract_features_for_window(expenses, budgets, subscriptions, incomes, days):
+    if not expenses:
+        return None
+
+    cutoff = datetime.now() - timedelta(days=days)
+    windowed = [e for e in expenses if e.date and pd.to_datetime(e.date) >= cutoff]
+
+    if len(windowed) < 5:
+        return None
+
+    return extract_features(windowed, budgets, subscriptions, incomes)

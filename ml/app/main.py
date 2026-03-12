@@ -7,7 +7,7 @@ import json
 from app.database import get_db
 from app.models import Expense, Income, Budget, Subscription, UserPersona, Nudge
 from app.features.extract import extract_features
-from app.services.persona_service import predict_persona
+from app.services.persona_service import predict_persona, predict_persona_full
 from app.services.risk_service import predict_risk
 from app.services.nudge_service import generate_nudges
 
@@ -62,15 +62,26 @@ def analyse_user(user_id: int, db: Session = Depends(get_db)):
     if not features:
         raise HTTPException(status_code=400, detail="Could not extract features")
 
-    persona_result = predict_persona(features)
+    persona_result = predict_persona_full(features, expenses, budgets, subscriptions, incomes)
     risk_result = predict_risk(features)
-    nudge_list = generate_nudges(features, persona_result, risk_result)
+    nudge_list = generate_nudges(
+        features, persona_result, risk_result,
+        discipline=persona_result.get('discipline'),
+        spider=persona_result.get('spider_axes'),
+    )
 
     now = datetime.now()
+    confidence_data = persona_result.get('confidence_data', {})
+
     existing = db.query(UserPersona).filter(UserPersona.user_id == user_id).first()
     if existing:
         existing.persona_type = persona_result['persona_type']
+        existing.persona_primary = persona_result['persona_primary']
         existing.confidence_score = persona_result['confidence']
+        existing.confidence_level = confidence_data.get('level', '')
+        existing.confidence_data = json.dumps(confidence_data)
+        existing.spider_axes = json.dumps(persona_result.get('spider_axes', {}))
+        existing.discipline_data = json.dumps(persona_result.get('discipline', {}))
         existing.emotional_spender_flag = persona_result['emotional_spender_flag']
         existing.feature_snapshot = json.dumps(features)
         existing.calculated_at = now
@@ -79,7 +90,12 @@ def analyse_user(user_id: int, db: Session = Depends(get_db)):
         persona_entity = UserPersona(
             user_id=user_id,
             persona_type=persona_result['persona_type'],
+            persona_primary=persona_result['persona_primary'],
             confidence_score=persona_result['confidence'],
+            confidence_level=confidence_data.get('level', ''),
+            confidence_data=json.dumps(confidence_data),
+            spider_axes=json.dumps(persona_result.get('spider_axes', {})),
+            discipline_data=json.dumps(persona_result.get('discipline', {})),
             emotional_spender_flag=persona_result['emotional_spender_flag'],
             feature_snapshot=json.dumps(features),
             calculated_at=now,
@@ -92,6 +108,11 @@ def analyse_user(user_id: int, db: Session = Depends(get_db)):
         nudge_entity = Nudge(
             user_id=user_id,
             type=nudge_data['type'],
+            nudge_type=nudge_data.get('nudge_type'),
+            trigger=nudge_data.get('trigger'),
+            timing=nudge_data.get('timing'),
+            severity=nudge_data.get('severity'),
+            confidence=nudge_data.get('confidence'),
             title=nudge_data['title'],
             message=nudge_data['message'],
             priority=nudge_data['priority'],
@@ -127,12 +148,38 @@ def get_persona(user_id: int, db: Session = Depends(get_db)):
 
     result = predict_persona(feature_snapshot) if feature_snapshot else {}
 
+    confidence_data = {}
+    if persona.confidence_data:
+        try:
+            confidence_data = json.loads(persona.confidence_data)
+        except json.JSONDecodeError:
+            pass
+
+    spider_axes = {}
+    if persona.spider_axes:
+        try:
+            spider_axes = json.loads(persona.spider_axes)
+        except json.JSONDecodeError:
+            pass
+
+    discipline = {}
+    if persona.discipline_data:
+        try:
+            discipline = json.loads(persona.discipline_data)
+        except json.JSONDecodeError:
+            pass
+
     return {
         'user_id': user_id,
         'persona_type': persona.persona_type,
+        'persona_primary': persona.persona_primary or persona.persona_type,
         'persona_label': result.get('persona_label', persona.persona_type),
         'description': result.get('description', ''),
         'confidence': persona.confidence_score,
+        'confidence_level': persona.confidence_level or confidence_data.get('level', ''),
+        'confidence_data': confidence_data,
+        'spider_axes': spider_axes,
+        'discipline': discipline,
         'emotional_spender_flag': persona.emotional_spender_flag,
         'top_features': result.get('top_features', []),
         'calculated_at': persona.calculated_at.isoformat() if persona.calculated_at else None,
@@ -177,6 +224,11 @@ def get_nudges(user_id: int, db: Session = Depends(get_db)):
         active.append({
             'id': n.id,
             'type': n.type,
+            'nudge_type': n.nudge_type,
+            'trigger': n.trigger,
+            'timing': n.timing,
+            'severity': n.severity,
+            'confidence': n.confidence,
             'title': n.title,
             'message': n.message,
             'priority': n.priority,

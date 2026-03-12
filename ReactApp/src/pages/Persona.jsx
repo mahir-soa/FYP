@@ -31,6 +31,26 @@ const PERSONA_TIPS = {
     "Look into automating your investments to grow wealth passively.",
     "Share your budgeting strategies — you could help others improve too.",
   ],
+  VOLATILE_SPENDER: [
+    "Set a fixed daily spending limit and review it each evening.",
+    "Use envelope budgeting to cap each category's spending.",
+    "Track spending daily — awareness is the first step to consistency.",
+  ],
+  DISCIPLINED_PLANNER: [
+    "Excellent discipline! Consider increasing investment contributions.",
+    "You're ready for advanced strategies like index funds or ISAs.",
+    "Keep reviewing goals quarterly to stay on track.",
+  ],
+  WEEKEND_SPIKER: [
+    "Plan weekend activities in advance and set a weekend budget cap.",
+    "Try free or low-cost weekend activities like parks, cooking at home, or free events.",
+    "Move money to savings on Friday before the weekend starts.",
+  ],
+  CATEGORY_FOCUSED_SPENDER: [
+    "Review your top spending category — can you find cheaper alternatives?",
+    "Set a hard cap for your dominant category and track it weekly.",
+    "Diversify spending to avoid over-reliance on one area.",
+  ],
 }
 
 const PERSONA_COLORS = {
@@ -39,6 +59,22 @@ const PERSONA_COLORS = {
   WEEKEND_SPLURGER: "#f97316",
   SUBSCRIPTION_HOARDER: "#8b5cf6",
   BALANCED_BUDGETER: "#10b981",
+  VOLATILE_SPENDER: "#eab308",
+  DISCIPLINED_PLANNER: "#06b6d4",
+  WEEKEND_SPIKER: "#f97316",
+  CATEGORY_FOCUSED_SPENDER: "#ec4899",
+}
+
+const PERSONA_LABELS = {
+  IMPULSIVE_SPENDER: "Impulse Spender",
+  CAUTIOUS_SAVER: "Cautious Saver",
+  WEEKEND_SPLURGER: "Weekend Splurger",
+  SUBSCRIPTION_HOARDER: "Subscription Hoarder",
+  BALANCED_BUDGETER: "Balanced Budgeter",
+  VOLATILE_SPENDER: "Volatile Spender",
+  DISCIPLINED_PLANNER: "Disciplined Planner",
+  WEEKEND_SPIKER: "Weekend Spiker",
+  CATEGORY_FOCUSED_SPENDER: "Category-Focused Spender",
 }
 
 // Available options catalog
@@ -83,6 +119,24 @@ const LOCKED_ITEMS = new Set([
   "frame_silver_ring", "frame_gold_ring", "frame_emerald_glow", "frame_streak_flame",
 ])
 
+const SPIDER_AXIS_LABELS = {
+  impulse: "Impulse",
+  volatility: "Volatility",
+  budget_discipline: "Budget Discipline",
+  weekend_bias: "Weekend Bias",
+  emotional_influence: "Emotional Influence",
+  category_concentration: "Category Focus",
+}
+
+const NUDGE_TYPE_COLORS = {
+  Corrective: { bg: "rgba(239, 68, 68, 0.08)", border: "rgba(239, 68, 68, 0.2)", text: "#dc2626" },
+  Forecast: { bg: "rgba(245, 158, 11, 0.08)", border: "rgba(245, 158, 11, 0.2)", text: "#d97706" },
+  Reflective: { bg: "rgba(139, 92, 246, 0.08)", border: "rgba(139, 92, 246, 0.2)", text: "#7c3aed" },
+  Awareness: { bg: "rgba(59, 130, 246, 0.08)", border: "rgba(59, 130, 246, 0.2)", text: "#2563eb" },
+  Goal: { bg: "rgba(6, 182, 212, 0.08)", border: "rgba(6, 182, 212, 0.2)", text: "#0891b2" },
+  Positive: { bg: "rgba(16, 185, 129, 0.08)", border: "rgba(16, 185, 129, 0.2)", text: "#059669" },
+}
+
 function formatFeatureName(feature) {
   return feature
     .replace(/_/g, " ")
@@ -97,9 +151,164 @@ function formatRewardName(key) {
   return key.replace(/^(glasses|earrings|features|frame|hair)_/, "").replace(/([a-z])(\d)/g, "$1 $2").replace(/variant/i, "Style ")
 }
 
+function RadarChart({ axes, size = 280 }) {
+  const keys = Object.keys(SPIDER_AXIS_LABELS)
+  const cx = size / 2
+  const cy = size / 2
+  const r = size * 0.34
+  const n = keys.length
+  const angleStep = (2 * Math.PI) / n
+  const offsetAngle = -Math.PI / 2
+
+  const point = (i, pct) => {
+    const a = offsetAngle + i * angleStep
+    return [cx + r * (pct / 100) * Math.cos(a), cy + r * (pct / 100) * Math.sin(a)]
+  }
+
+  const rings = [25, 50, 75, 100]
+
+  const dataPoints = keys.map((k, i) => point(i, axes[k] || 0))
+  const polygon = dataPoints.map((p) => p.join(",")).join(" ")
+
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} className="radar-chart-svg">
+      {rings.map((pct) => {
+        const pts = keys.map((_, i) => point(i, pct)).map((p) => p.join(",")).join(" ")
+        return <polygon key={pct} points={pts} fill="none" stroke="var(--gray-200)" strokeWidth="1" />
+      })}
+      {keys.map((_, i) => {
+        const [ex, ey] = point(i, 100)
+        return <line key={i} x1={cx} y1={cy} x2={ex} y2={ey} stroke="var(--gray-200)" strokeWidth="1" />
+      })}
+      <polygon points={polygon} fill="rgba(16,185,129,0.18)" stroke="var(--emerald-500)" strokeWidth="2" />
+      {dataPoints.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r="4" fill="var(--emerald-500)" />
+      ))}
+      {keys.map((k, i) => {
+        const labelR = r + 24
+        const a = offsetAngle + i * angleStep
+        const lx = cx + labelR * Math.cos(a)
+        const ly = cy + labelR * Math.sin(a)
+        const anchor = Math.abs(Math.cos(a)) < 0.01 ? "middle" : Math.cos(a) > 0 ? "start" : "end"
+        return (
+          <text key={k} x={lx} y={ly} textAnchor={anchor} dominantBaseline="central" className="radar-label">
+            {SPIDER_AXIS_LABELS[k]}
+          </text>
+        )
+      })}
+      {keys.map((k, i) => {
+        const [x, y] = dataPoints[i]
+        const a = offsetAngle + i * angleStep
+        const ox = 10 * Math.cos(a)
+        const oy = 10 * Math.sin(a)
+        return (
+          <text key={`v-${k}`} x={x + ox} y={y + oy} textAnchor="middle" dominantBaseline="central" className="radar-value">
+            {Math.round(axes[k] || 0)}
+          </text>
+        )
+      })}
+    </svg>
+  )
+}
+
+function DisciplineCard({ discipline }) {
+  if (!discipline || discipline.discipline_score === undefined) return null
+  const score = Math.round(discipline.discipline_score)
+  const trendIcon = discipline.trend === "improving" ? "\u2191" : discipline.trend === "worsening" ? "\u2193" : "\u2192"
+  const trendClass = discipline.trend === "improving" ? "improving" : discipline.trend === "worsening" ? "worsening" : "stable"
+
+  return (
+    <div className="persona-detail-card discipline-card">
+      <h3>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        Discipline &amp; Habits
+      </h3>
+      <div className="discipline-body">
+        <div className="discipline-score-ring">
+          <svg viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="var(--gray-100)" strokeWidth="6" />
+            <circle
+              cx="40" cy="40" r="34" fill="none"
+              stroke="var(--emerald-500)" strokeWidth="6"
+              strokeDasharray={`${(score / 100) * 213.6} 213.6`}
+              strokeLinecap="round"
+              transform="rotate(-90 40 40)"
+            />
+          </svg>
+          <span className="discipline-score-number">{score}</span>
+        </div>
+        <div className="discipline-details">
+          <div className="discipline-streak">
+            <span className="discipline-streak-value">{discipline.streak_days_in_budget || 0}</span>
+            <span className="discipline-streak-label">day streak</span>
+          </div>
+          <div className="discipline-streak">
+            <span className="discipline-streak-value">{discipline.streak_weeks_stable || 0}</span>
+            <span className="discipline-streak-label">stable weeks</span>
+          </div>
+          <div className={`discipline-trend ${trendClass}`}>
+            <span className="discipline-trend-arrow">{trendIcon}</span>
+            <span>{discipline.trend}</span>
+          </div>
+        </div>
+      </div>
+      {discipline.feedback_message && (
+        <p className="discipline-feedback">{discipline.feedback_message}</p>
+      )}
+    </div>
+  )
+}
+
+function NudgeList({ nudges }) {
+  if (!nudges || nudges.length === 0) return null
+
+  return (
+    <div className="persona-detail-card nudge-list-card">
+      <h3>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+        Smart Nudges
+      </h3>
+      <div className="nudge-list">
+        {nudges.map((nudge, i) => {
+          const colors = NUDGE_TYPE_COLORS[nudge.nudge_type] || NUDGE_TYPE_COLORS.Awareness
+          return (
+            <div
+              key={nudge.id || i}
+              className="nudge-item"
+              style={{ background: colors.bg, borderColor: colors.border }}
+            >
+              <div className="nudge-item-header">
+                <span className="nudge-type-badge" style={{ color: colors.text, background: `${colors.text}15` }}>
+                  {nudge.nudge_type || "Info"}
+                </span>
+                <div className="nudge-badges">
+                  {nudge.severity && (
+                    <span className={`nudge-severity-badge severity-${nudge.severity}`}>{nudge.severity}</span>
+                  )}
+                  {nudge.timing && (
+                    <span className={`nudge-timing-badge timing-${nudge.timing}`}>{nudge.timing}</span>
+                  )}
+                </div>
+              </div>
+              <div className="nudge-item-title">{nudge.title}</div>
+              <div className="nudge-item-message">{nudge.message}</div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function Persona() {
   const { user } = useAuth()
   const [personaData, setPersonaData] = useState(null)
+  const [nudgesData, setNudgesData] = useState([])
   const [loading, setLoading] = useState(true)
   const [expenseCount, setExpenseCount] = useState(0)
 
@@ -122,10 +331,15 @@ export default function Persona() {
 
   const loadPersonaData = async () => {
     try {
-      const res = await api.get(`/ml/persona/${user.id}`)
-      setPersonaData(res.data)
+      const [personaRes, nudgesRes] = await Promise.all([
+        api.get(`/ml/persona/${user.id}`),
+        api.get(`/ml/nudges/${user.id}`),
+      ])
+      setPersonaData(personaRes.data)
+      setNudgesData(nudgesRes.data.nudges || [])
     } catch {
       setPersonaData(null)
+      setNudgesData([])
     } finally {
       setLoading(false)
     }
@@ -210,14 +424,21 @@ export default function Persona() {
     return `https://api.dicebear.com/9.x/adventurer/svg?${params.toString()}`
   }
 
+  const activePersonaType = personaData ? (personaData.persona_primary || personaData.persona_type) : null
+
   const mergedOptions = personaData
     ? { ...PERSONA_STYLES[personaData.persona_type], ...editingOptions }
     : editingOptions
 
-  const confidencePercent = personaData ? Math.round(personaData.confidence * 100) : 0
-  const confidenceLevel = confidencePercent >= 70 ? "high" : confidencePercent >= 40 ? "medium" : "low"
-  const tips = personaData ? (PERSONA_TIPS[personaData.persona_type] || []) : []
-  const accentColor = personaData ? (PERSONA_COLORS[personaData.persona_type] || "#10b981") : "#10b981"
+  const confidenceData = personaData?.confidence_data || {}
+  const confidenceScore = confidenceData.score !== undefined ? Math.round(confidenceData.score) : (personaData ? Math.round(personaData.confidence * 100) : 0)
+  const confidenceLevel = (personaData?.confidence_level || confidenceData.level || (confidenceScore >= 70 ? "High" : confidenceScore >= 40 ? "Medium" : "Low")).toLowerCase()
+  const tips = activePersonaType ? (PERSONA_TIPS[activePersonaType] || PERSONA_TIPS[personaData?.persona_type] || []) : []
+  const accentColor = activePersonaType ? (PERSONA_COLORS[activePersonaType] || "#10b981") : "#10b981"
+  const displayLabel = activePersonaType ? (PERSONA_LABELS[activePersonaType] || personaData?.persona_label || activePersonaType.replace(/_/g, " ")) : ""
+
+  const discipline = personaData?.discipline || {}
+  const disciplineScore = Math.round(discipline.discipline_score || 0)
 
   const renderTabContent = () => {
     switch (tab) {
@@ -588,9 +809,9 @@ export default function Persona() {
                   <Avatar user={user} size="xl" persona={personaData.persona_type} customOptions={editingOptions} />
                 </div>
                 <div className="persona-profile-info">
-                  <span className={`persona-type-label persona-type-${personaData.persona_type}`}>
+                  <span className={`persona-type-label persona-type-${activePersonaType}`}>
                     <span className="dot" />
-                    {personaData.persona_label}
+                    {displayLabel}
                   </span>
                   <h2>{user.name}</h2>
                   <p className="persona-description">{personaData.description}</p>
@@ -602,18 +823,37 @@ export default function Persona() {
                   <div className="persona-stat-label">Expenses Tracked</div>
                 </div>
                 <div className="persona-stat">
-                  <div className="persona-stat-value">{confidencePercent}%</div>
+                  <div className="persona-stat-value">
+                    {confidenceScore}%
+                    <span className={`confidence-level-badge ${confidenceLevel}`}>{confidenceLevel}</span>
+                  </div>
                   <div className="persona-stat-label">Confidence</div>
                 </div>
                 <div className="persona-stat">
-                  <div className="persona-stat-value">{personaData.emotional_spender_flag ? "Yes" : "No"}</div>
-                  <div className="persona-stat-label">Emotional Spender</div>
+                  <div className="persona-stat-value">{disciplineScore}</div>
+                  <div className="persona-stat-label">Discipline Score</div>
                 </div>
               </div>
             </div>
 
             {/* Detail Cards */}
             <div className="persona-details-grid">
+              {personaData.spider_axes && Object.keys(personaData.spider_axes).length > 0 && (
+                <div className="persona-detail-card radar-chart-card">
+                  <h3>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" />
+                    </svg>
+                    Behavioural Profile
+                  </h3>
+                  <div className="radar-chart-container">
+                    <RadarChart axes={personaData.spider_axes} />
+                  </div>
+                </div>
+              )}
+
+              <DisciplineCard discipline={personaData.discipline} />
+
               {/* Avatar Editor */}
               <div className="persona-detail-card avatar-editor-card">
                 <h3>
@@ -720,7 +960,10 @@ export default function Persona() {
                   </svg>
                   Confidence Score
                 </h3>
-                <div className="confidence-value">{confidencePercent}%</div>
+                <div className="confidence-value">
+                  {confidenceScore}%
+                  <span className={`confidence-level-inline ${confidenceLevel}`}>{confidenceLevel}</span>
+                </div>
                 <div className="confidence-label-text">
                   {confidenceLevel === "high" ? "Strong match" : confidenceLevel === "medium" ? "Moderate match" : "More data needed"}
                 </div>
@@ -728,7 +971,7 @@ export default function Persona() {
                   <div className="confidence-bar-bg">
                     <div
                       className={`confidence-bar-fill ${confidenceLevel}`}
-                      style={{ width: `${confidencePercent}%` }}
+                      style={{ width: `${confidenceScore}%` }}
                     />
                   </div>
                   <div className="confidence-labels">
@@ -737,6 +980,31 @@ export default function Persona() {
                     <span>High</span>
                   </div>
                 </div>
+                {confidenceData.data_sufficiency !== undefined && (
+                  <div className="confidence-breakdown">
+                    <div className="confidence-factor">
+                      <span className="confidence-factor-label">Data Sufficiency</span>
+                      <div className="confidence-factor-bar-bg">
+                        <div className="confidence-factor-bar-fill" style={{ width: `${confidenceData.data_sufficiency}%` }} />
+                      </div>
+                      <span className="confidence-factor-value">{Math.round(confidenceData.data_sufficiency)}</span>
+                    </div>
+                    <div className="confidence-factor">
+                      <span className="confidence-factor-label">Stability</span>
+                      <div className="confidence-factor-bar-bg">
+                        <div className="confidence-factor-bar-fill" style={{ width: `${confidenceData.stability}%` }} />
+                      </div>
+                      <span className="confidence-factor-value">{Math.round(confidenceData.stability)}</span>
+                    </div>
+                    <div className="confidence-factor">
+                      <span className="confidence-factor-label">Cluster Fit</span>
+                      <div className="confidence-factor-bar-bg">
+                        <div className="confidence-factor-bar-fill" style={{ width: `${confidenceData.cluster_fit}%` }} />
+                      </div>
+                      <span className="confidence-factor-value">{Math.round(confidenceData.cluster_fit)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Top Features */}
@@ -794,6 +1062,8 @@ export default function Persona() {
                 </div>
               </div>
 
+              <NudgeList nudges={nudgesData} />
+
               {/* Analysis Info */}
               <div className="persona-detail-card">
                 <h3>
@@ -815,7 +1085,7 @@ export default function Persona() {
                   </div>
                   <div className="persona-feature-item">
                     <span className="persona-feature-name">
-                      Persona type: {personaData.persona_type.replace(/_/g, " ")}
+                      Persona type: {activePersonaType.replace(/_/g, " ")}
                     </span>
                   </div>
                   <div className="persona-feature-item">

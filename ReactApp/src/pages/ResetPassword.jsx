@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link, useSearchParams, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import nudgeLogo from "../assets/nudge logo.PNG"
 import "./css/Login.css"
 
 export default function ResetPassword() {
@@ -44,7 +45,11 @@ export default function ResetPassword() {
 
   if (!token) {
     return (
-      <div className="auth-container">
+      <div className="auth-page">
+        <div className="auth-logo">
+          <img src={nudgeLogo} alt="Nudge" />
+        </div>
+
         <div className="auth-card">
           <div className="success-icon error">✕</div>
           <h2>Invalid Link</h2>
@@ -61,7 +66,11 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <div className="auth-container">
+      <div className="auth-page">
+        <div className="auth-logo">
+          <img src={nudgeLogo} alt="Nudge" />
+        </div>
+
         <div className="auth-card">
           <div className="success-icon">✓</div>
           <h2>Password Reset</h2>
@@ -80,28 +89,30 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="auth-container">
+    <div className="auth-page">
+      <div className="auth-logo">
+        <img src={nudgeLogo} alt="Nudge" />
+      </div>
+
       <div className="auth-card">
-        <h2>Reset Password</h2>
-        <p className="auth-subtitle">Enter your new password</p>
+        <p className="auth-subtitle">Create a new password</p>
+        <h2>Reset password</h2>
 
         {error && <div className="error-banner">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="password">New Password</label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter new password"
+              placeholder="New password"
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
             <input
               type="password"
               id="confirmPassword"

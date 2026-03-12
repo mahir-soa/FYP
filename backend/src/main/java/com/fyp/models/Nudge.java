@@ -17,6 +17,21 @@ public class Nudge {
     @Column(name = "type", nullable = false)
     private String type;
 
+    @Column(name = "nudge_type")
+    private String nudgeType;
+
+    @Column(name = "trigger", length = 500)
+    private String trigger;
+
+    @Column(name = "timing")
+    private String timing;
+
+    @Column(name = "severity")
+    private String severity;
+
+    @Column(name = "confidence")
+    private Double confidence;
+
     @Column(name = "title", nullable = false, length = 200)
     private String title;
 
@@ -65,6 +80,16 @@ public class Nudge {
     public void setUserId(Long userId) { this.userId = userId; }
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
+    public String getNudgeType() { return nudgeType; }
+    public void setNudgeType(String nudgeType) { this.nudgeType = nudgeType; }
+    public String getTrigger() { return trigger; }
+    public void setTrigger(String trigger) { this.trigger = trigger; }
+    public String getTiming() { return timing; }
+    public void setTiming(String timing) { this.timing = timing; }
+    public String getSeverity() { return severity; }
+    public void setSeverity(String severity) { this.severity = severity; }
+    public Double getConfidence() { return confidence; }
+    public void setConfidence(Double confidence) { this.confidence = confidence; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getMessage() { return message; }
