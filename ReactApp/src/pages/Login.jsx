@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import nudgeLogo from "../assets/nudge logo.PNG"
@@ -10,51 +10,8 @@ export default function Login() {
   const [remember, setRemember] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const { login, googleLogin } = useAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
-  const googleBtnRef = useRef(null)
-
-  useEffect(() => {
-    const initGoogle = () => {
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-          callback: handleGoogleResponse,
-        })
-        window.google.accounts.id.renderButton(googleBtnRef.current, {
-          theme: "outline",
-          size: "large",
-          width: "100%",
-          text: "signin_with",
-        })
-      }
-    }
-
-    if (window.google?.accounts?.id) {
-      initGoogle()
-    } else {
-      const interval = setInterval(() => {
-        if (window.google?.accounts?.id) {
-          initGoogle()
-          clearInterval(interval)
-        }
-      }, 100)
-      return () => clearInterval(interval)
-    }
-  }, [])
-
-  const handleGoogleResponse = async (response) => {
-    setError("")
-    setLoading(true)
-    try {
-      await googleLogin(response.credential)
-      navigate("/")
-    } catch (err) {
-      setError(err.response?.data?.message || "Google sign-in failed")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -124,10 +81,6 @@ export default function Login() {
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
-
-        <div className="auth-divider"><span>or</span></div>
-
-        <div ref={googleBtnRef} className="google-signin-wrapper" />
 
         <p className="auth-footer">
           Don't have an account? <Link to="/register">Sign up</Link>
