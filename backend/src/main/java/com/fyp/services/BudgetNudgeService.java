@@ -87,6 +87,31 @@ public class BudgetNudgeService {
             "You're mostly on track, but {category} has gone over by £{overflow}. A small adjustment now would keep the month balanced.",
             "gentle_reduce",
             "Balanced pattern — later intervention at {pct}% for {category}"));
+        TEMPLATES.put("BUDGET_WARNING:exceeded:CAUTIOUS_SAVER", new NudgeTemplate(
+            "{category} over budget — unusual for you",
+            "This is unusual for your spending pattern — {category} has gone over by £{overflow}. A quick correction should get things back to normal.",
+            "gentle_reduce",
+            "Cautious pattern — unusual overspend at {pct}% for {category}"));
+        TEMPLATES.put("BUDGET_WARNING:exceeded:WEEKEND_SPLURGER", new NudgeTemplate(
+            "{category} exceeded — check weekend spending",
+            "{category} has exceeded its limit by £{overflow}. Check if weekend spending is driving this overshoot.",
+            "reduce_spending",
+            "Weekend splurger — weekend-driven overspend check at {pct}% for {category}"));
+        TEMPLATES.put("BUDGET_WARNING:exceeded:VOLATILE_SPENDER", new NudgeTemplate(
+            "{category} over budget",
+            "Your {category} spending has exceeded the limit by £{overflow}. Your spending tends to fluctuate — rein it in now to stabilise the month.",
+            "reduce_spending",
+            "Volatile pattern detected — early intervention at {pct}% for {category}"));
+        TEMPLATES.put("BUDGET_WARNING:exceeded:LATE_NIGHT_SPENDER", new NudgeTemplate(
+            "{category} over budget",
+            "{category} has exceeded its limit by £{overflow}. Review whether late-night purchases are contributing to this overspend.",
+            "review_spending",
+            "Late-night pattern — overspend review at {pct}% for {category}"));
+        TEMPLATES.put("BUDGET_WARNING:exceeded:CATEGORY_FOCUSED", new NudgeTemplate(
+            "{category} exceeded — concentration risk",
+            "Your dominant category {category} has exceeded its limit by £{overflow}. Diversifying spending could reduce risk.",
+            "review_spending",
+            "Category concentration — overspend at {pct}% for dominant category {category}"));
         TEMPLATES.put("BUDGET_WARNING:exceeded:NEUTRAL", new NudgeTemplate(
             "{category} over budget",
             "{category} has exceeded its budget by £{overflow}.",
@@ -109,6 +134,31 @@ public class BudgetNudgeService {
             "You're mostly on track, but {category} is starting to run ahead of plan at {pct}%. A small adjustment now would keep things balanced.",
             "gentle_reduce",
             "Balanced pattern — later intervention at {pct}% for {category}"));
+        TEMPLATES.put("BUDGET_WARNING:warning:CAUTIOUS_SAVER", new NudgeTemplate(
+            "{category} ahead of your usual pace",
+            "This is unusual for you — {category} is at {pct}% which is ahead of your typical pattern. {daysRemaining} days remaining.",
+            "gentle_reduce",
+            "Cautious pattern — unusual warning at {pct}% for {category}"));
+        TEMPLATES.put("BUDGET_WARNING:warning:WEEKEND_SPLURGER", new NudgeTemplate(
+            "{category} rising — weekend check",
+            "{category} is at {pct}% — check if weekend spending is driving this. {daysRemaining} days left this month.",
+            "review_spending",
+            "Weekend splurger — weekend-driven warning at {pct}% for {category}"));
+        TEMPLATES.put("BUDGET_WARNING:warning:VOLATILE_SPENDER", new NudgeTemplate(
+            "{category} spending volatile this month",
+            "Your {category} spending is volatile this month — already at {pct}% with {daysRemaining} days left.",
+            "reduce_spending",
+            "Volatile pattern detected — early intervention at {pct}% for {category}"));
+        TEMPLATES.put("BUDGET_WARNING:warning:LATE_NIGHT_SPENDER", new NudgeTemplate(
+            "{category} approaching limit",
+            "{category} at {pct}% — review whether late-night purchases are contributing. {daysRemaining} days remaining.",
+            "review_spending",
+            "Late-night pattern — spending review at {pct}% for {category}"));
+        TEMPLATES.put("BUDGET_WARNING:warning:CATEGORY_FOCUSED", new NudgeTemplate(
+            "{category} concentration warning",
+            "Your dominant category {category} is at {pct}% — diversifying spending could reduce risk. {daysRemaining} days left.",
+            "review_spending",
+            "Category concentration — warning at {pct}% for dominant category {category}"));
         TEMPLATES.put("BUDGET_WARNING:warning:NEUTRAL", new NudgeTemplate(
             "{category} approaching limit",
             "{category} is at {pct}% of its budget with {daysRemaining} days remaining this month.",
@@ -131,6 +181,31 @@ public class BudgetNudgeService {
             "A small pacing adjustment would keep the month balanced. Aim for around £{safePerDay} per day.",
             "reduce_daily",
             "Pacing status is BEHIND — spending faster than expected"));
+        TEMPLATES.put("PACING_WARNING:default:CAUTIOUS_SAVER", new NudgeTemplate(
+            "Slightly ahead of your usual pace",
+            "You're spending a little faster than usual — not typical for you. Aim for £{safePerDay}/day to stay on track.",
+            "reduce_daily",
+            "Pacing status is BEHIND — unusual for cautious pattern"));
+        TEMPLATES.put("PACING_WARNING:default:WEEKEND_SPLURGER", new NudgeTemplate(
+            "Pacing ahead — weekend impact?",
+            "You're ahead of pace, possibly from weekend spending. Try to keep daily spending under £{safePerDay} for the next {daysRemaining} days.",
+            "reduce_daily",
+            "Pacing status is BEHIND — weekend spending may be contributing"));
+        TEMPLATES.put("PACING_WARNING:default:VOLATILE_SPENDER", new NudgeTemplate(
+            "Spending ahead of schedule",
+            "Your spending is running ahead of schedule again. Lock in £{safePerDay}/day for the next {daysRemaining} days to stabilise.",
+            "reduce_daily",
+            "Pacing status is BEHIND — volatile pattern amplifies drift"));
+        TEMPLATES.put("PACING_WARNING:default:LATE_NIGHT_SPENDER", new NudgeTemplate(
+            "Pacing drift — late-night factor",
+            "You're spending faster than planned. Review whether late-night purchases are contributing. Safe daily spend: £{safePerDay}.",
+            "reduce_daily",
+            "Pacing status is BEHIND — late-night spending may be contributing"));
+        TEMPLATES.put("PACING_WARNING:default:CATEGORY_FOCUSED", new NudgeTemplate(
+            "Pacing ahead in key category",
+            "Your dominant spending category may be driving you ahead of pace. Keep daily spending under £{safePerDay} with {daysRemaining} days left.",
+            "reduce_daily",
+            "Pacing status is BEHIND — category concentration amplifies drift"));
         TEMPLATES.put("PACING_WARNING:default:NEUTRAL", new NudgeTemplate(
             "Spending pace alert",
             "You're spending faster than planned. Safe daily spend: £{safePerDay} with {daysRemaining} days remaining.",
@@ -151,6 +226,31 @@ public class BudgetNudgeService {
         TEMPLATES.put("REALLOCATION_ACTION:default:BALANCED_SPENDER", new NudgeTemplate(
             "Gentle rebalance available",
             "A gentle rebalance could help — {actionParts}. This would cover £{pressure} in pressure.",
+            "rebalance",
+            "£{pressure} pressure detected — reallocation {resolutionStatus}"));
+        TEMPLATES.put("REALLOCATION_ACTION:default:CAUTIOUS_SAVER", new NudgeTemplate(
+            "Small rebalance available",
+            "A small rebalance would keep things tidy — {actionParts}. This covers £{pressure} in pressure.",
+            "rebalance",
+            "£{pressure} pressure detected — reallocation {resolutionStatus}"));
+        TEMPLATES.put("REALLOCATION_ACTION:default:WEEKEND_SPLURGER", new NudgeTemplate(
+            "Rebalance after weekend spike",
+            "Weekend spending created some pressure. To recover, {actionParts}. This frees £{pressure}.",
+            "rebalance",
+            "£{pressure} pressure detected — reallocation {resolutionStatus}"));
+        TEMPLATES.put("REALLOCATION_ACTION:default:VOLATILE_SPENDER", new NudgeTemplate(
+            "Rebalance needed",
+            "To recover this overspend, {actionParts}. This frees £{pressure} to cover the pressure.",
+            "rebalance",
+            "£{pressure} pressure detected — reallocation {resolutionStatus}"));
+        TEMPLATES.put("REALLOCATION_ACTION:default:LATE_NIGHT_SPENDER", new NudgeTemplate(
+            "Budget rebalance suggested",
+            "To cover recent overspending, {actionParts}. This covers £{pressure} — consider whether late-night purchases contributed.",
+            "rebalance",
+            "£{pressure} pressure detected — reallocation {resolutionStatus}"));
+        TEMPLATES.put("REALLOCATION_ACTION:default:CATEGORY_FOCUSED", new NudgeTemplate(
+            "Rebalance from dominant category",
+            "Concentration in one category created pressure. To rebalance, {actionParts}. This covers £{pressure}.",
             "rebalance",
             "£{pressure} pressure detected — reallocation {resolutionStatus}"));
         TEMPLATES.put("REALLOCATION_ACTION:default:NEUTRAL", new NudgeTemplate(
@@ -175,6 +275,31 @@ public class BudgetNudgeService {
             "You're on track across {onTrackCount} categories — your balanced approach is working well this month.",
             "continue",
             "{onTrackCount} of {totalCategories} categories on track, no pressure detected"));
+        TEMPLATES.put("POSITIVE_REINFORCEMENT:default:CAUTIOUS_SAVER", new NudgeTemplate(
+            "Steady as always",
+            "You're on track across {onTrackCount} categories — your disciplined approach continues to pay off.",
+            "continue",
+            "{onTrackCount} of {totalCategories} categories on track, no pressure detected"));
+        TEMPLATES.put("POSITIVE_REINFORCEMENT:default:WEEKEND_SPLURGER", new NudgeTemplate(
+            "Weekends under control",
+            "Good news — {onTrackCount} categories are on track, including through the weekend. Keep it up.",
+            "continue",
+            "{onTrackCount} of {totalCategories} categories on track, no pressure detected"));
+        TEMPLATES.put("POSITIVE_REINFORCEMENT:default:VOLATILE_SPENDER", new NudgeTemplate(
+            "Stable month so far",
+            "{onTrackCount} categories are on track — your spending is more stable this month. Keep the momentum.",
+            "continue",
+            "{onTrackCount} of {totalCategories} categories on track, no pressure detected"));
+        TEMPLATES.put("POSITIVE_REINFORCEMENT:default:LATE_NIGHT_SPENDER", new NudgeTemplate(
+            "Spending well-managed",
+            "{onTrackCount} categories are on track this month — your spending pattern looks deliberate.",
+            "continue",
+            "{onTrackCount} of {totalCategories} categories on track, no pressure detected"));
+        TEMPLATES.put("POSITIVE_REINFORCEMENT:default:CATEGORY_FOCUSED", new NudgeTemplate(
+            "Budget balanced",
+            "{onTrackCount} categories are on track — your spending is well-distributed this month.",
+            "continue",
+            "{onTrackCount} of {totalCategories} categories on track, no pressure detected"));
         TEMPLATES.put("POSITIVE_REINFORCEMENT:default:NEUTRAL", new NudgeTemplate(
             "Budget on track",
             "{onTrackCount} categories are on track this month.",
@@ -195,6 +320,31 @@ public class BudgetNudgeService {
         TEMPLATES.put("WEEKEND_PACING:default:BALANCED_SPENDER", new NudgeTemplate(
             "Weekend tip",
             "A small weekend cap could keep things balanced. You have £{remaining} left with {daysRemaining} days to go.",
+            "set_weekend_cap",
+            "Weekend bias trait detected + current day is {dayOfWeek}"));
+        TEMPLATES.put("WEEKEND_PACING:default:CAUTIOUS_SAVER", new NudgeTemplate(
+            "Weekend tip",
+            "Even disciplined spenders can slip on weekends. You have £{remaining} left — a soft cap of £{weekendCap} would keep things tidy.",
+            "set_weekend_cap",
+            "Weekend bias trait detected + current day is {dayOfWeek}"));
+        TEMPLATES.put("WEEKEND_PACING:default:WEEKEND_SPLURGER", new NudgeTemplate(
+            "Weekend spending alert",
+            "This is your pattern — weekend spending spikes. Set a hard cap of £{weekendCap} today. You have £{remaining} left this month.",
+            "set_weekend_cap",
+            "Weekend bias trait detected + weekend splurger persona + current day is {dayOfWeek}"));
+        TEMPLATES.put("WEEKEND_PACING:default:VOLATILE_SPENDER", new NudgeTemplate(
+            "Weekend spending alert",
+            "Your spending tends to spike on weekends. Set a cap of £{weekendCap} today to prevent a volatile month — £{remaining} remaining.",
+            "set_weekend_cap",
+            "Weekend bias trait detected + current day is {dayOfWeek}"));
+        TEMPLATES.put("WEEKEND_PACING:default:LATE_NIGHT_SPENDER", new NudgeTemplate(
+            "Weekend + late-night risk",
+            "Weekends and late nights can compound spending. Cap at £{weekendCap} today — you have £{remaining} left.",
+            "set_weekend_cap",
+            "Weekend bias trait detected + late-night pattern + current day is {dayOfWeek}"));
+        TEMPLATES.put("WEEKEND_PACING:default:CATEGORY_FOCUSED", new NudgeTemplate(
+            "Weekend spending reminder",
+            "Weekend spending in your dominant category can add up fast. You have £{remaining} remaining — consider a £{weekendCap} cap.",
             "set_weekend_cap",
             "Weekend bias trait detected + current day is {dayOfWeek}"));
         TEMPLATES.put("WEEKEND_PACING:default:NEUTRAL", new NudgeTemplate(
@@ -418,8 +568,13 @@ public class BudgetNudgeService {
         String severity;
         switch (personaType) {
             case "ERRATIC_SPENDER"  -> { confidence = 0.85; severity = "strong"; }
+            case "VOLATILE_SPENDER" -> { confidence = 0.85; severity = "strong"; }
+            case "WEEKEND_SPLURGER" -> { confidence = 0.80; severity = "strong"; }
             case "BIG_SPENDER"      -> { confidence = 0.80; severity = "medium"; }
+            case "LATE_NIGHT_SPENDER" -> { confidence = 0.75; severity = "medium"; }
+            case "CATEGORY_FOCUSED" -> { confidence = 0.75; severity = "medium"; }
             case "BALANCED_SPENDER" -> { confidence = 0.65; severity = "medium"; }
+            case "CAUTIOUS_SAVER"   -> { confidence = 0.60; severity = "medium"; }
             default                 -> { confidence = 0.70; severity = "medium"; }
         }
 
@@ -514,9 +669,14 @@ public class BudgetNudgeService {
         NudgeTemplate t = resolveTemplate("POSITIVE_REINFORCEMENT", "default", personaType);
 
         double confidence = switch (personaType) {
+            case "CAUTIOUS_SAVER"   -> 0.90;
             case "BALANCED_SPENDER" -> 0.85;
             case "BIG_SPENDER"      -> 0.65;
             case "ERRATIC_SPENDER"  -> 0.60;
+            case "VOLATILE_SPENDER" -> 0.60;
+            case "WEEKEND_SPLURGER" -> 0.60;
+            case "LATE_NIGHT_SPENDER" -> 0.60;
+            case "CATEGORY_FOCUSED" -> 0.65;
             default                 -> 0.55;
         };
 
@@ -554,9 +714,14 @@ public class BudgetNudgeService {
         NudgeTemplate t = resolveTemplate("WEEKEND_PACING", "default", personaType);
 
         double confidence = switch (personaType) {
+            case "WEEKEND_SPLURGER" -> 0.90;
             case "ERRATIC_SPENDER"  -> 0.85;
+            case "VOLATILE_SPENDER" -> 0.85;
             case "BIG_SPENDER"      -> 0.75;
+            case "LATE_NIGHT_SPENDER" -> 0.70;
+            case "CATEGORY_FOCUSED" -> 0.65;
             case "BALANCED_SPENDER" -> 0.60;
+            case "CAUTIOUS_SAVER"   -> 0.55;
             default                 -> 0.65;
         };
 
@@ -612,11 +777,42 @@ public class BudgetNudgeService {
                 case "POSITIVE_REINFORCEMENT" -> 0.3;
                 default -> 0.5;
             };
+            case "VOLATILE_SPENDER" -> switch (nudgeType) {
+                case "BUDGET_WARNING", "REALLOCATION_ACTION" -> 1.0;
+                case "PACING_WARNING" -> 0.9;
+                case "WEEKEND_PACING" -> 0.7;
+                case "POSITIVE_REINFORCEMENT" -> 0.3;
+                default -> 0.5;
+            };
+            case "WEEKEND_SPLURGER" -> switch (nudgeType) {
+                case "WEEKEND_PACING" -> 1.0;
+                case "BUDGET_WARNING" -> 0.9;
+                case "PACING_WARNING" -> 0.8;
+                case "REALLOCATION_ACTION" -> 0.8;
+                case "POSITIVE_REINFORCEMENT" -> 0.3;
+                default -> 0.5;
+            };
             case "BIG_SPENDER" -> switch (nudgeType) {
                 case "PACING_WARNING", "BUDGET_WARNING" -> 1.0;
                 case "REALLOCATION_ACTION" -> 0.8;
                 case "WEEKEND_PACING" -> 0.6;
                 case "POSITIVE_REINFORCEMENT" -> 0.3;
+                default -> 0.5;
+            };
+            case "LATE_NIGHT_SPENDER" -> switch (nudgeType) {
+                case "BUDGET_WARNING" -> 0.9;
+                case "PACING_WARNING" -> 0.8;
+                case "REALLOCATION_ACTION" -> 0.7;
+                case "WEEKEND_PACING" -> 0.7;
+                case "POSITIVE_REINFORCEMENT" -> 0.4;
+                default -> 0.5;
+            };
+            case "CATEGORY_FOCUSED" -> switch (nudgeType) {
+                case "BUDGET_WARNING" -> 1.0;
+                case "REALLOCATION_ACTION" -> 0.9;
+                case "PACING_WARNING" -> 0.7;
+                case "WEEKEND_PACING" -> 0.5;
+                case "POSITIVE_REINFORCEMENT" -> 0.4;
                 default -> 0.5;
             };
             case "BALANCED_SPENDER" -> switch (nudgeType) {
@@ -625,6 +821,14 @@ public class BudgetNudgeService {
                 case "PACING_WARNING" -> 0.5;
                 case "REALLOCATION_ACTION" -> 0.7;
                 case "WEEKEND_PACING" -> 0.5;
+                default -> 0.5;
+            };
+            case "CAUTIOUS_SAVER" -> switch (nudgeType) {
+                case "POSITIVE_REINFORCEMENT" -> 1.0;
+                case "BUDGET_WARNING" -> 0.5;
+                case "PACING_WARNING" -> 0.4;
+                case "REALLOCATION_ACTION" -> 0.6;
+                case "WEEKEND_PACING" -> 0.4;
                 default -> 0.5;
             };
             default -> 0.5;

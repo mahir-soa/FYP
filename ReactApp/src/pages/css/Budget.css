@@ -163,30 +163,18 @@
   font-size: 12px;
 }
 
-.hero-pacing {
+.hero-days-left {
   font-weight: 500;
   color: var(--gray-500);
 }
 
-.hero-pacing.ahead { color: var(--emerald-600); }
-.hero-pacing.behind { color: var(--red-500); }
-
-.hero-bonus {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  background: var(--emerald-100);
-  color: var(--emerald-700);
-}
-
-.hero-buffer {
-  margin-left: auto;
-  color: var(--gray-400);
+.hero-daily-allowance {
   font-weight: 500;
+  color: var(--gray-500);
 }
 
-.hero-buffer.depleted {
+.hero-over-budget {
+  font-weight: 500;
   color: var(--red-500);
 }
 
@@ -1447,9 +1435,6 @@
     gap: 6px;
   }
 
-  .hero-buffer {
-    margin-left: 0;
-  }
 
   .category-limit-item {
     flex-wrap: wrap;

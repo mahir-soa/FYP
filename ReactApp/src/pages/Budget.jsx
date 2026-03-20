@@ -559,12 +559,6 @@ export default function Budget() {
                           <span className="hero-metric-value">£{fmt(totalSpent)}</span>
                           <span className="hero-metric-label">spent ({monthExpenses.length})</span>
                         </div>
-                        {pacing && (
-                          <div className="hero-metric">
-                            <span className="hero-metric-value">£{fmt(pacing.safeToSpendPerDay ?? 0)}</span>
-                            <span className="hero-metric-label">safe/day</span>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -577,18 +571,19 @@ export default function Budget() {
                   </div>
 
                   <div className="hero-bottom">
-                    {pacing && (
-                      <span className={`hero-pacing ${pacing.pacingStatus?.toLowerCase() || ""}`}>
-                        {pacing.pacingStatus === "AHEAD" ? "Ahead of pace" : pacing.pacingStatus === "BEHIND" ? "Behind pace" : "On pace"}
-                        {budgetStatus?.daysRemaining > 0 && ` — ${budgetStatus.daysRemaining} days left`}
+                    {budgetStatus?.daysRemaining > 0 && (
+                      <span className="hero-days-left">
+                        {budgetStatus.daysRemaining} {budgetStatus.daysRemaining === 1 ? "day" : "days"} left this month
                       </span>
                     )}
-                    {pacing?.pacingStatus === "AHEAD" && pacing.bonusAvailable > 0 && (
-                      <span className="hero-bonus">+£{fmt(pacing.bonusAvailable)} bonus</span>
+                    {pacing && remainingBudget > 0 && budgetStatus?.daysRemaining > 0 && (
+                      <span className="hero-daily-allowance">
+                        You can spend about £{fmt(pacing.safeToSpendPerDay ?? 0)} per day
+                      </span>
                     )}
-                    {buffer && buffer.original > 0 && (
-                      <span className={`hero-buffer ${buffer.depleted ? "depleted" : ""}`}>
-                        Buffer: £{fmt(buffer.remaining)} / £{fmt(buffer.original)}
+                    {remainingBudget <= 0 && (
+                      <span className="hero-over-budget">
+                        You've spent more than your budget — try to avoid new spending
                       </span>
                     )}
                   </div>
@@ -1044,28 +1039,12 @@ export default function Budget() {
                         {engineMode === "ADAPTIVE" && (
                           <span className="engine-chip">Adaptive Engine</span>
                         )}
-                        {personaProfile && personaProfile.personaType !== "NEUTRAL" && (
-                          <span className="persona-chip"
-                            style={{
-                              background: (PERSONA_MODE_COLORS[personaProfile.personaType] || PERSONA_MODE_COLORS.NEUTRAL).bg,
-                              borderColor: (PERSONA_MODE_COLORS[personaProfile.personaType] || PERSONA_MODE_COLORS.NEUTRAL).border,
-                              color: (PERSONA_MODE_COLORS[personaProfile.personaType] || PERSONA_MODE_COLORS.NEUTRAL).text
-                            }}>
-                            {personaProfile.personaType.replace(/_/g, " ")}
-                            {" — "}
-                            {GUIDANCE_STYLE_LABELS[personaProfile.guidanceStyle] || "Standard"}
-                          </span>
-                        )}
                       </div>
                     </div>
 
                     {showWaterfall && <>
-                    {personaProfile && personaProfile.personaType !== "NEUTRAL" && personaProfile.guidanceMessage && (
-                      <p className="waterfall-persona-msg">{personaProfile.guidanceMessage}</p>
-                    )}
-
                     <div className="waterfall-layers">
-                      {["CAPACITY", "GOALS", "CONTEXT", "ALLOCATION", "PERSONA", "REALLOCATION"].map(layer => {
+                      {["CAPACITY", "GOALS", "CONTEXT", "ALLOCATION", "REALLOCATION"].map(layer => {
                         const layerSteps = traceByLayer[layer]
                         if (!layerSteps || layerSteps.length === 0) return null
                         return (
