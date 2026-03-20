@@ -1,13 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../context/AuthContext"
-import axios from "axios"
+import { api } from "../api/api"
 import Navbar from "../components/Navbar"
 import { fmt } from "../utils/format"
 import "./css/Income.css"
 
-const API_BASE = "http://localhost:8080/api/incomes"
-
-const frequencies = ["ONE_TIME", "WEEKLY", "MONTHLY", "YEARLY"]
+const frequencies = ["ONE_TIME", "WEEKLY", "BI_WEEKLY", "MONTHLY", "YEARLY"]
 
 const getDateString = (daysOffset = 0) => {
   const d = new Date()
@@ -42,7 +40,7 @@ export default function Income() {
     setLoading(true)
     setErrorMsg("")
     try {
-      const res = await axios.get(`${API_BASE}?userId=${user.id}`)
+      const res = await api.get(`/incomes?userId=${user.id}`)
       setIncomes(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
       setIncomes([])
@@ -61,6 +59,7 @@ export default function Income() {
       if (inc.frequency === "MONTHLY") return sum + inc.amount
       if (inc.frequency === "YEARLY") return sum + (inc.amount / 12)
       if (inc.frequency === "WEEKLY") return sum + (inc.amount * 4.33)
+      if (inc.frequency === "BI_WEEKLY") return sum + (inc.amount * 2.17)
       return sum
     }, 0)
   }, [incomes])
@@ -70,6 +69,7 @@ export default function Income() {
       if (inc.frequency === "YEARLY") return sum + inc.amount
       if (inc.frequency === "MONTHLY") return sum + (inc.amount * 12)
       if (inc.frequency === "WEEKLY") return sum + (inc.amount * 52)
+      if (inc.frequency === "BI_WEEKLY") return sum + (inc.amount * 26)
       return sum
     }, 0)
   }, [incomes])
@@ -105,9 +105,9 @@ export default function Income() {
 
     try {
       if (editId) {
-        await axios.put(`${API_BASE}/${editId}?userId=${user.id}`, payload)
+        await api.put(`/incomes/${editId}?userId=${user.id}`, payload)
       } else {
-        await axios.post(`${API_BASE}?userId=${user.id}`, payload)
+        await api.post(`/incomes?userId=${user.id}`, payload)
       }
       await reloadIncomes()
       closeForm()
@@ -119,7 +119,7 @@ export default function Income() {
   const handleDelete = async (id) => {
     setErrorMsg("")
     try {
-      await axios.delete(`${API_BASE}/${id}?userId=${user.id}`)
+      await api.delete(`/incomes/${id}?userId=${user.id}`)
       await reloadIncomes()
     } catch (err) {
       setErrorMsg("Delete failed.")
@@ -138,6 +138,7 @@ export default function Income() {
   const frequencyLabels = {
     ONE_TIME: "One-time",
     WEEKLY: "Weekly",
+    BI_WEEKLY: "Bi-weekly",
     MONTHLY: "Monthly",
     YEARLY: "Yearly"
   }
@@ -183,7 +184,7 @@ export default function Income() {
           <div className="income-list">
             {incomes.map((inc) => (
               <div key={inc.id} className="income-card">
-                <div className="income-icon">💰</div>
+                <div className="income-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
                 <div className="income-details">
                   <div className="income-source">{inc.source}</div>
                   <div className="income-meta">
@@ -201,7 +202,7 @@ export default function Income() {
           </div>
         ) : (
           <div className="empty-state">
-            <div className="empty-icon">💰</div>
+            <div className="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
             <h3>No income tracked</h3>
             <p>Add your income sources to track your earnings</p>
             <button className="add-btn" onClick={() => setShowForm(true)}>

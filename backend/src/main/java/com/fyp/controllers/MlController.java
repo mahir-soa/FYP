@@ -3,7 +3,7 @@ package com.fyp.controllers;
 import com.fyp.services.MlService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 
 import java.util.Map;
 
@@ -23,7 +23,7 @@ public class MlController {
         try {
             Map<String, Object> result = mlService.analyseUser(userId);
             return ResponseEntity.ok(result);
-        } catch (HttpClientErrorException e) {
+        } catch (HttpStatusCodeException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
@@ -36,7 +36,7 @@ public class MlController {
         try {
             Map<String, Object> result = mlService.getPersona(userId);
             return ResponseEntity.ok(result);
-        } catch (HttpClientErrorException e) {
+        } catch (HttpStatusCodeException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
@@ -49,7 +49,7 @@ public class MlController {
         try {
             Map<String, Object> result = mlService.getRisk(userId);
             return ResponseEntity.ok(result);
-        } catch (HttpClientErrorException e) {
+        } catch (HttpStatusCodeException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
@@ -62,7 +62,7 @@ public class MlController {
         try {
             Map<String, Object> result = mlService.getNudges(userId);
             return ResponseEntity.ok(result);
-        } catch (HttpClientErrorException e) {
+        } catch (HttpStatusCodeException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         } catch (Exception e) {
             return ResponseEntity.internalServerError()

@@ -103,6 +103,8 @@
 .quick-filters {
   display: flex;
   gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .quick-filter-btn {
@@ -126,6 +128,28 @@
   background: rgba(16, 185, 129, 0.1);
   color: var(--emerald-600);
   font-weight: 600;
+}
+
+.date-picker-input {
+  padding: 7px 10px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--white);
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.date-picker-input:hover {
+  border-color: var(--emerald-400);
+}
+
+.date-picker-input.active {
+  border-color: var(--emerald-500);
+  background: rgba(16, 185, 129, 0.05);
+  color: var(--emerald-700);
 }
 
 .filter-select {

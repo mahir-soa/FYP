@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../context/AuthContext"
-import axios from "axios"
+import { api } from "../api/api"
 import Navbar from "../components/Navbar"
 import { fmt } from "../utils/format"
 import "./css/ExpenseLogger.css"
@@ -10,9 +10,6 @@ import travelIcon from "../assets/underground.png"
 import educationIcon from "../assets/education.png"
 import entertainmentIcon from "../assets/cinema.png"
 import otherIcon from "../assets/other.png"
-
-const API_BASE = "http://localhost:8080/api/expenses"
-const TFL_FARE_API = "http://localhost:8080/api/tfl/fare"
 
 const categories = ["Food", "Travel", "Education", "Leisure", "Other"]
 const categoryIcons = {
@@ -59,11 +56,13 @@ export default function ExpenseLogger() {
   const [filterDate, setFilterDate] = useState(today)
   const [filterCategory, setFilterCategory] = useState("All")
   const [quickFilter, setQuickFilter] = useState("today")
+  const [customDate, setCustomDate] = useState("")
 
   const [description, setDescription] = useState("")
   const [amount, setAmount] = useState("")
   const [category, setCategory] = useState("")
   const [mood, setMood] = useState("")
+  const [time, setTime] = useState("")
 
   const [subType, setSubType] = useState("")
   const [fromZone, setFromZone] = useState("")
@@ -80,7 +79,7 @@ export default function ExpenseLogger() {
     setLoading(true)
     setErrorMsg("")
     try {
-      const res = await axios.get(`${API_BASE}?userId=${user.id}`)
+      const res = await api.get(`/expenses?userId=${user.id}`)
       setExpenses(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
       setExpenses([])
@@ -107,7 +106,7 @@ export default function ExpenseLogger() {
       if (subType === "Bus") {
         setCalculatingFare(true)
         try {
-          const res = await axios.get(TFL_FARE_API, { params: { type: "Bus" } })
+          const res = await api.get('/tfl/fare', { params: { type: "Bus" } })
           setAmount(res.data.fare.toString())
           setFareAutoCalculated(true)
         } catch (err) {
@@ -121,7 +120,7 @@ export default function ExpenseLogger() {
       if (subType === "Train" && fromZone && toZone) {
         setCalculatingFare(true)
         try {
-          const res = await axios.get(TFL_FARE_API, {
+          const res = await api.get('/tfl/fare', {
             params: {
               type: "Train",
               fromZone: Number(fromZone),
@@ -144,6 +143,7 @@ export default function ExpenseLogger() {
 
   const resetForm = () => {
     setDate(today)
+    setTime("")
     setDescription("")
     setAmount("")
     setCategory("")
@@ -165,6 +165,7 @@ export default function ExpenseLogger() {
 
   const handleQuickFilter = (filter) => {
     setQuickFilter(filter)
+    setCustomDate("")
     switch (filter) {
       case "today":
         setFilterDate(getDateString(0))
@@ -178,32 +179,38 @@ export default function ExpenseLogger() {
       case "month":
         setFilterDate(getDateString(-30))
         break
+      case "all":
+        break
       default:
         setFilterDate(getDateString(0))
     }
   }
 
+  const handleDatePick = (dateVal) => {
+    setCustomDate(dateVal)
+    setFilterDate(dateVal)
+    setQuickFilter("custom")
+  }
+
   const filteredExpenses = useMemo(() => {
+    const catMatch = (exp) => filterCategory === "All" || exp.category === filterCategory
+    if (quickFilter === "all") {
+      return expenses.filter(catMatch)
+    }
     if (quickFilter === "week") {
       const weekAgo = getDateString(-7)
       return expenses.filter(
-        (exp) =>
-          (filterCategory === "All" || exp.category === filterCategory) &&
-          exp.date >= weekAgo && exp.date <= today
+        (exp) => catMatch(exp) && exp.date >= weekAgo && exp.date <= today
       )
     }
     if (quickFilter === "month") {
       const monthAgo = getDateString(-30)
       return expenses.filter(
-        (exp) =>
-          (filterCategory === "All" || exp.category === filterCategory) &&
-          exp.date >= monthAgo && exp.date <= today
+        (exp) => catMatch(exp) && exp.date >= monthAgo && exp.date <= today
       )
     }
     return expenses.filter(
-      (exp) =>
-        (filterCategory === "All" || exp.category === filterCategory) &&
-        exp.date === filterDate
+      (exp) => catMatch(exp) && exp.date === filterDate
     )
   }, [expenses, filterCategory, filterDate, quickFilter, today])
 
@@ -235,6 +242,7 @@ export default function ExpenseLogger() {
   const buildPayload = () => {
     const base = {
       date,
+      time: time || null,
       description: description || "",
       amount: Number(amount),
       category,
@@ -284,9 +292,9 @@ export default function ExpenseLogger() {
 
     try {
       if (editId) {
-        await axios.put(`${API_BASE}/${editId}?userId=${user.id}`, payload)
+        await api.put(`/expenses/${editId}?userId=${user.id}`, payload)
       } else {
-        await axios.post(`${API_BASE}?userId=${user.id}`, payload)
+        await api.post(`/expenses?userId=${user.id}`, payload)
       }
       await reloadExpenses()
       closeForm()
@@ -299,7 +307,7 @@ export default function ExpenseLogger() {
   const handleDelete = async (id) => {
     setErrorMsg("")
     try {
-      await axios.delete(`${API_BASE}/${id}?userId=${user.id}`)
+      await api.delete(`/expenses/${id}?userId=${user.id}`)
       await reloadExpenses()
     } catch (err) {
       setErrorMsg("Delete failed.")
@@ -310,6 +318,7 @@ export default function ExpenseLogger() {
   const handleEdit = (exp) => {
     setEditId(exp.id)
     setDate(exp.date || today)
+    setTime(exp.time || "")
     setAmount(exp.amount?.toString?.() || "")
     setDescription(exp.description || "")
     setCategory(exp.category || "")
@@ -376,6 +385,18 @@ export default function ExpenseLogger() {
               >
                 Past 7 Days
               </button>
+              <button
+                className={`quick-filter-btn ${quickFilter === "all" ? "active" : ""}`}
+                onClick={() => handleQuickFilter("all")}
+              >
+                All
+              </button>
+              <input
+                type="date"
+                className={`date-picker-input ${quickFilter === "custom" ? "active" : ""}`}
+                value={customDate}
+                onChange={(e) => handleDatePick(e.target.value)}
+              />
             </div>
             <select
               value={filterCategory}
@@ -407,7 +428,7 @@ export default function ExpenseLogger() {
           <>
             <div className="section-header">
               <h2 className="section-title">
-                {quickFilter === "week" ? "This Week" : quickFilter === "month" ? "This Month" : formatDisplayDate(filterDate)}
+                {quickFilter === "all" ? "All Expenses" : quickFilter === "week" ? "This Week" : quickFilter === "month" ? "This Month" : formatDisplayDate(filterDate)}
               </h2>
               <span className="expense-count">
                 {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? "s" : ""} · £{fmt(totalForPeriod)}
@@ -434,7 +455,13 @@ export default function ExpenseLogger() {
                           : ""}
                       </p>
                     )}
-                    {exp.mood && <p className="expense-mood">{exp.mood}</p>}
+                    {(exp.mood || exp.time) && (
+                      <p className="expense-mood">
+                        {exp.time && <span className="expense-time">{exp.time}</span>}
+                        {exp.time && exp.mood && " · "}
+                        {exp.mood}
+                      </p>
+                    )}
                   </div>
                   <span className="expense-amount">£{fmt(exp.amount || 0)}</span>
                   <div className="expense-actions">
@@ -473,14 +500,26 @@ export default function ExpenseLogger() {
             </div>
 
             <form onSubmit={handleSubmit} className="expense-form">
-              <div className="form-group">
-                <label>Date</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
-                />
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Date</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Time of Day</label>
+                  <select value={time} onChange={(e) => setTime(e.target.value)} required>
+                    <option value="">Select</option>
+                    <option value="Morning">Morning</option>
+                    <option value="Afternoon">Afternoon</option>
+                    <option value="Evening">Evening</option>
+                    <option value="Late Night">Late Night</option>
+                  </select>
+                </div>
               </div>
 
               <div className="form-group">
@@ -575,12 +614,14 @@ export default function ExpenseLogger() {
 
               <div className="form-group">
                 <label>Mood (optional)</label>
-                <input
-                  type="text"
-                  placeholder="How did you feel about this?"
-                  value={mood}
-                  onChange={(e) => setMood(e.target.value)}
-                />
+                <select value={mood} onChange={(e) => setMood(e.target.value)}>
+                  <option value="">Select mood</option>
+                  <option value="Happy">Happy</option>
+                  <option value="Excited">Excited</option>
+                  <option value="Neutral">Neutral</option>
+                  <option value="Stressed">Stressed</option>
+                  <option value="Sad">Sad</option>
+                </select>
               </div>
 
               {errorMsg && <div className="form-error">{errorMsg}</div>}

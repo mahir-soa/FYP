@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect } from "react"
-import axios from "axios"
+import { api } from "../api/api"
 import { useAuth } from "../context/AuthContext"
 import Navbar from "../components/Navbar"
 import Avatar from "../components/Avatar"
 import "./css/Chat.css"
 import budgetBot from "../assets/budget-bot.png"
-
-const API_BASE = "http://localhost:8080/api/conversations"
 
 const defaultMessage = {
   role: "assistant",
@@ -42,7 +40,7 @@ export default function Chat() {
     if (!user?.id) return
     setLoadingConversations(true)
     try {
-      const res = await axios.get(`${API_BASE}?userId=${user.id}`)
+      const res = await api.get(`/conversations?userId=${user.id}`)
       setConversations(res.data || [])
     } catch (err) {
       console.error("Failed to load conversations:", err)
@@ -53,7 +51,7 @@ export default function Chat() {
 
   const loadConversation = async (id) => {
     try {
-      const res = await axios.get(`${API_BASE}/${id}/messages`)
+      const res = await api.get(`/conversations/${id}/messages`)
       const msgs = res.data || []
       if (msgs.length === 0) {
         setMessages([defaultMessage])
@@ -76,7 +74,7 @@ export default function Chat() {
   const deleteConversation = async (id, e) => {
     e.stopPropagation()
     try {
-      await axios.delete(`${API_BASE}/${id}`)
+      await api.delete(`/conversations/${id}`)
       setConversations(prev => prev.filter(c => c.id !== id))
       if (currentConversationId === id) {
         startNewChat()
@@ -101,7 +99,7 @@ export default function Chat() {
 
       // Create new conversation if needed
       if (!conversationId) {
-        const createRes = await axios.post(API_BASE, {
+        const createRes = await api.post('/conversations', {
           title: "New Chat",
           userId: user?.id
         })
@@ -110,7 +108,7 @@ export default function Chat() {
       }
 
       // Send message and get response
-      const response = await axios.post(`${API_BASE}/${conversationId}/messages`, {
+      const response = await api.post(`/conversations/${conversationId}/messages`, {
         message: userMessage,
         includeExpenseContext: includeContext
       })

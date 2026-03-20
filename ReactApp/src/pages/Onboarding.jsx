@@ -15,11 +15,44 @@ const STEPS = [
   { id: "nudges", title: "Notifications" },
 ]
 
+const OnboardIcon = ({ type, size = 20 }) => {
+  const s = { width: size, height: size }
+  switch (type) {
+    case "briefcase": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+    case "clock": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    case "laptop": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+    case "chart": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+    case "alert": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    case "target": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+    case "card": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    case "cart": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+    case "trending": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    case "graduation": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.1 2.7 2 6 2s6-.9 6-2v-5"/></svg>
+    case "leaf": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75"/></svg>
+    case "scale": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="3" x2="12" y2="21"/><polyline points="1 12 5 8 9 12"/><polyline points="15 12 19 8 23 12"/><path d="M1 12a4 4 0 004 4h2"/><path d="M23 12a4 4 0 01-4 4h-2"/></svg>
+    case "film": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/></svg>
+    case "music": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    case "package": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+    case "play": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    case "apple": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C9 2 6 5 6 8c0 6 6 14 6 14s6-8 6-14c0-3-3-6-6-6z"/></svg>
+    case "dumbbell": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/></svg>
+    case "cloud": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>
+    case "dollar": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+    case "bell": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    case "calendar": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    case "warning": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    case "moon": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    case "sparkle": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    case "wave": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    default: return null
+  }
+}
+
 const EMPLOYMENT_TYPES = [
-  { type: "SALARIED", icon: "💼", label: "Salaried", description: "Fixed annual or monthly salary" },
-  { type: "HOURLY", icon: "⏰", label: "Hourly", description: "Paid by the hour" },
-  { type: "FREELANCE", icon: "💻", label: "Freelance", description: "Variable income" },
-  { type: "OTHER", icon: "📊", label: "Other", description: "Benefits, investments, etc." },
+  { type: "SALARIED", icon: "briefcase", label: "Salaried", description: "Fixed annual or monthly salary" },
+  { type: "HOURLY", icon: "clock", label: "Hourly", description: "Paid by the hour" },
+  { type: "FREELANCE", icon: "laptop", label: "Freelance", description: "Variable income" },
+  { type: "OTHER", icon: "chart", label: "Other", description: "Benefits, investments, etc." },
 ]
 
 const PAY_FREQUENCIES = [
@@ -29,18 +62,18 @@ const PAY_FREQUENCIES = [
 ]
 
 const GOAL_TYPES = [
-  { type: "EMERGENCY", icon: "🚨", label: "Emergency Fund", description: "Build 3-6 months of expenses for security" },
-  { type: "SAVINGS", icon: "🎯", label: "Savings Goal", description: "Save for something specific like a holiday" },
-  { type: "DEBT", icon: "💳", label: "Pay Off Debt", description: "Clear credit cards, loans, or overdrafts" },
-  { type: "PURCHASE", icon: "🛒", label: "Big Purchase", description: "Save for a car, home deposit, etc." },
-  { type: "INVESTMENT", icon: "📈", label: "Investment", description: "Build wealth for the future" },
-  { type: "EDUCATION", icon: "🎓", label: "Education", description: "Courses, certifications, or degrees" },
+  { type: "EMERGENCY", icon: "alert", label: "Emergency Fund", description: "Build 3-6 months of expenses for security" },
+  { type: "SAVINGS", icon: "target", label: "Savings Goal", description: "Save for something specific like a holiday" },
+  { type: "DEBT", icon: "card", label: "Pay Off Debt", description: "Clear credit cards, loans, or overdrafts" },
+  { type: "PURCHASE", icon: "cart", label: "Big Purchase", description: "Save for a car, home deposit, etc." },
+  { type: "INVESTMENT", icon: "trending", label: "Investment", description: "Build wealth for the future" },
+  { type: "EDUCATION", icon: "graduation", label: "Education", description: "Courses, certifications, or degrees" },
 ]
 
 const BUDGET_STYLES = [
-  { style: "LIGHT", icon: "🌿", label: "Light Touch", description: "Gentle reminders, more flexibility" },
-  { style: "NORMAL", icon: "⚖️", label: "Balanced", description: "Regular guidance, sensible limits" },
-  { style: "STRICT", icon: "🎯", label: "Strict", description: "Tight budgets, aggressive savings" },
+  { style: "LIGHT", icon: "leaf", label: "Light Touch", description: "Gentle reminders, more flexibility" },
+  { style: "NORMAL", icon: "scale", label: "Balanced", description: "Regular guidance, sensible limits" },
+  { style: "STRICT", icon: "target", label: "Strict", description: "Tight budgets, aggressive savings" },
 ]
 
 const CATEGORIES = [
@@ -55,14 +88,14 @@ const CATEGORIES = [
 ]
 
 const POPULAR_SUBSCRIPTIONS = [
-  { name: "Netflix", icon: "🎬", cost: 10.99 },
-  { name: "Spotify", icon: "🎵", cost: 10.99 },
-  { name: "Amazon Prime", icon: "📦", cost: 8.99 },
-  { name: "Disney+", icon: "✨", cost: 7.99 },
-  { name: "YouTube Premium", icon: "▶️", cost: 12.99 },
-  { name: "Apple Music", icon: "🍎", cost: 10.99 },
-  { name: "Gym Membership", icon: "💪", cost: 30.00 },
-  { name: "iCloud", icon: "☁️", cost: 2.99 },
+  { name: "Netflix", icon: "film", cost: 10.99 },
+  { name: "Spotify", icon: "music", cost: 10.99 },
+  { name: "Amazon Prime", icon: "package", cost: 8.99 },
+  { name: "Disney+", icon: "sparkle", cost: 7.99 },
+  { name: "YouTube Premium", icon: "play", cost: 12.99 },
+  { name: "Apple Music", icon: "music", cost: 10.99 },
+  { name: "Gym Membership", icon: "dumbbell", cost: 30.00 },
+  { name: "iCloud", icon: "cloud", cost: 2.99 },
 ]
 
 export default function Onboarding() {
@@ -311,24 +344,25 @@ export default function Onboarding() {
         return (
           <div className="step-content">
             <div className="step-header welcome-header">
-              <span className="welcome-emoji">👋</span>
+              <span className="welcome-emoji"><OnboardIcon type="bell" size={28} /></span>
               <h2>Welcome to Nudge{user?.name ? `, ${user.name.split(" ")[0]}` : ""}!</h2>
               <p>Let's set up your account in about 2 minutes. We'll create a personalized budget and help you reach your financial goals.</p>
             </div>
             <div className="welcome-features">
               <div className="feature-item">
-                <span className="feature-icon">💰</span>
+                <span className="feature-icon"><OnboardIcon type="dollar" /></span>
                 <span>Smart budget suggestions</span>
               </div>
               <div className="feature-item">
-                <span className="feature-icon">🎯</span>
+                <span className="feature-icon"><OnboardIcon type="target" /></span>
                 <span>Goal tracking</span>
               </div>
               <div className="feature-item">
-                <span className="feature-icon">🔔</span>
+                <span className="feature-icon"><OnboardIcon type="bell" /></span>
                 <span>Helpful nudges</span>
               </div>
             </div>
+            <p className="welcome-tip">Tip: When logging expenses, tagging your mood is optional but helps us build a more accurate spending persona.</p>
             <div className="step-actions single">
               <button className="btn-primary" onClick={nextStep}>
                 Let's Go
@@ -352,7 +386,7 @@ export default function Onboarding() {
                     className={`employment-type-card ${data.employmentType === emp.type ? "selected" : ""}`}
                     onClick={() => updateData("employmentType", emp.type)}
                   >
-                    <span className="emp-icon">{emp.icon}</span>
+                    <span className="emp-icon">{<OnboardIcon type={emp.icon} />}</span>
                     <span className="emp-label">{emp.label}</span>
                     <span className="emp-desc">{emp.description}</span>
                   </button>
@@ -497,7 +531,7 @@ export default function Onboarding() {
                     className={`goal-type-card ${data.goalType === goal.type ? "selected" : ""}`}
                     onClick={() => updateData("goalType", goal.type)}
                   >
-                    <span className="goal-icon">{goal.icon}</span>
+                    <span className="goal-icon">{<OnboardIcon type={goal.icon} />}</span>
                     <span className="goal-label">{goal.label}</span>
                     <span className="goal-desc">{goal.description}</span>
                   </button>
@@ -547,7 +581,7 @@ export default function Onboarding() {
 
               {monthsToGoal && data.goalAmount && (
                 <div className="goal-timeline">
-                  <div className="timeline-icon">📅</div>
+                  <div className="timeline-icon"><OnboardIcon type="calendar" /></div>
                   <div className="timeline-info">
                     <span className="timeline-label">You'll reach your goal in</span>
                     <span className="timeline-value">
@@ -593,7 +627,7 @@ export default function Onboarding() {
                       className={`budget-style-card ${data.budgetStyle === style.style ? "selected" : ""}`}
                       onClick={() => updateData("budgetStyle", style.style)}
                     >
-                      <span className="style-icon">{style.icon}</span>
+                      <span className="style-icon">{<OnboardIcon type={style.icon} />}</span>
                       <span className="style-label">{style.label}</span>
                       <span className="style-desc">{style.description}</span>
                     </button>
@@ -653,7 +687,7 @@ export default function Onboarding() {
                     className={`subscription-card ${data.subscriptions.find(s => s.name === sub.name) ? "selected" : ""}`}
                     onClick={() => toggleSubscription(sub)}
                   >
-                    <span className="sub-icon">{sub.icon}</span>
+                    <span className="sub-icon">{<OnboardIcon type={sub.icon} />}</span>
                     <span className="sub-name">{sub.name}</span>
                     <span className="sub-cost">£{fmt(sub.cost)}/mo</span>
                   </button>
@@ -702,7 +736,7 @@ export default function Onboarding() {
                 <div className="toggle-list">
                   <div className="toggle-item">
                     <div className="toggle-info">
-                      <span className="toggle-icon">⚠️</span>
+                      <span className="toggle-icon"><OnboardIcon type="warning" /></span>
                       <div>
                         <span className="toggle-label">Budget warnings</span>
                         <span className="toggle-desc">When you're close to or over budget</span>
@@ -715,7 +749,7 @@ export default function Onboarding() {
                   </div>
                   <div className="toggle-item">
                     <div className="toggle-info">
-                      <span className="toggle-icon">📅</span>
+                      <span className="toggle-icon"><OnboardIcon type="calendar" /></span>
                       <div>
                         <span className="toggle-label">Upcoming payments</span>
                         <span className="toggle-desc">Bills and subscriptions due soon</span>
@@ -728,7 +762,7 @@ export default function Onboarding() {
                   </div>
                   <div className="toggle-item">
                     <div className="toggle-info">
-                      <span className="toggle-icon">💤</span>
+                      <span className="toggle-icon"><OnboardIcon type="moon" /></span>
                       <div>
                         <span className="toggle-label">Unused subscriptions</span>
                         <span className="toggle-desc">Services you haven't used recently</span>
@@ -741,7 +775,7 @@ export default function Onboarding() {
                   </div>
                   <div className="toggle-item">
                     <div className="toggle-info">
-                      <span className="toggle-icon">🎯</span>
+                      <span className="toggle-icon"><OnboardIcon type="target" /></span>
                       <div>
                         <span className="toggle-label">Goal progress</span>
                         <span className="toggle-desc">Updates on your savings goals</span>

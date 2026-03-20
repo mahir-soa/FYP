@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from "react"
 import { useAuth } from "../context/AuthContext"
-import axios from "axios"
+import { api } from "../api/api"
 import Navbar from "../components/Navbar"
 import { fmt } from "../utils/format"
 import "./css/Plans.css"
-
-const API_BASE = "http://localhost:8080/api/plans"
 
 const formatDisplayDate = (dateStr) => {
   if (!dateStr) return ""
@@ -22,8 +20,15 @@ const getDaysRemaining = (endDate) => {
   return Math.ceil((target - today) / (1000 * 60 * 60 * 24))
 }
 
-const categoryIcons = {
-  SAVINGS: "🎯", DEBT: "💳", PURCHASE: "🛒", EMERGENCY: "🚨"
+const CategoryPlanIcon = ({ type, size = 20 }) => {
+  const s = { width: size, height: size }
+  switch (type) {
+    case "SAVINGS": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+    case "DEBT": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    case "PURCHASE": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+    case "EMERGENCY": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    default: return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+  }
 }
 const categoryLabels = {
   SAVINGS: "Savings Goal", DEBT: "Debt Payoff", PURCHASE: "Purchase Goal", EMERGENCY: "Emergency Fund"
@@ -79,7 +84,7 @@ export default function Plans() {
     setLoading(true)
     setErrorMsg("")
     try {
-      const res = await axios.get(`${API_BASE}?userId=${user.id}`)
+      const res = await api.get(`/plans?userId=${user.id}`)
       setPlans(Array.isArray(res.data) ? res.data : [])
     } catch {
       setPlans([])
@@ -102,7 +107,7 @@ export default function Plans() {
     setParsedDrafts([])
     setClarificationState(null)
     try {
-      const res = await axios.post(`${API_BASE}/parse`, { input: aiInput.trim() })
+      const res = await api.post('/plans/parse', { input: aiInput.trim() })
       const drafts = res.data
 
       // Check if any draft needs clarification
@@ -197,7 +202,7 @@ export default function Plans() {
     }
 
     try {
-      await axios.post(`${API_BASE}/confirm?userId=${user.id}`, payload)
+      await api.post(`/plans/confirm?userId=${user.id}`, payload)
       await reloadPlans()
       // Remove saved draft
       setParsedDrafts(prev => prev.filter((_, i) => i !== draftIndex))
@@ -277,7 +282,7 @@ export default function Plans() {
     }
 
     try {
-      await axios.put(`${API_BASE}/${editPlan.id}?userId=${user.id}`, payload)
+      await api.put(`/plans/${editPlan.id}?userId=${user.id}`, payload)
       await reloadPlans()
       setEditPlan(null)
     } catch {
@@ -287,7 +292,7 @@ export default function Plans() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_BASE}/${id}?userId=${user.id}`)
+      await api.delete(`/plans/${id}?userId=${user.id}`)
       await reloadPlans()
     } catch {
       setErrorMsg("Delete failed.")
@@ -297,7 +302,7 @@ export default function Plans() {
   const handleAddProgress = async (id) => {
     if (!addAmountValue || Number(addAmountValue) <= 0) return
     try {
-      await axios.patch(`${API_BASE}/${id}/progress?userId=${user.id}&amount=${Number(addAmountValue)}`)
+      await api.patch(`/plans/${id}/progress?userId=${user.id}&amount=${Number(addAmountValue)}`)
       await reloadPlans()
       setAddAmountId(null)
       setAddAmountValue("")
@@ -308,7 +313,7 @@ export default function Plans() {
 
   const handleComplete = async (id) => {
     try {
-      await axios.patch(`${API_BASE}/${id}/complete?userId=${user.id}`)
+      await api.patch(`/plans/${id}/complete?userId=${user.id}`)
       await reloadPlans()
     } catch {
       setErrorMsg("Could not complete plan.")
@@ -720,7 +725,7 @@ export default function Plans() {
                     return (
                       <div key={plan.id} className={`plan-card ${isComplete ? "complete" : ""}`}>
                         <div className="plan-header">
-                          <div className="plan-icon">{categoryIcons[plan.category] || "🎯"}</div>
+                          <div className="plan-icon"><CategoryPlanIcon type={plan.category} /></div>
                           <div className="plan-info">
                             <div className="plan-title">{plan.title}</div>
                             <div className="plan-meta">
@@ -938,7 +943,7 @@ export default function Plans() {
                         <div className="plan-header">
                           <div className="plan-icon">
                             {plan.family === "OUTCOME_PLAN"
-                              ? (categoryIcons[plan.category] || "🎯")
+                              ? <CategoryPlanIcon type={plan.category} />
                               : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
                             }
                           </div>

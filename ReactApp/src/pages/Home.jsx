@@ -1,13 +1,11 @@
 import { useState, useEffect, useMemo } from "react"
 import { Link } from "react-router-dom"
-import axios from "axios"
+import { api } from "../api/api"
 import { useAuth } from "../context/AuthContext"
 import Navbar from "../components/Navbar"
 import budgetBot from "../assets/budget-bot.png"
 import { fmt } from "../utils/format"
 import "./css/Home.css"
-
-const API_BASE = "http://localhost:8080/api"
 
 function LandingPage() {
   return (
@@ -145,7 +143,7 @@ function LandingPage() {
             <div className="feature-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             </div>
-            <h3>Savings Goals</h3>
+            <h3>Savings Plans</h3>
             <p>Set targets and track your progress</p>
           </div>
         </div>
@@ -228,6 +226,7 @@ function LandingPage() {
 function Dashboard({ user }) {
   const [budget, setBudget] = useState(null)
   const [expenses, setExpenses] = useState([])
+  const [persona, setPersona] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const getGreeting = () => {
@@ -247,18 +246,22 @@ function Dashboard({ user }) {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   }
 
-  // Fetch budget and expenses data
+  // Fetch budget, expenses, and persona data
   useEffect(() => {
     const fetchData = async () => {
       if (!user?.id) return
       setLoading(true)
       try {
-        const [budgetRes, expensesRes] = await Promise.all([
-          axios.get(`${API_BASE}/budgets/current?userId=${user.id}`).catch(() => ({ data: null })),
-          axios.get(`${API_BASE}/expenses?userId=${user.id}`).catch(() => ({ data: [] }))
+        const [budgetRes, expensesRes, personaRes] = await Promise.all([
+          api.get(`/budgets/current?userId=${user.id}`).catch(() => ({ data: null })),
+          api.get(`/expenses?userId=${user.id}`).catch(() => ({ data: [] })),
+          api.get(`/ml/persona/${user.id}`).catch(() => ({ data: null }))
         ])
         setBudget(budgetRes.data)
         setExpenses(expensesRes.data || [])
+        if (personaRes.data && personaRes.data.persona_type) {
+          setPersona(personaRes.data)
+        }
       } catch (err) {
         console.error("Error fetching dashboard data:", err)
       } finally {
@@ -268,53 +271,17 @@ function Dashboard({ user }) {
     fetchData()
   }, [user?.id])
 
-  // Calculate current month expenses by category
-  const { totalSpent, spentByCategory, categoryLimits } = useMemo(() => {
+  // Calculate current month total spend
+  const totalSpent = useMemo(() => {
     const currentMonth = getCurrentMonth()
     const monthExpenses = expenses.filter(exp => exp.date?.startsWith(currentMonth))
-
-    const spentByCategory = {}
-    let totalSpent = 0
-    monthExpenses.forEach(exp => {
-      const cat = exp.category || "Other"
-      spentByCategory[cat] = (spentByCategory[cat] || 0) + exp.amount
-      totalSpent += exp.amount
-    })
-
-    let categoryLimits = {}
-    if (budget?.categoryLimits) {
-      try {
-        categoryLimits = typeof budget.categoryLimits === 'string'
-          ? JSON.parse(budget.categoryLimits)
-          : budget.categoryLimits
-      } catch (e) {
-        categoryLimits = {}
-      }
-    }
-
-    return { totalSpent, spentByCategory, categoryLimits }
-  }, [expenses, budget])
+    return monthExpenses.reduce((sum, exp) => sum + exp.amount, 0)
+  }, [expenses])
 
   const totalBudget = budget?.totalBudget || 0
   const remaining = totalBudget - totalSpent
   const spentPercent = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0
   const remainingPercent = 100 - spentPercent
-
-  // Category colors mapping
-  const categoryColors = {
-    Food: 'green',
-    Travel: 'orange',
-    Education: 'blue',
-    Leisure: 'purple',
-    Other: 'gray'
-  }
-
-  // Get categories with limits
-  const categoriesWithData = Object.entries(categoryLimits).map(([name, limit]) => {
-    const spent = spentByCategory[name] || 0
-    const percent = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0
-    return { name, limit, spent, percent, color: categoryColors[name] || 'gray' }
-  })
 
   if (loading) {
     return (
@@ -338,7 +305,7 @@ function Dashboard({ user }) {
             Add Expense
           </Link>
           <Link to="/chat" className="action-btn ai">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313-12.454z"/><path d="M17 4a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
             Ask AI
           </Link>
         </div>
@@ -390,33 +357,6 @@ function Dashboard({ user }) {
         </Link>
       )}
 
-      {/* Category Budgets */}
-      {categoriesWithData.length > 0 && (
-        <div className="budget-categories">
-          <div className="categories-header">
-            <h2>Category Budgets</h2>
-            <Link to="/budget" className="view-link">Manage</Link>
-          </div>
-          <div className="categories-grid">
-            {categoriesWithData.map(cat => (
-              <div key={cat.name} className="category-card">
-                <div className="category-header">
-                  <span className={`category-dot ${cat.color}`}></span>
-                  <span className="category-name">{cat.name}</span>
-                  <span className="category-amount">£{fmt(cat.spent, 0)} / £{fmt(cat.limit, 0)}</span>
-                </div>
-                <div className="category-bar">
-                  <div
-                    className={`category-fill ${cat.percent >= 80 ? 'warning' : ''} ${cat.percent >= 100 ? 'over' : ''}`}
-                    style={{width: `${Math.min(100, cat.percent)}%`}}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Quick Stats */}
       {expenses.length > 0 && (
         <div className="quick-stats">
@@ -430,6 +370,35 @@ function Dashboard({ user }) {
           </div>
         </div>
       )}
+
+      {/* Persona Banner */}
+      <Link to="/persona" className="persona-banner">
+        <div className="persona-banner-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </div>
+        <div className="persona-banner-content">
+          {persona ? (
+            <>
+              <span className="persona-banner-label">Your Spending Persona</span>
+              <span className="persona-banner-type">{persona.persona_primary || persona.persona_type}</span>
+              {persona.confidence_level && (
+                <span className="persona-banner-confidence">{persona.confidence_level} confidence</span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="persona-banner-label">Spending Persona</span>
+              <span className="persona-banner-type">Discover your type</span>
+              <span className="persona-banner-confidence">Log expenses to unlock your spending profile</span>
+            </>
+          )}
+        </div>
+        <div className="persona-banner-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+        </div>
+      </Link>
 
       {/* Secondary Cards */}
       <div className="dash-grid">
@@ -469,7 +438,7 @@ function Dashboard({ user }) {
           <div className="dash-card-icon purple">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
           </div>
-          <h3>Goals</h3>
+          <h3>Plans</h3>
           <p>Savings targets</p>
         </Link>
 
@@ -488,7 +457,7 @@ function Dashboard({ user }) {
           </div>
           <div className="ai-widget-preview">
             <div className="ai-preview-bubble bot">
-              Hi! I can help with your budget 👋
+              Hi! I can help with your budget
             </div>
             <div className="ai-preview-bubble user">
               How much did I spend this week?

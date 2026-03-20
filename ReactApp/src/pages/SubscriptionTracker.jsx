@@ -1,31 +1,31 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../context/AuthContext"
-import axios from "axios"
+import { api } from "../api/api"
 import Navbar from "../components/Navbar"
 import { fmt } from "../utils/format"
 import "./css/SubscriptionTracker.css"
 
-const API_BASE = "http://localhost:8080/api/subscriptions"
-
 const billingCycles = ["WEEKLY", "MONTHLY", "YEARLY"]
 
-const fetchProviderPricing = async (providerKey) => {
-  try {
-    const res = await axios.get(`${API_BASE}/pricing/${providerKey}`)
-    return res.data
-  } catch (err) {
-    console.error("Failed to fetch pricing:", err)
-    return { plans: [], hasPlans: false }
+const CategoryIcon = ({ type, size = 16 }) => {
+  const s = { width: size, height: size }
+  switch (type) {
+    case "STREAMING": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 16 21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    case "GYM": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/></svg>
+    case "MUSIC": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    case "GAMING": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><path d="M17.32 5H6.68a4 4 0 00-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 003 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 019.828 16h4.344a2 2 0 011.414.586L17 18c.5.5 1 1 2 1a3 3 0 003-3c0-1.544-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0017.32 5z"/></svg>
+    case "SOFTWARE": return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    default: return <svg style={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
   }
 }
 
 const categories = [
-  { key: "STREAMING", name: "Streaming", icon: "📺" },
-  { key: "GYM", name: "Gym & Fitness", icon: "💪" },
-  { key: "MUSIC", name: "Music", icon: "🎵" },
-  { key: "GAMING", name: "Gaming", icon: "🎮" },
-  { key: "SOFTWARE", name: "Software", icon: "💻" },
-  { key: "OTHER", name: "Other", icon: "📦" },
+  { key: "STREAMING", name: "Streaming" },
+  { key: "GYM", name: "Gym & Fitness" },
+  { key: "MUSIC", name: "Music" },
+  { key: "GAMING", name: "Gaming" },
+  { key: "SOFTWARE", name: "Software" },
+  { key: "OTHER", name: "Other" },
 ]
 
 const providers = [
@@ -272,9 +272,6 @@ export default function SubscriptionTracker() {
   const [status, setStatus] = useState("ACTIVE")
   const [providerKey, setProviderKey] = useState("other")
   const [category, setCategory] = useState("OTHER")
-  const [availablePlans, setAvailablePlans] = useState([])
-  const [selectedPlan, setSelectedPlan] = useState("custom")
-  const [loadingPlans, setLoadingPlans] = useState(false)
 
   const [upcomingDays, setUpcomingDays] = useState(7)
   const [inactiveDays, setInactiveDays] = useState(30)
@@ -285,7 +282,7 @@ export default function SubscriptionTracker() {
     setLoading(true)
     setErrorMsg("")
     try {
-      const res = await axios.get(`${API_BASE}?userId=${user.id}`)
+      const res = await api.get(`/subscriptions?userId=${user.id}`)
       setSubscriptions(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
       setSubscriptions([])
@@ -311,8 +308,6 @@ export default function SubscriptionTracker() {
     setStatus("ACTIVE")
     setProviderKey("other")
     setCategory("OTHER")
-    setAvailablePlans([])
-    setSelectedPlan("custom")
     setEditId(null)
     setErrorMsg("")
   }
@@ -322,43 +317,17 @@ export default function SubscriptionTracker() {
     setShowForm(false)
   }
 
-  const handleProviderSelect = async (provider) => {
+  const handleProviderSelect = (provider) => {
     setProviderKey(provider.key)
-    setSelectedPlan("custom")
-    setAvailablePlans([])
 
-    // For "Other" providers, clear name and cost for manual entry
     if (provider.key.startsWith("other")) {
       setName("")
       setCost("")
       return
     }
 
-    // For named providers, auto-fill name if empty or was previously a provider name
     if (!name || providers.some(p => p.name === name)) {
       setName(provider.name)
-    }
-
-    setLoadingPlans(true)
-    try {
-      const pricingData = await fetchProviderPricing(provider.key)
-      if (pricingData.hasPlans && pricingData.plans.length > 0) {
-        setAvailablePlans(pricingData.plans)
-      }
-    } finally {
-      setLoadingPlans(false)
-    }
-  }
-
-  const handlePlanSelect = (plan) => {
-    if (plan === "custom") {
-      setSelectedPlan("custom")
-      setCost("")
-      setBillingCycle("MONTHLY")
-    } else {
-      setSelectedPlan(plan.plan)
-      setCost(plan.price.toString())
-      setBillingCycle(plan.cycle)
     }
   }
 
@@ -435,9 +404,9 @@ export default function SubscriptionTracker() {
 
     try {
       if (editId) {
-        await axios.put(`${API_BASE}/${editId}?userId=${user.id}`, payload)
+        await api.put(`/subscriptions/${editId}?userId=${user.id}`, payload)
       } else {
-        await axios.post(`${API_BASE}?userId=${user.id}`, payload)
+        await api.post(`/subscriptions?userId=${user.id}`, payload)
       }
       await reloadSubscriptions()
       closeForm()
@@ -450,7 +419,7 @@ export default function SubscriptionTracker() {
   const handleDelete = async (id) => {
     setErrorMsg("")
     try {
-      await axios.delete(`${API_BASE}/${id}?userId=${user.id}`)
+      await api.delete(`/subscriptions/${id}?userId=${user.id}`)
       await reloadSubscriptions()
     } catch (err) {
       setErrorMsg("Delete failed.")
@@ -461,7 +430,7 @@ export default function SubscriptionTracker() {
   const handleMarkUsed = async (id) => {
     setErrorMsg("")
     try {
-      const response = await axios.patch(`${API_BASE}/${id}/mark-used?userId=${user.id}`)
+      const response = await api.patch(`/subscriptions/${id}/mark-used?userId=${user.id}`)
       console.log("Mark used response:", response.data)
       await reloadSubscriptions()
     } catch (err) {
@@ -474,7 +443,7 @@ export default function SubscriptionTracker() {
   const handleCancel = async (id) => {
     setErrorMsg("")
     try {
-      await axios.patch(`${API_BASE}/${id}/cancel?userId=${user.id}`)
+      await api.patch(`/subscriptions/${id}/cancel?userId=${user.id}`)
       await reloadSubscriptions()
     } catch (err) {
       setErrorMsg("Cancel failed.")
@@ -637,7 +606,7 @@ export default function SubscriptionTracker() {
               return (
                 <div key={cat.key} className="category-section">
                   <div className="category-header">
-                    <span className="category-icon">{cat.icon}</span>
+                    <span className="category-icon">{<CategoryIcon type={cat.key} />}</span>
                     <span className="category-name">{cat.name}</span>
                     <span className="category-count">{catSubs.length}</span>
                   </div>
@@ -738,11 +707,9 @@ export default function SubscriptionTracker() {
                         setCategory(cat.key)
                         setProviderKey("other")
                         setName("")
-                        setAvailablePlans([])
-                        setSelectedPlan("custom")
                       }}
                     >
-                      <span className="cat-icon">{cat.icon}</span>
+                      <span className="cat-icon">{<CategoryIcon type={cat.key} />}</span>
                       <span>{cat.name}</span>
                     </div>
                   ))}
@@ -765,35 +732,6 @@ export default function SubscriptionTracker() {
                   ))}
                 </div>
               </div>
-
-              {loadingPlans && (
-                <div className="loading-plans">Loading plans...</div>
-              )}
-
-              {availablePlans.length > 0 && (
-                <div className="form-group">
-                  <label>Select Plan</label>
-                  <div className="plan-grid">
-                    {availablePlans.map((plan) => (
-                      <div
-                        key={plan.plan}
-                        className={`plan-option ${selectedPlan === plan.plan ? "selected" : ""}`}
-                        onClick={() => handlePlanSelect(plan)}
-                      >
-                        <span className="plan-name">{plan.plan}</span>
-                        <span className="plan-price">£{fmt(plan.price)}/{plan.cycle.toLowerCase()}</span>
-                      </div>
-                    ))}
-                    <div
-                      className={`plan-option custom ${selectedPlan === "custom" ? "selected" : ""}`}
-                      onClick={() => handlePlanSelect("custom")}
-                    >
-                      <span className="plan-name">Custom</span>
-                      <span className="plan-price">Enter manually</span>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               <div className="form-group">
                 <label>Name</label>

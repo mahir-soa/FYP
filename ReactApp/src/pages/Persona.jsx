@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { useAuth } from "../context/AuthContext"
 import { api } from "../api/api"
 import Navbar from "../components/Navbar"
-import Avatar, { PERSONA_STYLES, buildDiceBearUrl, HIJAB_COLORS, KIPPAH_COLORS, TURBAN_COLORS, TAQIYAH_COLORS, CROSS_COLORS } from "../components/Avatar"
 import "./css/Persona.css"
 
 const PERSONA_TIPS = {
@@ -80,47 +79,16 @@ const PERSONA_LABELS = {
   INSUFFICIENT_DATA: "Insufficient Data",
 }
 
-// Available options catalog
-const HAIR_OPTIONS = Array.from({ length: 26 }, (_, i) => `short${String(i + 1).padStart(2, "0")}`)
-const LONG_HAIR_OPTIONS = Array.from({ length: 26 }, (_, i) => `long${String(i + 1).padStart(2, "0")}`)
-const EYES_OPTIONS = Array.from({ length: 26 }, (_, i) => `variant${String(i + 1).padStart(2, "0")}`)
-const EYEBROWS_OPTIONS = Array.from({ length: 15 }, (_, i) => `variant${String(i + 1).padStart(2, "0")}`)
-const MOUTH_OPTIONS = Array.from({ length: 30 }, (_, i) => `variant${String(i + 1).padStart(2, "0")}`)
-const GLASSES_OPTIONS = ["none", "variant01", "variant02", "variant03", "variant04", "variant05"]
-const EARRINGS_OPTIONS = ["none", "variant01", "variant02", "variant03", "variant04", "variant05", "variant06"]
-const FEATURES_OPTIONS = ["none", "birthmark", "blush", "freckles", "mustache01", "mustache02", "mustache03", "mustache04"]
-const HIJAB_OPTIONS = ["none", ...Object.keys(HIJAB_COLORS)]
-const HIJAB_LABELS = { none: "None", black: "Black", navy: "Navy", burgundy: "Burgundy", forest: "Forest", plum: "Plum", teal: "Teal", dusty_rose: "Dusty Rose", cream: "Cream" }
-const KIPPAH_OPTIONS = ["none", ...Object.keys(KIPPAH_COLORS)]
-const KIPPAH_LABELS = { none: "None", black: "Black", navy: "Navy", white: "White", royal_blue: "Royal Blue", burgundy: "Burgundy", silver: "Silver", cream: "Cream" }
-const TURBAN_OPTIONS = ["none", ...Object.keys(TURBAN_COLORS)]
-const TURBAN_LABELS = { none: "None", navy: "Navy", black: "Black", white: "White", royal_blue: "Royal Blue", maroon: "Maroon", orange: "Orange", forest: "Forest", cream: "Cream" }
-const TAQIYAH_OPTIONS = ["none", ...Object.keys(TAQIYAH_COLORS)]
-const TAQIYAH_LABELS = { none: "None", white: "White", cream: "Cream", black: "Black", grey: "Grey", brown: "Brown", navy: "Navy" }
-const CROSS_OPTIONS = ["none", ...Object.keys(CROSS_COLORS)]
-const CROSS_LABELS = { none: "None", gold: "Gold", silver: "Silver", rose_gold: "Rose Gold", bronze: "Bronze" }
-const HAIR_COLORS = ["2c1b18", "4a312c", "724133", "a55728", "b58143", "c93305", "d6b370", "e8e1e1", "ecdcbf", "f59797", "f2d3b1", "000000", "6c4545", "cb6820"]
-const SKIN_COLORS = ["f2d3b1", "ecad80", "d08b5b", "ae5d29"]
-const BG_COLORS = ["f87171", "fb923c", "fbbf24", "34d399", "60a5fa", "a78bfa", "f472b6", "e5e7eb", "fecaca", "d1fae5", "dbeafe", "ede9fe"]
-const FRAME_OPTIONS = ["none", "silver_ring", "gold_ring", "emerald_glow", "streak_flame"]
-
-const FRAME_LABELS = {
-  none: "None",
-  silver_ring: "Silver Ring",
-  gold_ring: "Gold Ring",
-  emerald_glow: "Emerald Glow",
-  streak_flame: "Streak Flame",
+const PERSONA_DESCRIPTIONS = {
+  ERRATIC_SPENDER: "Irregular spending with high variance between transactions. Occasional large unplanned purchases that make budgeting difficult.",
+  CAUTIOUS_SAVER: "Consistently low spending with rare large purchases. Strong financial discipline and predictable patterns.",
+  WEEKEND_SPLURGER: "Disciplined during weekdays but spending spikes significantly on weekends. Social and leisure activities drive the gap.",
+  BALANCED_SPENDER: "Even spending across categories with moderate consistency. No single extreme — a well-rounded financial profile.",
+  VOLATILE_SPENDER: "Month-to-month totals swing significantly. Hard to forecast, which can lead to surprise shortfalls.",
+  LATE_NIGHT_SPENDER: "A notable share of purchases happen after 10pm. Late-night transactions tend to be less deliberate.",
+  CATEGORY_FOCUSED: "Spending is heavily concentrated in one or two categories. A price change there could hit the budget hard.",
+  BIG_SPENDER: "Higher-than-average transaction sizes across the board. Large individual purchases drive the spending profile.",
 }
-
-// Items requiring milestone unlock
-const LOCKED_ITEMS = new Set([
-  "glasses_variant02", "glasses_variant03", "glasses_variant04", "glasses_variant05",
-  "earrings_variant01", "earrings_variant02", "earrings_variant03", "earrings_variant04", "earrings_variant05", "earrings_variant06",
-  "features_birthmark", "features_blush", "features_freckles",
-  "features_mustache01", "features_mustache02", "features_mustache03", "features_mustache04",
-  "hair_long01", "hair_long02", "hair_long03", "hair_long04", "hair_long05",
-  "frame_silver_ring", "frame_gold_ring", "frame_emerald_glow", "frame_streak_flame",
-])
 
 const SPIDER_AXIS_LABELS = {
   impulse: "Impulse",
@@ -129,6 +97,15 @@ const SPIDER_AXIS_LABELS = {
   weekend_bias: "Weekend Bias",
   late_night_activity: "Late Night",
   category_concentration: "Category Focus",
+}
+
+const SPIDER_AXIS_DESCRIPTIONS = {
+  impulse: "How much your transaction amounts vary. High means frequent large, unplanned purchases.",
+  volatility: "How much your monthly spending totals swing. High means hard-to-predict months.",
+  budget_discipline: "How closely you stick to your planned category budgets. Higher is better.",
+  weekend_bias: "How much of your spending is concentrated on weekends versus weekdays.",
+  late_night_activity: "How many of your purchases happen after 10pm. Often less deliberate spending.",
+  category_concentration: "How heavily your spending is focused in one or two categories.",
 }
 
 const DOMAIN_TRAIT_LABELS = {
@@ -171,48 +148,49 @@ function formatFeatureName(feature) {
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function formatRewardName(key) {
-  return key.replace(/^(glasses|earrings|features|frame|hair)_/, "").replace(/([a-z])(\d)/g, "$1 $2").replace(/variant/i, "Style ")
-}
-
 function RadarChart({ axes, size = 280 }) {
   const keys = Object.keys(SPIDER_AXIS_LABELS)
   const cx = size / 2
   const cy = size / 2
-  const r = size * 0.34
+  const r = size * 0.30
   const n = keys.length
   const angleStep = (2 * Math.PI) / n
   const offsetAngle = -Math.PI / 2
+  const pad = { left: 70, right: 70, top: 20, bottom: 20 }
+  const vbW = size + pad.left + pad.right
+  const vbH = size + pad.top + pad.bottom
 
   const point = (i, pct) => {
     const a = offsetAngle + i * angleStep
-    return [cx + r * (pct / 100) * Math.cos(a), cy + r * (pct / 100) * Math.sin(a)]
+    return [cx + pad.left + r * (pct / 100) * Math.cos(a), cy + pad.top + r * (pct / 100) * Math.sin(a)]
   }
 
+  const chartCx = cx + pad.left
+  const chartCy = cy + pad.top
   const rings = [25, 50, 75, 100]
 
   const dataPoints = keys.map((k, i) => point(i, axes[k] || 0))
   const polygon = dataPoints.map((p) => p.join(",")).join(" ")
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="radar-chart-svg">
+    <svg viewBox={`0 0 ${vbW} ${vbH}`} className="radar-chart-svg">
       {rings.map((pct) => {
         const pts = keys.map((_, i) => point(i, pct)).map((p) => p.join(",")).join(" ")
         return <polygon key={pct} points={pts} fill="none" stroke="var(--gray-200)" strokeWidth="1" />
       })}
       {keys.map((_, i) => {
         const [ex, ey] = point(i, 100)
-        return <line key={i} x1={cx} y1={cy} x2={ex} y2={ey} stroke="var(--gray-200)" strokeWidth="1" />
+        return <line key={i} x1={chartCx} y1={chartCy} x2={ex} y2={ey} stroke="var(--gray-200)" strokeWidth="1" />
       })}
       <polygon points={polygon} fill="rgba(16,185,129,0.18)" stroke="var(--emerald-500)" strokeWidth="2" />
       {dataPoints.map(([x, y], i) => (
         <circle key={i} cx={x} cy={y} r="4" fill="var(--emerald-500)" />
       ))}
       {keys.map((k, i) => {
-        const labelR = r + 24
+        const labelR = r + 22
         const a = offsetAngle + i * angleStep
-        const lx = cx + labelR * Math.cos(a)
-        const ly = cy + labelR * Math.sin(a)
+        const lx = chartCx + labelR * Math.cos(a)
+        const ly = chartCy + labelR * Math.sin(a)
         const anchor = Math.abs(Math.cos(a)) < 0.01 ? "middle" : Math.cos(a) > 0 ? "start" : "end"
         return (
           <text key={k} x={lx} y={ly} textAnchor={anchor} dominantBaseline="central" className="radar-label">
@@ -232,56 +210,6 @@ function RadarChart({ axes, size = 280 }) {
         )
       })}
     </svg>
-  )
-}
-
-function DisciplineCard({ discipline }) {
-  if (!discipline || discipline.discipline_score === undefined) return null
-  const score = Math.round(discipline.discipline_score)
-  const trendIcon = discipline.trend === "improving" ? "\u2191" : discipline.trend === "worsening" ? "\u2193" : "\u2192"
-  const trendClass = discipline.trend === "improving" ? "improving" : discipline.trend === "worsening" ? "worsening" : "stable"
-
-  return (
-    <div className="persona-detail-card discipline-card">
-      <h3>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        </svg>
-        Discipline &amp; Habits
-      </h3>
-      <div className="discipline-body">
-        <div className="discipline-score-ring">
-          <svg viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="34" fill="none" stroke="var(--gray-100)" strokeWidth="6" />
-            <circle
-              cx="40" cy="40" r="34" fill="none"
-              stroke="var(--emerald-500)" strokeWidth="6"
-              strokeDasharray={`${(score / 100) * 213.6} 213.6`}
-              strokeLinecap="round"
-              transform="rotate(-90 40 40)"
-            />
-          </svg>
-          <span className="discipline-score-number">{score}</span>
-        </div>
-        <div className="discipline-details">
-          <div className="discipline-streak">
-            <span className="discipline-streak-value">{discipline.streak_days_in_budget || 0}</span>
-            <span className="discipline-streak-label">day streak</span>
-          </div>
-          <div className="discipline-streak">
-            <span className="discipline-streak-value">{discipline.streak_weeks_stable || 0}</span>
-            <span className="discipline-streak-label">stable weeks</span>
-          </div>
-          <div className={`discipline-trend ${trendClass}`}>
-            <span className="discipline-trend-arrow">{trendIcon}</span>
-            <span>{discipline.trend}</span>
-          </div>
-        </div>
-      </div>
-      {discipline.feedback_message && (
-        <p className="discipline-feedback">{discipline.feedback_message}</p>
-      )}
-    </div>
   )
 }
 
@@ -336,45 +264,52 @@ export default function Persona() {
   const [loading, setLoading] = useState(true)
   const [expenseCount, setExpenseCount] = useState(0)
 
-  // Editor state
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [tab, setTab] = useState("hair")
-  const [editingOptions, setEditingOptions] = useState({})
-  const [selectedFrame, setSelectedFrame] = useState(null)
-  const [unlockedItems, setUnlockedItems] = useState(new Set())
-  const [milestones, setMilestones] = useState([])
-  const [saving, setSaving] = useState(false)
   const [analysing, setAnalysing] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
+  const [showAxisGuide, setShowAxisGuide] = useState(false)
+  const [analysisError, setAnalysisError] = useState(null)
+  const [autoAnalysisDone, setAutoAnalysisDone] = useState(false)
 
   useEffect(() => {
     if (user?.id) {
       loadPersonaData()
       loadExpenseCount()
-      loadAvatarData()
     }
   }, [user?.id])
 
-  // Auto-analyse when user has enough expenses but no persona yet
+  // Auto-analyse when user has enough expenses but no persona yet (once per page load)
   useEffect(() => {
-    if (loading || analysing) return
-    const needsAnalysis = !personaData || personaData.persona_type === "INSUFFICIENT_DATA"
+    if (loading || analysing || autoAnalysisDone) return
+    const active = personaData ? (personaData.persona_primary || personaData.persona_type) : null
+    const needsAnalysis = !personaData || active === "INSUFFICIENT_DATA"
     if (needsAnalysis && expenseCount >= 10) {
+      setAutoAnalysisDone(true)
       runAnalysis()
     }
-  }, [loading, personaData, expenseCount])
+  }, [loading, personaData, expenseCount, autoAnalysisDone])
 
   const runAnalysis = async () => {
     setAnalysing(true)
+    setAnalysisError(null)
     try {
-      await api.post(`/ml/analyse/${user.id}`)
+      const analyseRes = await api.post(`/ml/analyse/${user.id}`)
+      console.log("[Persona] Analysis result:", analyseRes.data)
+      const personaResult = analyseRes.data?.persona
+      if (personaResult?.persona_type === "INSUFFICIENT_DATA") {
+        console.warn("[Persona] Analysis returned INSUFFICIENT_DATA:", personaResult.description)
+        setAnalysisError(personaResult.description || "Clustering features could not be computed — check your expense data.")
+      }
       const [personaRes, nudgesRes] = await Promise.all([
         api.get(`/ml/persona/${user.id}`),
         api.get(`/ml/nudges/${user.id}`),
       ])
+      console.log("[Persona] Loaded persona:", personaRes.data?.persona_type)
       setPersonaData(personaRes.data)
       setNudgesData(nudgesRes.data.nudges || [])
-    } catch {
-      // analysis failed, stay in current state
+    } catch (err) {
+      console.error("[Persona] Analysis failed:", err?.response?.status, err?.response?.data || err.message)
+      const msg = err?.response?.data?.detail || err?.response?.data?.error || "Analysis failed — is the ML service running on port 8000?"
+      setAnalysisError(msg)
     } finally {
       setAnalysing(false)
     }
@@ -386,9 +321,11 @@ export default function Persona() {
         api.get(`/ml/persona/${user.id}`),
         api.get(`/ml/nudges/${user.id}`),
       ])
+      console.log("[Persona] Existing persona:", personaRes.data?.persona_type, "provisional:", personaRes.data?.provisional)
       setPersonaData(personaRes.data)
       setNudgesData(nudgesRes.data.nudges || [])
-    } catch {
+    } catch (err) {
+      console.log("[Persona] No existing persona:", err?.response?.status || err.message)
       setPersonaData(null)
       setNudgesData([])
     } finally {
@@ -405,81 +342,7 @@ export default function Persona() {
     }
   }
 
-  const loadAvatarData = async () => {
-    try {
-      const [avatarRes, milestoneRes] = await Promise.all([
-        api.get(`/avatar?userId=${user.id}`),
-        api.get(`/avatar/milestones?userId=${user.id}`),
-      ])
-      const opts = avatarRes.data.equippedOptions
-      if (opts && opts !== "{}") {
-        setEditingOptions(JSON.parse(opts))
-      }
-      setSelectedFrame(avatarRes.data.equippedFrame || null)
-      const items = milestoneRes.data.unlockedItems
-      setUnlockedItems(new Set(Array.isArray(items) ? items : []))
-      setMilestones(milestoneRes.data.milestones || [])
-    } catch {
-      // silently ignore, backend may not be ready
-    }
-  }
-
-  const isItemLocked = (itemKey) => {
-    if (!LOCKED_ITEMS.has(itemKey)) return false
-    return !unlockedItems.has(itemKey)
-  }
-
-  const updateOption = (key, value) => {
-    setEditingOptions((prev) => {
-      const next = { ...prev }
-      if (value === "none" || value === null) {
-        delete next[key]
-        // Clear probability params too
-        if (key === "glasses") delete next.glassesProbability
-      } else {
-        next[key] = value
-      }
-      return next
-    })
-  }
-
-  const saveCustomization = async () => {
-    setSaving(true)
-    try {
-      await api.put(`/avatar?userId=${user.id}`, {
-        equippedOptions: editingOptions,
-        equippedFrame: selectedFrame,
-      })
-    } catch (e) {
-      console.error("Failed to save avatar:", e)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const resetToDefault = () => {
-    setEditingOptions({})
-    setSelectedFrame(null)
-  }
-
-  const getPreviewUrl = (optionKey, optionValue) => {
-    const base = personaData ? (PERSONA_STYLES[personaData.persona_type] || {}) : {}
-    const preview = { ...base, ...editingOptions, [optionKey]: optionValue }
-    if (optionKey === "glasses" && optionValue !== "none") preview.glassesProbability = "100"
-    if (optionKey === "earrings" && optionValue !== "none") preview.earringsProbability = "100"
-    if (optionKey === "features" && optionValue !== "none") preview.featuresProbability = "100"
-    const params = new URLSearchParams({ seed: `user_${user.id}`, size: "48" })
-    Object.entries(preview).forEach(([k, v]) => {
-      if (v !== null && v !== undefined && v !== "") params.append(k, v)
-    })
-    return `https://api.dicebear.com/9.x/adventurer/svg?${params.toString()}`
-  }
-
   const activePersonaType = personaData ? (personaData.persona_primary || personaData.persona_type) : null
-
-  const mergedOptions = personaData
-    ? { ...PERSONA_STYLES[personaData.persona_type], ...editingOptions }
-    : editingOptions
 
   const confidenceData = personaData?.confidence_data || {}
   const confidenceScore = confidenceData.score !== undefined ? Math.round(confidenceData.score) : (personaData ? Math.round(personaData.confidence * 100) : 0)
@@ -488,330 +351,6 @@ export default function Persona() {
   const accentColor = activePersonaType ? (PERSONA_COLORS[activePersonaType] || DEFAULT_COLOR) : DEFAULT_COLOR
   const displayLabel = activePersonaType ? (PERSONA_LABELS[activePersonaType] || personaData?.persona_label || activePersonaType.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())) : ""
 
-  const discipline = personaData?.discipline || {}
-  const disciplineScore = Math.round(discipline.discipline_score || 0)
-
-  const renderTabContent = () => {
-    switch (tab) {
-      case "hair":
-        return [...HAIR_OPTIONS, ...LONG_HAIR_OPTIONS].map((h) => {
-          const itemKey = `hair_${h}`
-          const locked = isItemLocked(itemKey)
-          const selected = mergedOptions.hair === h
-          return (
-            <button
-              key={h}
-              className={`avatar-option ${selected ? "selected" : ""} ${locked ? "locked" : ""}`}
-              onClick={() => !locked && updateOption("hair", h)}
-              disabled={locked}
-            >
-              {locked && (
-                <span className="lock-overlay">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                </span>
-              )}
-              <img src={getPreviewUrl("hair", h)} alt={h} loading="lazy" />
-            </button>
-          )
-        })
-      case "eyes":
-        return EYES_OPTIONS.map((e) => (
-          <button
-            key={e}
-            className={`avatar-option ${mergedOptions.eyes === e ? "selected" : ""}`}
-            onClick={() => updateOption("eyes", e)}
-          >
-            <img src={getPreviewUrl("eyes", e)} alt={e} loading="lazy" />
-          </button>
-        ))
-      case "brows":
-        return EYEBROWS_OPTIONS.map((eb) => (
-          <button
-            key={eb}
-            className={`avatar-option ${mergedOptions.eyebrows === eb ? "selected" : ""}`}
-            onClick={() => updateOption("eyebrows", eb)}
-          >
-            <img src={getPreviewUrl("eyebrows", eb)} alt={eb} loading="lazy" />
-          </button>
-        ))
-      case "mouth":
-        return MOUTH_OPTIONS.map((m) => (
-          <button
-            key={m}
-            className={`avatar-option ${mergedOptions.mouth === m ? "selected" : ""}`}
-            onClick={() => updateOption("mouth", m)}
-          >
-            <img src={getPreviewUrl("mouth", m)} alt={m} loading="lazy" />
-          </button>
-        ))
-      case "accessories":
-        return (
-          <>
-            <div style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 600, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.5 }}>Glasses</div>
-            {GLASSES_OPTIONS.map((g) => {
-              const itemKey = g === "none" ? null : `glasses_${g}`
-              const locked = itemKey ? isItemLocked(itemKey) : false
-              const current = mergedOptions.glasses || "none"
-              return (
-                <button
-                  key={`g-${g}`}
-                  className={`avatar-option ${current === g || (g === "none" && !mergedOptions.glasses) ? "selected" : ""} ${locked ? "locked" : ""}`}
-                  onClick={() => !locked && updateOption("glasses", g)}
-                  disabled={locked}
-                >
-                  {locked && (
-                    <span className="lock-overlay">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                    </span>
-                  )}
-                  <img src={getPreviewUrl("glasses", g === "none" ? "" : g)} alt={g} loading="lazy" />
-                </button>
-              )
-            })}
-            <div style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 600, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 8 }}>Earrings</div>
-            {EARRINGS_OPTIONS.map((e) => {
-              const itemKey = e === "none" ? null : `earrings_${e}`
-              const locked = itemKey ? isItemLocked(itemKey) : false
-              const current = mergedOptions.earrings || "none"
-              return (
-                <button
-                  key={`e-${e}`}
-                  className={`avatar-option ${current === e || (e === "none" && !mergedOptions.earrings) ? "selected" : ""} ${locked ? "locked" : ""}`}
-                  onClick={() => !locked && updateOption("earrings", e)}
-                  disabled={locked}
-                >
-                  {locked && (
-                    <span className="lock-overlay">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                    </span>
-                  )}
-                  <img src={getPreviewUrl("earrings", e === "none" ? "" : e)} alt={e} loading="lazy" />
-                </button>
-              )
-            })}
-            <div style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 600, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 8 }}>Features</div>
-            {FEATURES_OPTIONS.map((f) => {
-              const itemKey = f === "none" ? null : `features_${f}`
-              const locked = itemKey ? isItemLocked(itemKey) : false
-              const current = mergedOptions.features || "none"
-              return (
-                <button
-                  key={`f-${f}`}
-                  className={`avatar-option ${current === f || (f === "none" && !mergedOptions.features) ? "selected" : ""} ${locked ? "locked" : ""}`}
-                  onClick={() => !locked && updateOption("features", f)}
-                  disabled={locked}
-                >
-                  {locked && (
-                    <span className="lock-overlay">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                    </span>
-                  )}
-                  <img src={getPreviewUrl("features", f === "none" ? "" : f)} alt={f} loading="lazy" />
-                </button>
-              )
-            })}
-            <div style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 600, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 12 }}>Religious &amp; Cultural</div>
-            <div style={{ gridColumn: "1 / -1", fontSize: 10, color: "var(--gray-400)", marginTop: -4, marginBottom: 4 }}>Headwear items are mutually exclusive — selecting one removes the others.</div>
-
-            <div style={{ gridColumn: "1 / -1", fontSize: 10, fontWeight: 600, color: "var(--gray-500)", marginTop: 4 }}>Hijab</div>
-            {HIJAB_OPTIONS.map((h) => {
-              const current = editingOptions.hijab || "none"
-              return (
-                <button
-                  key={`hijab-${h}`}
-                  className={`avatar-option color-swatch ${current === h ? "selected" : ""}`}
-                  onClick={() => {
-                    updateOption("kippah", "none"); updateOption("turban", "none"); updateOption("taqiyah", "none")
-                    updateOption("hijab", h)
-                  }}
-                  title={HIJAB_LABELS[h]}
-                >
-                  {h === "none" ? (
-                    <span className="color-circle color-circle-none">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                    </span>
-                  ) : (
-                    <span className="color-circle" style={{ background: HIJAB_COLORS[h] }} />
-                  )}
-                  <span style={{ fontSize: 9, color: "var(--gray-600)", marginTop: 2 }}>{HIJAB_LABELS[h]}</span>
-                </button>
-              )
-            })}
-
-            <div style={{ gridColumn: "1 / -1", fontSize: 10, fontWeight: 600, color: "var(--gray-500)", marginTop: 8 }}>Kippah</div>
-            {KIPPAH_OPTIONS.map((k) => {
-              const current = editingOptions.kippah || "none"
-              return (
-                <button
-                  key={`kippah-${k}`}
-                  className={`avatar-option color-swatch ${current === k ? "selected" : ""}`}
-                  onClick={() => {
-                    updateOption("hijab", "none"); updateOption("turban", "none"); updateOption("taqiyah", "none")
-                    updateOption("kippah", k)
-                  }}
-                  title={KIPPAH_LABELS[k]}
-                >
-                  {k === "none" ? (
-                    <span className="color-circle color-circle-none">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                    </span>
-                  ) : (
-                    <span className="color-circle" style={{ background: KIPPAH_COLORS[k] }} />
-                  )}
-                  <span style={{ fontSize: 9, color: "var(--gray-600)", marginTop: 2 }}>{KIPPAH_LABELS[k]}</span>
-                </button>
-              )
-            })}
-
-            <div style={{ gridColumn: "1 / -1", fontSize: 10, fontWeight: 600, color: "var(--gray-500)", marginTop: 8 }}>Turban</div>
-            {TURBAN_OPTIONS.map((t) => {
-              const current = editingOptions.turban || "none"
-              return (
-                <button
-                  key={`turban-${t}`}
-                  className={`avatar-option color-swatch ${current === t ? "selected" : ""}`}
-                  onClick={() => {
-                    updateOption("hijab", "none"); updateOption("kippah", "none"); updateOption("taqiyah", "none")
-                    updateOption("turban", t)
-                  }}
-                  title={TURBAN_LABELS[t]}
-                >
-                  {t === "none" ? (
-                    <span className="color-circle color-circle-none">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                    </span>
-                  ) : (
-                    <span className="color-circle" style={{ background: TURBAN_COLORS[t] }} />
-                  )}
-                  <span style={{ fontSize: 9, color: "var(--gray-600)", marginTop: 2 }}>{TURBAN_LABELS[t]}</span>
-                </button>
-              )
-            })}
-
-            <div style={{ gridColumn: "1 / -1", fontSize: 10, fontWeight: 600, color: "var(--gray-500)", marginTop: 8 }}>Taqiyah</div>
-            {TAQIYAH_OPTIONS.map((t) => {
-              const current = editingOptions.taqiyah || "none"
-              return (
-                <button
-                  key={`taqiyah-${t}`}
-                  className={`avatar-option color-swatch ${current === t ? "selected" : ""}`}
-                  onClick={() => {
-                    updateOption("hijab", "none"); updateOption("kippah", "none"); updateOption("turban", "none")
-                    updateOption("taqiyah", t)
-                  }}
-                  title={TAQIYAH_LABELS[t]}
-                >
-                  {t === "none" ? (
-                    <span className="color-circle color-circle-none">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                    </span>
-                  ) : (
-                    <span className="color-circle" style={{ background: TAQIYAH_COLORS[t] }} />
-                  )}
-                  <span style={{ fontSize: 9, color: "var(--gray-600)", marginTop: 2 }}>{TAQIYAH_LABELS[t]}</span>
-                </button>
-              )
-            })}
-
-            <div style={{ gridColumn: "1 / -1", fontSize: 10, fontWeight: 600, color: "var(--gray-500)", marginTop: 8 }}>Cross Necklace</div>
-            {CROSS_OPTIONS.map((c) => {
-              const current = editingOptions.crossNecklace || "none"
-              return (
-                <button
-                  key={`cross-${c}`}
-                  className={`avatar-option color-swatch ${current === c ? "selected" : ""}`}
-                  onClick={() => updateOption("crossNecklace", c)}
-                  title={CROSS_LABELS[c]}
-                >
-                  {c === "none" ? (
-                    <span className="color-circle color-circle-none">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                    </span>
-                  ) : (
-                    <span className="color-circle" style={{ background: CROSS_COLORS[c] }} />
-                  )}
-                  <span style={{ fontSize: 9, color: "var(--gray-600)", marginTop: 2 }}>{CROSS_LABELS[c]}</span>
-                </button>
-              )
-            })}
-          </>
-        )
-      case "colors":
-        return (
-          <>
-            <div style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 600, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.5 }}>Hair Colour</div>
-            {HAIR_COLORS.map((c) => (
-              <button
-                key={`hc-${c}`}
-                className={`avatar-option color-swatch ${mergedOptions.hairColor === c ? "selected" : ""}`}
-                onClick={() => updateOption("hairColor", c)}
-              >
-                <span className="color-circle" style={{ background: `#${c}` }} />
-              </button>
-            ))}
-            <div style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 600, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 8 }}>Skin Tone</div>
-            {SKIN_COLORS.map((c) => (
-              <button
-                key={`sc-${c}`}
-                className={`avatar-option color-swatch ${mergedOptions.skinColor === c ? "selected" : ""}`}
-                onClick={() => updateOption("skinColor", c)}
-              >
-                <span className="color-circle" style={{ background: `#${c}` }} />
-              </button>
-            ))}
-            <div style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 600, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 8 }}>Background</div>
-            {BG_COLORS.map((c) => (
-              <button
-                key={`bg-${c}`}
-                className={`avatar-option color-swatch ${mergedOptions.backgroundColor === c ? "selected" : ""}`}
-                onClick={() => updateOption("backgroundColor", c)}
-              >
-                <span className="color-circle" style={{ background: `#${c}` }} />
-              </button>
-            ))}
-          </>
-        )
-      case "frames":
-        return FRAME_OPTIONS.map((f) => {
-          const itemKey = f === "none" ? null : `frame_${f}`
-          const locked = itemKey ? isItemLocked(itemKey) : false
-          const selected = (selectedFrame || "none") === f
-          return (
-            <button
-              key={f}
-              className={`avatar-option frame-option ${selected ? "selected" : ""} ${locked ? "locked" : ""}`}
-              onClick={() => !locked && setSelectedFrame(f === "none" ? null : f)}
-              disabled={locked}
-            >
-              {locked && (
-                <span className="lock-overlay">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                </span>
-              )}
-              <div className={`frame-preview ${f !== "none" ? `avatar-frame-${f}` : ""}`} />
-              <span style={{ fontSize: 10, color: "var(--gray-600)", marginTop: 2 }}>{FRAME_LABELS[f]}</span>
-            </button>
-          )
-        })
-      default:
-        return null
-    }
-  }
 
   return (
     <div className="persona-page">
@@ -837,9 +376,11 @@ export default function Persona() {
             </div>
             <h2>{personaData ? "More Data Needed" : "Persona Locked"}</h2>
             <p>
-              {personaData
-                ? "Log more expenses to discover your spending persona. We need a broader spending history for accurate analysis."
-                : "Log at least 10 expenses so our AI can start analysing your spending patterns."}
+              {personaData?.description && personaData.description !== "Insufficient Data"
+                ? personaData.description
+                : personaData
+                  ? "Log more expenses to discover your spending persona. We need a broader spending history for accurate analysis."
+                  : "Log at least 10 expenses so our AI can start analysing your spending patterns."}
             </p>
             <div className="persona-progress-bar">
               <div
@@ -848,6 +389,14 @@ export default function Persona() {
               />
             </div>
             <span className="persona-progress-text">{expenseCount} / 10 expenses logged</span>
+            {analysisError && (
+              <p className="persona-analysis-error">{analysisError}</p>
+            )}
+            {expenseCount >= 10 && !analysing && (
+              <button className="persona-retry-btn" onClick={runAnalysis}>
+                Analyse Now
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -871,17 +420,14 @@ export default function Persona() {
             {/* Profile Card */}
             <div className="persona-profile-card">
               <div className="persona-profile-top">
-                <div
-                  className={`persona-avatar-wrapper ${selectedFrame ? `avatar-frame-${selectedFrame}` : ""}`}
-                  style={!selectedFrame ? { boxShadow: `0 8px 24px ${accentColor}30` } : undefined}
-                >
-                  <Avatar user={user} size="xl" persona={personaData.persona_type} customOptions={editingOptions} />
-                </div>
                 <div className="persona-profile-info">
-                  <span className={`persona-type-label persona-type-${activePersonaType}`}>
-                    <span className="dot" />
-                    {displayLabel}
-                  </span>
+                  <div className="persona-type-row">
+                    <span className={`persona-type-label persona-type-${activePersonaType}`}>
+                      <span className="dot" />
+                      {displayLabel}
+                    </span>
+                    <button className="persona-guide-btn" onClick={() => setShowGuide(true)}>View All Types</button>
+                  </div>
                   <h2>{user.name}</h2>
                   <p className="persona-description">{personaData.description}</p>
                   {personaData.domain_traits && personaData.domain_traits.length > 0 && (
@@ -911,10 +457,6 @@ export default function Persona() {
                   </div>
                   <div className="persona-stat-label">Confidence</div>
                 </div>
-                <div className="persona-stat">
-                  <div className="persona-stat-value">{disciplineScore}</div>
-                  <div className="persona-stat-label">Discipline Score</div>
-                </div>
               </div>
             </div>
 
@@ -930,6 +472,9 @@ export default function Persona() {
                   </h3>
                   <div className="radar-chart-container">
                     <RadarChart axes={personaData.spider_axes} />
+                  </div>
+                  <div className="radar-chart-footer">
+                    <button className="persona-guide-btn" onClick={() => setShowAxisGuide(true)}>View All Axes</button>
                   </div>
                 </div>
               )}
@@ -983,105 +528,7 @@ export default function Persona() {
                 </div>
               )}
 
-              <DisciplineCard discipline={personaData.discipline} />
 
-              {/* Avatar Editor */}
-              <div className="persona-detail-card avatar-editor-card">
-                <h3>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                  </svg>
-                  Customise Avatar
-                  <button className="avatar-edit-toggle" onClick={() => setEditorOpen(!editorOpen)}>
-                    {editorOpen ? "Close" : "Edit"}
-                  </button>
-                </h3>
-
-                {editorOpen && (
-                  <div className="avatar-editor">
-                    <div className="avatar-editor-preview">
-                      <div className={`avatar-editor-preview-inner ${selectedFrame ? `avatar-frame-${selectedFrame}` : ""}`}>
-                        <Avatar user={user} size="xl" persona={personaData.persona_type} customOptions={editingOptions} />
-                      </div>
-                    </div>
-
-                    <div className="avatar-editor-tabs">
-                      {[
-                        ["hair", "Hair"],
-                        ["eyes", "Eyes"],
-                        ["brows", "Brows"],
-                        ["mouth", "Mouth"],
-                        ["accessories", "Accessories"],
-                        ["colors", "Colours"],
-                        ["frames", "Frames"],
-                      ].map(([key, label]) => (
-                        <button key={key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="avatar-editor-options">{renderTabContent()}</div>
-
-                    <div className="avatar-editor-actions">
-                      <button className="avatar-reset-btn" onClick={resetToDefault}>
-                        Reset to Default
-                      </button>
-                      <button className="avatar-save-btn" onClick={saveCustomization} disabled={saving}>
-                        {saving ? "Saving..." : "Save"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Milestones */}
-              <div className="persona-detail-card milestones-card">
-                <h3>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 9 7 12 7s5-3 7.5-3a2.5 2.5 0 0 1 0 5H18" />
-                    <path d="M6 9v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9" />
-                  </svg>
-                  Avatar Milestones
-                </h3>
-                <div className="milestones-list">
-                  {milestones.map((m) => {
-                    const progressPct = Math.min((m.current / m.threshold) * 100, 100)
-                    return (
-                      <div key={m.id} className={`milestone-item ${m.achieved ? "achieved" : ""}`}>
-                        <div className="milestone-icon">
-                          {m.achieved ? (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          ) : (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                            </svg>
-                          )}
-                        </div>
-                        <div className="milestone-info">
-                          <span className="milestone-name">{m.name}</span>
-                          <span className="milestone-desc">{m.description}</span>
-                          <div className="milestone-progress-bar">
-                            <div className="milestone-progress-fill" style={{ width: `${progressPct}%` }} />
-                          </div>
-                          <span className="milestone-progress-text">
-                            {m.current} / {m.threshold} {m.type === "expense_count" ? "expenses" : "months"}
-                          </span>
-                        </div>
-                        <div className="milestone-rewards">
-                          {m.rewards.map((r) => (
-                            <span key={r} className="milestone-reward-badge">{formatRewardName(r)}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
 
               {/* Confidence Meter */}
               <div className="persona-detail-card">
@@ -1174,42 +621,81 @@ export default function Persona() {
                 )}
               </div>
 
-              {/* Emotional Spender */}
-              <div className="persona-detail-card">
-                <h3>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                    <line x1="9" y1="9" x2="9.01" y2="9" />
-                    <line x1="15" y1="9" x2="15.01" y2="9" />
-                  </svg>
-                  Emotional Spending
-                </h3>
-                <div className={`persona-emotional-status ${personaData.emotional_spender_flag ? "flagged" : "clear"}`}>
-                  <div className={`emotional-icon ${personaData.emotional_spender_flag ? "flagged" : "clear"}`}>
-                    {personaData.emotional_spender_flag ? (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
+              {/* Emotional Spending */}
+              {(() => {
+                const emo = personaData.emotional_spending || {}
+                const score = Math.round(emo.score || 0)
+                const level = emo.level || "low"
+                const flagged = score >= 40
+                const components = emo.components || {}
+                return (
+                  <div className="persona-detail-card">
+                    <h3>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                        <line x1="9" y1="9" x2="9.01" y2="9" />
+                        <line x1="15" y1="9" x2="15.01" y2="9" />
                       </svg>
-                    ) : (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                        <polyline points="22 4 12 14.01 9 11.01" />
-                      </svg>
+                      Emotional Spending
+                    </h3>
+                    <div className={`persona-emotional-status ${flagged ? "flagged" : "clear"}`}>
+                      <div className={`emotional-icon ${flagged ? "flagged" : "clear"}`}>
+                        {flagged ? (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                          </svg>
+                        ) : (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className={`emotional-info ${flagged ? "flagged" : "clear"}`}>
+                        <h4>
+                          {score}/100
+                          <span className={`emotional-level-badge ${level}`}>{level}</span>
+                        </h4>
+                        <p>{emo.summary || "No data yet."}</p>
+                      </div>
+                    </div>
+                    {Object.keys(components).length > 0 && (
+                      <div className="emotional-components">
+                        {[
+                          ["stressed_share", "Stressed Spending"],
+                          ["sad_share", "Sad Spending"],
+                          ["negative_frequency", "Negative Mood Frequency"],
+                          ["mood_overspend", "Mood-Driven Overspend"],
+                        ].map(([key, label]) => (
+                          <div key={key} className="emotional-component-row">
+                            <span className="emotional-component-label">{label}</span>
+                            <div className="emotional-component-bar-bg">
+                              <div
+                                className={`emotional-component-bar-fill ${(components[key] || 0) >= 50 ? "high" : ""}`}
+                                style={{ width: `${Math.min(components[key] || 0, 100)}%` }}
+                              />
+                            </div>
+                            <span className="emotional-component-value">{Math.round(components[key] || 0)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {emo.reasons && emo.reasons.length > 0 && (
+                      <div className="emotional-reasons">
+                        {emo.reasons.map((reason, i) => (
+                          <div key={i} className="emotional-reason-item">
+                            <span className="emotional-reason-dot" />
+                            <span>{reason}</span>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  <div className={`emotional-info ${personaData.emotional_spender_flag ? "flagged" : "clear"}`}>
-                    <h4>{personaData.emotional_spender_flag ? "Emotional Spending Detected" : "No Emotional Spending"}</h4>
-                    <p>
-                      {personaData.emotional_spender_flag
-                        ? "Your spending tends to increase when you're stressed. Try mindful spending techniques."
-                        : "Your spending isn't significantly influenced by your mood. Keep it up!"}
-                    </p>
-                  </div>
-                </div>
-              </div>
+                )
+              })()}
 
               <NudgeList nudges={nudgesData} />
 
@@ -1274,6 +760,59 @@ export default function Persona() {
               Persona analysis powered by machine learning
             </div>
           </>
+        )}
+
+        {showGuide && (
+          <div className="persona-guide-overlay" onClick={() => setShowGuide(false)}>
+            <div className="persona-guide-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="persona-guide-modal-header">
+                <h3>Spending Persona Types</h3>
+                <button className="persona-guide-close" onClick={() => setShowGuide(false)}>&times;</button>
+              </div>
+              <p className="persona-guide-subtitle">Our ML model classifies your behaviour into one of these personas based on your transaction patterns.</p>
+              <div className="persona-types-grid">
+                {Object.entries(PERSONA_LABELS).filter(([k]) => k !== "INSUFFICIENT_DATA").map(([key, label]) => (
+                  <div
+                    key={key}
+                    className={`persona-type-card ${activePersonaType === key ? "current" : ""}`}
+                  >
+                    <div className="persona-type-card-header">
+                      <span className="persona-type-dot" style={{ background: PERSONA_COLORS[key] || DEFAULT_COLOR }} />
+                      <span className="persona-type-name">{label}</span>
+                      {activePersonaType === key && <span className="persona-type-you">You</span>}
+                    </div>
+                    <p className="persona-type-desc">{PERSONA_DESCRIPTIONS[key]}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showAxisGuide && (
+          <div className="persona-guide-overlay" onClick={() => setShowAxisGuide(false)}>
+            <div className="persona-guide-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="persona-guide-modal-header">
+                <h3>Behavioural Profile Axes</h3>
+                <button className="persona-guide-close" onClick={() => setShowAxisGuide(false)}>&times;</button>
+              </div>
+              <p className="persona-guide-subtitle">Each axis on the radar chart measures a different dimension of your spending behaviour.</p>
+              <div className="persona-types-grid">
+                {Object.entries(SPIDER_AXIS_LABELS).map(([key, label]) => (
+                  <div key={key} className="persona-type-card">
+                    <div className="persona-type-card-header">
+                      <span className="persona-type-dot" style={{ background: "var(--emerald-500)" }} />
+                      <span className="persona-type-name">{label}</span>
+                      {personaData?.spider_axes?.[key] !== undefined && (
+                        <span className="axis-score-badge">{Math.round(personaData.spider_axes[key])}</span>
+                      )}
+                    </div>
+                    <p className="persona-type-desc">{SPIDER_AXIS_DESCRIPTIONS[key]}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

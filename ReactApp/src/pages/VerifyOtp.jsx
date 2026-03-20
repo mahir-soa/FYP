@@ -77,7 +77,7 @@ export default function VerifyOtp() {
       await verifyOtp(email, otpString)
       setSuccess(true)
       setTimeout(() => {
-        navigate("/onboarding")
+        navigate("/")
       }, 1500)
     } catch (err) {
       setError(err.response?.data?.message || "Verification failed. Please try again.")
@@ -124,7 +124,7 @@ export default function VerifyOtp() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <div className="success-icon">🔐</div>
+        <div className="success-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
         <h2>Enter Verification Code</h2>
         <p className="auth-subtitle">
           We sent a 6-digit code to <strong>{email}</strong>

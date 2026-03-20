@@ -289,7 +289,116 @@ def _predict_base_persona(clustering_features):
     }
 
 
-# B. DOMAIN TRAITS
+# B. EMOTIONAL SPENDING (data-driven)
+
+def compute_emotional_spending(features):
+    """Score emotional spending from user-reported moods on expenses (0-100).
+
+    Uses the mood tags users attach to each expense in the logger.
+    Four signals, each scaled 0-100 then weighted:
+      1. Stressed spending share  (35%) — % of spend logged as Stressed
+      2. Sad spending share       (25%) — % of spend logged as Sad
+      3. Negative mood frequency  (20%) — fraction of transactions tagged Stressed/Sad
+      4. Mood-driven overspend    (20%) — whether Stressed/Sad avg txn > overall avg
+    """
+    reasons = []
+
+    total_txns = features.get('txn_count', 0)
+    avg_txn = features.get('avg_txn', 0)
+    total_spend = features.get('total_spend', 0)
+
+    stressed_count = features.get('stressed_txn_count', 0)
+    stressed_avg = features.get('stressed_spend_avg', 0)
+    sad_count = features.get('sad_txn_count', 0)
+    sad_avg = features.get('sad_spend_avg', 0)
+    happy_count = features.get('happy_txn_count', 0)
+    excited_count = features.get('excited_txn_count', 0)
+    neutral_count = features.get('neutral_txn_count', 0)
+
+    moods_logged = stressed_count + sad_count + happy_count + excited_count + neutral_count
+
+    # If no moods logged at all, return a clean zero state
+    if moods_logged == 0:
+        return {
+            'score': 0,
+            'level': 'none',
+            'summary': 'No mood data yet. Tag your expenses with a mood to see emotional spending insights.',
+            'reasons': [],
+            'components': {
+                'stressed_share': 0,
+                'sad_share': 0,
+                'negative_frequency': 0,
+                'mood_overspend': 0,
+            },
+        }
+
+    # 1. Stressed spending share — what % of total spend was logged as Stressed
+    stressed_spend = stressed_avg * stressed_count
+    stressed_share = (stressed_spend / max(total_spend, 0.01)) if total_spend > 0 else 0
+    stressed_score = min(100, (stressed_share / 0.40) * 100)
+    if stressed_count > 0:
+        reasons.append(f"{stressed_count} expense{'s' if stressed_count != 1 else ''} logged as Stressed (£{stressed_spend:.0f} total)")
+
+    # 2. Sad spending share
+    sad_spend = sad_avg * sad_count
+    sad_share = (sad_spend / max(total_spend, 0.01)) if total_spend > 0 else 0
+    sad_score = min(100, (sad_share / 0.30) * 100)
+    if sad_count > 0:
+        reasons.append(f"{sad_count} expense{'s' if sad_count != 1 else ''} logged as Sad (£{sad_spend:.0f} total)")
+
+    # 3. Negative mood frequency — fraction of mood-tagged txns that are Stressed or Sad
+    negative_count = stressed_count + sad_count
+    negative_freq = negative_count / max(moods_logged, 1)
+    freq_score = min(100, (negative_freq / 0.50) * 100)
+    if negative_freq > 0.25:
+        reasons.append(f"{round(negative_freq * 100)}% of your mood-tagged expenses are Stressed or Sad")
+
+    # 4. Mood-driven overspend — do you spend more when Stressed/Sad vs your average?
+    if negative_count > 0 and avg_txn > 0:
+        negative_avg = (stressed_spend + sad_spend) / negative_count
+        overspend_ratio = negative_avg / max(avg_txn, 0.01)
+        overspend_score = min(100, max(0, (overspend_ratio - 1.0) / 0.80) * 100)
+        if overspend_ratio > 1.15:
+            reasons.append(f"You spend {overspend_ratio:.1f}x more per purchase when Stressed or Sad")
+    else:
+        overspend_score = 0
+
+    score = round(
+        stressed_score * 0.35
+        + sad_score * 0.25
+        + freq_score * 0.20
+        + overspend_score * 0.20,
+        1,
+    )
+
+    if score >= 60:
+        level = 'high'
+        summary = 'A significant portion of your spending happens when you feel Stressed or Sad.'
+    elif score >= 40:
+        level = 'moderate'
+        summary = 'Some of your spending is linked to negative moods.'
+    elif score >= 20:
+        level = 'mild'
+        summary = 'Minor emotional spending patterns detected.'
+    else:
+        level = 'low'
+        summary = 'Your spending is not strongly tied to negative moods.'
+
+    return {
+        'score': score,
+        'level': level,
+        'summary': summary,
+        'reasons': reasons[:4],
+        'components': {
+            'stressed_share': round(stressed_score, 1),
+            'sad_share': round(sad_score, 1),
+            'negative_frequency': round(freq_score, 1),
+            'mood_overspend': round(overspend_score, 1),
+        },
+    }
+
+
+# C. DOMAIN TRAITS
 
 def compute_domain_traits(features, clustering_features):
     # Thresholds are set at approximately P90 of the Sparkov reference
@@ -308,12 +417,9 @@ def compute_domain_traits(features, clustering_features):
     if late_night > 0.34:
         traits.append('LATE_NIGHT_TENDENCY')
 
-    # Emotional spender (from mood data, app-only, no Sparkov equivalent)
-    stressed_avg = features.get('stressed_spend_avg', 0)
-    neutral_avg = max(features.get('neutral_spend_avg', 0.01), 0.01)
-    stressed_count = features.get('stressed_txn_count', 0)
-    neutral_count = max(features.get('neutral_txn_count', 1), 1)
-    if stressed_avg > neutral_avg or stressed_count > neutral_count * 0.5:
+    # Emotional spender — based on user-reported moods
+    emo = compute_emotional_spending(features)
+    if emo['score'] >= 40:
         traits.append('EMOTIONAL_SPENDER')
 
     # High volatility: P90 of spend_cv = 3.2, P90 of monthly_spend_cv = 0.55
@@ -581,8 +687,9 @@ def predict_persona_full(clustering_features, features, expenses, budgets, subsc
     # Nudge style
     nudge_style = NUDGE_STYLES.get(base['persona_type'], DEFAULT_NUDGE_STYLE)
 
-    # Emotional spender flag (from domain traits for backward compat)
-    emotional_flag = 'EMOTIONAL_SPENDER' in domain_traits
+    # Emotional spending — data-driven from expenditure patterns
+    emotional = compute_emotional_spending(features)
+    emotional_flag = emotional['score'] >= 45
 
     # Provisional flag from clustering features
     provisional = clustering_features.get('provisional', False)
@@ -600,6 +707,7 @@ def predict_persona_full(clustering_features, features, expenses, budgets, subsc
         'discipline': discipline,
         'nudge_style': nudge_style,
         'emotional_spender_flag': emotional_flag,
+        'emotional_spending': emotional,
         'top_features': base['top_features'],
         'provisional': provisional,
     }

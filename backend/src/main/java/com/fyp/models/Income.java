@@ -21,7 +21,7 @@ public class Income {
     private String source;
     private double amount;
     private String date;
-    private String frequency; // ONE_TIME, WEEKLY, MONTHLY, YEARLY
+    private String frequency; // ONE_TIME, WEEKLY, BI_WEEKLY, MONTHLY, YEARLY
 
     public Income() {}
 

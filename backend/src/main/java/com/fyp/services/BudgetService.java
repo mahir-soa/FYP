@@ -460,6 +460,7 @@ public class BudgetService {
                     if ("MONTHLY".equals(inc.getFrequency())) return inc.getAmount();
                     if ("YEARLY".equals(inc.getFrequency())) return inc.getAmount() / 12;
                     if ("WEEKLY".equals(inc.getFrequency())) return inc.getAmount() * 4.33;
+                    if ("BI_WEEKLY".equals(inc.getFrequency())) return inc.getAmount() * 2.17;
                     return 0;
                 }).sum();
     }

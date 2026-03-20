@@ -22,24 +22,33 @@ def extract_clustering_features(expenses):
     if not expenses or len(expenses) < MIN_CLUSTERING_TXNS:
         return None
 
-    df = pd.DataFrame([{
-        'amount': e.amount,
-        'category': e.category,
-        'date': pd.to_datetime(e.date),
-        'description': getattr(e, 'description', '') or '',
-    } for e in expenses])
+    rows = []
+    for e in expenses:
+        try:
+            dt = pd.to_datetime(e.date)
+        except Exception:
+            continue
+        if pd.isna(dt):
+            continue
+        rows.append({
+            'amount': float(e.amount or 0),
+            'category': e.category,
+            'date': dt,
+            'description': getattr(e, 'description', '') or '',
+            'time_of_day': getattr(e, 'time', None) or '',
+        })
 
-    df['hour'] = df['date'].dt.hour
+    if len(rows) < MIN_CLUSTERING_TXNS:
+        return None
+
+    df = pd.DataFrame(rows)
+
     df['dow'] = df['date'].dt.dayofweek
     df['month'] = df['date'].dt.to_period('M')
     df['is_weekend'] = df['dow'] >= 5
 
-    # Late night: check if timestamps have real hours (not all midnight)
-    has_real_hours = (df['hour'] != 0).any()
-    if has_real_hours:
-        df['is_late_night'] = ((df['hour'] >= 22) | (df['hour'] < 5))
-    else:
-        df['is_late_night'] = False
+    # Late night: use user-reported time-of-day field
+    df['is_late_night'] = df['time_of_day'].str.strip().str.lower() == 'late night'
 
     # Map app categories to clustering categories
     df['cluster_cat'] = df['category'].map(CLUSTERING_CATEGORY_MAP).fillna('other')
@@ -139,15 +148,30 @@ def extract_features(expenses, budgets, subscriptions, incomes):
     if not expenses:
         return None
 
-    df = pd.DataFrame([{
-        'amount': e.amount,
-        'category': e.category,
-        'mood': e.mood,
-        'date': pd.to_datetime(e.date),
-    } for e in expenses])
+    rows = []
+    for e in expenses:
+        try:
+            dt = pd.to_datetime(e.date)
+        except Exception:
+            continue
+        if pd.isna(dt):
+            continue
+        rows.append({
+            'amount': float(e.amount or 0),
+            'category': e.category,
+            'mood': e.mood,
+            'date': dt,
+            'time_of_day': getattr(e, 'time', None) or '',
+        })
+
+    if not rows:
+        return None
+
+    df = pd.DataFrame(rows)
 
     df['dow'] = df['date'].dt.dayofweek
     df['is_weekend'] = df['dow'] >= 5
+    df['is_late_night'] = df['time_of_day'].str.strip().str.lower() == 'late night'
     df['month'] = df['date'].dt.to_period('M').astype(str)
 
     current_month = df['month'].max()
@@ -235,6 +259,43 @@ def extract_features(expenses, budgets, subscriptions, incomes):
     features['daily_spend_mean'] = round(daily_totals.mean(), 2) if len(daily_totals) > 0 else 0
     features['daily_spend_std'] = round(daily_totals.std(), 2) if len(daily_totals) > 1 else 0
     features['days_with_expenses'] = len(daily_totals)
+
+    # ── Emotional spending signals (data-driven) ──
+    mean_amt = month_df['amount'].mean()
+    std_amt = month_df['amount'].std() if len(month_df) > 1 else 0
+    spike_threshold = mean_amt + 1.5 * std_amt if std_amt > 0 else mean_amt * 2
+
+    # 1. Spike ratio: fraction of txns significantly above average
+    spike_count = int((month_df['amount'] > spike_threshold).sum())
+    features['spike_ratio'] = round(spike_count / max(len(month_df), 1), 4)
+    features['spike_count'] = spike_count
+    features['spike_threshold'] = round(spike_threshold, 2)
+
+    # 2. Burst days: days with 3+ transactions (clustered impulse buying)
+    txns_per_day = month_df.groupby(month_df['date'].dt.date).size()
+    burst_days = int((txns_per_day >= 3).sum())
+    active_days = len(txns_per_day)
+    features['burst_day_ratio'] = round(burst_days / max(active_days, 1), 4)
+    features['burst_days'] = burst_days
+
+    # 3. Daily spend CV: erratic daily totals suggest emotional triggers
+    daily_cv = (daily_totals.std() / daily_totals.mean()) if len(daily_totals) > 1 and daily_totals.mean() > 0 else 0
+    features['daily_spend_cv'] = round(daily_cv, 4)
+
+    # 4. Late-night impulse: user-tagged "Late Night" expenses that exceed average
+    late_night_mask = month_df['is_late_night'] if 'is_late_night' in month_df.columns else pd.Series(False, index=month_df.index)
+    late_above_avg = int((late_night_mask & (month_df['amount'] > mean_amt)).sum())
+    late_total = int(late_night_mask.sum())
+    features['late_impulse_count'] = late_above_avg
+    features['late_night_count'] = late_total
+    features['late_impulse_ratio'] = round(late_above_avg / max(len(month_df), 1), 4)
+
+    # 5. Weekend surge: weekend spend per day vs weekday spend per day
+    wkend_days = max(month_df[month_df['is_weekend']].groupby(month_df[month_df['is_weekend']]['date'].dt.date).ngroups, 1)
+    wkday_days = max(month_df[~month_df['is_weekend']].groupby(month_df[~month_df['is_weekend']]['date'].dt.date).ngroups, 1)
+    wkend_daily = weekend_spend / wkend_days if weekend_spend > 0 else 0
+    wkday_daily = weekday_spend / wkday_days if weekday_spend > 0 else 0.01
+    features['weekend_surge'] = round(wkend_daily / max(wkday_daily, 0.01), 4)
 
     return features
 

@@ -177,7 +177,7 @@ export default function Navbar() {
                       Bills & Utilities
                     </Link>
                     <Link to="/plans" className={`nav-dropdown-item ${location.pathname === '/plans' ? 'active' : ''}`}>
-                      Goals
+                      Plans
                     </Link>
                     <Link to="/chat" className={`nav-dropdown-item ${location.pathname === '/chat' ? 'active' : ''}`}>
                       AI Assistant

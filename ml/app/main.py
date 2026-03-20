@@ -61,16 +61,22 @@ def analyse_user(user_id: int, db: Session = Depends(get_db)):
 
     # If clustering features unavailable, return INSUFFICIENT_DATA persona
     if clustering_features is None:
+        # Diagnostic: figure out why clustering failed
+        import pandas as _pd
+        valid_dates = sum(1 for e in expenses if e.date and not _pd.isna(_pd.to_datetime(e.date, errors='coerce')))
+        total_amount = sum(float(e.amount or 0) for e in expenses)
+        diag = f"Found {len(expenses)} expenses, {valid_dates} with valid dates, total £{total_amount:.2f}. Need 10+ valid-date expenses with positive spend."
+
         persona_result = {
             'persona_type': 'INSUFFICIENT_DATA',
             'persona_primary': 'INSUFFICIENT_DATA',
             'persona_label': 'Insufficient Data',
-            'description': 'We need more spending data to accurately determine your persona.',
+            'description': diag,
             'confidence': 0.0,
             'confidence_data': {'score': 0, 'level': 'Low', 'data_sufficiency': 0, 'stability': 0, 'cluster_fit': 0},
             'domain_traits': [],
             'spider_axes': {},
-            'explanation': {'text': 'Not enough data to determine your spending persona yet.', 'reasons': []},
+            'explanation': {'text': diag, 'reasons': []},
             'discipline': {},
             'nudge_style': {'style': 'awareness', 'budget_sensitivity': 0.80, 'spike_alerts': False, 'reinforcement': False},
             'emotional_spender_flag': False,
@@ -188,12 +194,14 @@ def get_persona(user_id: int, db: Session = Depends(get_db)):
         except json.JSONDecodeError:
             pass
 
-    # Recompute domain traits and explanation from stored snapshot
-    from app.services.persona_service import compute_domain_traits, generate_explanation, build_spider_explanation, NUDGE_STYLES, DEFAULT_NUDGE_STYLE
+    # Recompute domain traits, emotional spending, and explanation from stored snapshot
+    from app.services.persona_service import compute_domain_traits, compute_emotional_spending, generate_explanation, build_spider_explanation, NUDGE_STYLES, DEFAULT_NUDGE_STYLE
     domain_traits = []
     explanation = {'text': '', 'reasons': []}
+    emotional_spending = {'score': 0, 'level': 'low', 'summary': '', 'reasons': [], 'components': {}}
     if clustering_snapshot and feature_snapshot:
         domain_traits = compute_domain_traits(feature_snapshot, clustering_snapshot)
+        emotional_spending = compute_emotional_spending(feature_snapshot)
         persona_type_val = persona.persona_type or ''
         explanation = generate_explanation(
             persona_type_val,
@@ -219,6 +227,7 @@ def get_persona(user_id: int, db: Session = Depends(get_db)):
         'discipline': discipline,
         'nudge_style': nudge_style,
         'emotional_spender_flag': persona.emotional_spender_flag,
+        'emotional_spending': emotional_spending,
         'top_features': result.get('top_features', []),
         'provisional': clustering_snapshot.get('provisional', False) if clustering_snapshot else False,
         'calculated_at': persona.calculated_at.isoformat() if persona.calculated_at else None,

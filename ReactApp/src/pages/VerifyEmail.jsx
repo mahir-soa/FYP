@@ -31,7 +31,7 @@ export default function VerifyEmail() {
       <div className="auth-card">
         {status === "verifying" && (
           <>
-            <div className="success-icon">⏳</div>
+            <div className="success-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
             <h2>Verifying Email</h2>
             <p className="auth-subtitle">Please wait while we verify your email...</p>
           </>

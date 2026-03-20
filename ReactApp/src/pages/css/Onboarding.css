@@ -116,6 +116,13 @@
   color: var(--gray-700);
 }
 
+.welcome-tip {
+  font-size: 13px;
+  color: var(--gray-500);
+  text-align: center;
+  margin: 0;
+}
+
 /* Form elements */
 .step-form {
   display: flex;

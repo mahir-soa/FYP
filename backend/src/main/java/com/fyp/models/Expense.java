@@ -19,6 +19,7 @@ public class Expense {
     private Long userId;
 
     private String date;
+    private String time;
     private String description;
     private double amount;
     private String category;
@@ -50,6 +51,14 @@ public class Expense {
 
     public void setDate(String date) {
         this.date = date;
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
     }
 
     public String getDescription() {

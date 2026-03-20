@@ -38,7 +38,7 @@ public class UserPersona {
     @Column(name = "emotional_spender_flag")
     private Boolean emotionalSpenderFlag = false;
 
-    @Column(name = "feature_snapshot", length = 2000)
+    @Column(name = "feature_snapshot", columnDefinition = "TEXT")
     private String featureSnapshot;
 
     @Column(name = "calculated_at")
