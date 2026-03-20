@@ -28,4 +28,12 @@ public interface NudgeRepository extends JpaRepository<Nudge, Long> {
                                       @Param("since") LocalDateTime since);
 
     long countByUserIdAndIsReadFalseAndIsDismissedFalse(Long userId);
+
+    @Query("SELECT n FROM Nudge n WHERE n.userId = :userId AND n.type = :type " +
+           "AND n.trigger = :trigger AND n.createdAt > :since " +
+           "ORDER BY n.createdAt DESC")
+    List<Nudge> findRecentByTypeAndTrigger(@Param("userId") Long userId,
+                                            @Param("type") String type,
+                                            @Param("trigger") String trigger,
+                                            @Param("since") LocalDateTime since);
 }

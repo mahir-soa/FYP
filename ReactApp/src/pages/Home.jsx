@@ -4,6 +4,7 @@ import axios from "axios"
 import { useAuth } from "../context/AuthContext"
 import Navbar from "../components/Navbar"
 import budgetBot from "../assets/budget-bot.png"
+import { fmt } from "../utils/format"
 import "./css/Home.css"
 
 const API_BASE = "http://localhost:8080/api"
@@ -357,7 +358,7 @@ function Dashboard({ user }) {
               <div className="hero-bar-track">
                 <div className="hero-bar-fill" style={{width: `${spentPercent}%`}}></div>
               </div>
-              <span className="hero-bar-text">£{totalSpent.toFixed(2)} of £{totalBudget.toFixed(2)} spent</span>
+              <span className="hero-bar-text">£{fmt(totalSpent)} of £{fmt(totalBudget)} spent</span>
             </div>
           </div>
           <div className="budget-hero-right">
@@ -402,7 +403,7 @@ function Dashboard({ user }) {
                 <div className="category-header">
                   <span className={`category-dot ${cat.color}`}></span>
                   <span className="category-name">{cat.name}</span>
-                  <span className="category-amount">£{cat.spent.toFixed(0)} / £{cat.limit}</span>
+                  <span className="category-amount">£{fmt(cat.spent, 0)} / £{fmt(cat.limit, 0)}</span>
                 </div>
                 <div className="category-bar">
                   <div
@@ -421,7 +422,7 @@ function Dashboard({ user }) {
         <div className="quick-stats">
           <div className="quick-stat">
             <span className="stat-label">This month</span>
-            <span className="stat-value">£{totalSpent.toFixed(2)}</span>
+            <span className="stat-value">£{fmt(totalSpent)}</span>
           </div>
           <div className="quick-stat">
             <span className="stat-label">Transactions</span>

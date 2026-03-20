@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../context/AuthContext"
 import axios from "axios"
 import Navbar from "../components/Navbar"
+import { fmt } from "../utils/format"
 import "./css/Bills.css"
 
 const API_BASE = "http://localhost:8080/api/bills"
@@ -220,14 +221,14 @@ export default function Bills() {
                   <div className="summary-icon">📋</div>
                   <div className="summary-content">
                     <span className="summary-label">Monthly Bills</span>
-                    <span className="summary-value">£{summary.totalMonthlyBills?.toFixed(2)}</span>
+                    <span className="summary-value">£{fmt(summary.totalMonthlyBills)}</span>
                   </div>
                 </div>
                 <div className="summary-card paid">
                   <div className="summary-icon">✅</div>
                   <div className="summary-content">
                     <span className="summary-label">Paid This Month</span>
-                    <span className="summary-value">£{summary.paidThisMonth?.toFixed(2)}</span>
+                    <span className="summary-value">£{fmt(summary.paidThisMonth)}</span>
                     <span className="summary-count">{summary.paidCount} of {summary.totalBills} bills</span>
                   </div>
                 </div>
@@ -235,7 +236,7 @@ export default function Bills() {
                   <div className="summary-icon">⏳</div>
                   <div className="summary-content">
                     <span className="summary-label">Remaining</span>
-                    <span className="summary-value">£{summary.unpaidThisMonth?.toFixed(2)}</span>
+                    <span className="summary-value">£{fmt(summary.unpaidThisMonth)}</span>
                     <span className="summary-count">{summary.unpaidCount} bills left</span>
                   </div>
                 </div>
@@ -267,7 +268,7 @@ export default function Bills() {
                             <span className="bill-freq">{formatFrequency(bill.frequency)}</span>
                           </div>
                         </div>
-                        <div className="bill-amount">£{bill.amount.toFixed(2)}</div>
+                        <div className="bill-amount">£{fmt(bill.amount)}</div>
                         <div className={`bill-status-badge ${status}`}>
                           {status === "overdue" ? "Overdue" : status === "due-soon" ? "Due Soon" : "Upcoming"}
                         </div>
@@ -318,7 +319,7 @@ export default function Bills() {
                             <span className="bill-paid-date">Paid {bill.paidDate}</span>
                           </div>
                         </div>
-                        <div className="bill-amount">£{bill.amount.toFixed(2)}</div>
+                        <div className="bill-amount">£{fmt(bill.amount)}</div>
                         <div className="bill-status-badge paid">Paid</div>
                         <div className="bill-actions">
                           <button

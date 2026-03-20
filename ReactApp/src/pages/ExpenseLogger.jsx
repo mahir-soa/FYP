@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../context/AuthContext"
 import axios from "axios"
 import Navbar from "../components/Navbar"
+import { fmt } from "../utils/format"
 import "./css/ExpenseLogger.css"
 
 import foodIcon from "../assets/fast-food.png"
@@ -336,21 +337,21 @@ export default function ExpenseLogger() {
             onClick={() => handleQuickFilter("today")}
           >
             <div className="stat-label">Today</div>
-            <div className="stat-value">£{todayTotal.toFixed(2)}</div>
+            <div className="stat-value">£{fmt(todayTotal)}</div>
           </div>
           <div
             className={`stat-card ${quickFilter === "week" ? "active" : ""}`}
             onClick={() => handleQuickFilter("week")}
           >
             <div className="stat-label">This Week</div>
-            <div className="stat-value">£{weekTotal.toFixed(2)}</div>
+            <div className="stat-value">£{fmt(weekTotal)}</div>
           </div>
           <div
             className={`stat-card ${quickFilter === "month" ? "active" : ""}`}
             onClick={() => handleQuickFilter("month")}
           >
             <div className="stat-label">This Month</div>
-            <div className="stat-value">£{monthTotal.toFixed(2)}</div>
+            <div className="stat-value">£{fmt(monthTotal)}</div>
           </div>
         </div>
 
@@ -409,7 +410,7 @@ export default function ExpenseLogger() {
                 {quickFilter === "week" ? "This Week" : quickFilter === "month" ? "This Month" : formatDisplayDate(filterDate)}
               </h2>
               <span className="expense-count">
-                {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? "s" : ""} · £{totalForPeriod.toFixed(2)}
+                {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? "s" : ""} · £{fmt(totalForPeriod)}
               </span>
             </div>
             <div className="expense-list">
@@ -435,7 +436,7 @@ export default function ExpenseLogger() {
                     )}
                     {exp.mood && <p className="expense-mood">{exp.mood}</p>}
                   </div>
-                  <span className="expense-amount">£{Number(exp.amount || 0).toFixed(2)}</span>
+                  <span className="expense-amount">£{fmt(exp.amount || 0)}</span>
                   <div className="expense-actions">
                     <button className="action-btn edit" onClick={() => handleEdit(exp)}>Edit</button>
                     <button className="action-btn delete" onClick={() => handleDelete(exp.id)}>Delete</button>

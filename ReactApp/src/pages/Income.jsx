@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../context/AuthContext"
 import axios from "axios"
 import Navbar from "../components/Navbar"
+import { fmt } from "../utils/format"
 import "./css/Income.css"
 
 const API_BASE = "http://localhost:8080/api/incomes"
@@ -153,11 +154,11 @@ export default function Income() {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-label">Monthly Income</div>
-            <div className="stat-value income">£{totalMonthly.toFixed(2)}</div>
+            <div className="stat-value income">£{fmt(totalMonthly)}</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Yearly Income</div>
-            <div className="stat-value income">£{totalYearly.toFixed(2)}</div>
+            <div className="stat-value income">£{fmt(totalYearly)}</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Sources</div>
@@ -190,7 +191,7 @@ export default function Income() {
                     {inc.date && <span className="income-date">{formatDisplayDate(inc.date)}</span>}
                   </div>
                 </div>
-                <div className="income-amount">£{inc.amount.toFixed(2)}</div>
+                <div className="income-amount">£{fmt(inc.amount)}</div>
                 <div className="income-actions">
                   <button className="action-btn edit" onClick={() => handleEdit(inc)}>Edit</button>
                   <button className="action-btn delete" onClick={() => handleDelete(inc.id)}>Delete</button>

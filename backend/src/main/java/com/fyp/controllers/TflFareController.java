@@ -13,7 +13,7 @@ import com.fyp.services.TflFareService;
 
 @RestController
 @RequestMapping("/api/tfl")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class TflFareController {
 
     private final TflFareService fareService;

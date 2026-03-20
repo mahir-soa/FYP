@@ -6,10 +6,10 @@ import Avatar, { PERSONA_STYLES, buildDiceBearUrl, HIJAB_COLORS, KIPPAH_COLORS, 
 import "./css/Persona.css"
 
 const PERSONA_TIPS = {
-  IMPULSIVE_SPENDER: [
+  ERRATIC_SPENDER: [
     "Try a 24-hour rule — wait a day before making non-essential purchases over £20.",
     "Set up a separate 'fun money' account with a fixed weekly limit.",
-    "Track your mood before buying — stress shopping can add up quickly.",
+    "Review your last week's spending each Monday to spot irregular patterns.",
   ],
   CAUTIOUS_SAVER: [
     "You're doing great! Consider putting savings into a high-interest account.",
@@ -21,12 +21,7 @@ const PERSONA_TIPS = {
     "Try free or low-cost weekend activities like parks, cooking at home, or free events.",
     "Move money to savings on Friday before the weekend starts.",
   ],
-  SUBSCRIPTION_HOARDER: [
-    "Audit your subscriptions — cancel anything you haven't used in 30 days.",
-    "Use a single streaming service at a time and rotate monthly.",
-    "Check for family or student discounts on subscriptions you keep.",
-  ],
-  BALANCED_BUDGETER: [
+  BALANCED_SPENDER: [
     "Great balance! Consider increasing your savings rate by even 2-3%.",
     "Look into automating your investments to grow wealth passively.",
     "Share your budgeting strategies — you could help others improve too.",
@@ -36,45 +31,53 @@ const PERSONA_TIPS = {
     "Use envelope budgeting to cap each category's spending.",
     "Track spending daily — awareness is the first step to consistency.",
   ],
-  DISCIPLINED_PLANNER: [
-    "Excellent discipline! Consider increasing investment contributions.",
-    "You're ready for advanced strategies like index funds or ISAs.",
-    "Keep reviewing goals quarterly to stay on track.",
+  LATE_NIGHT_SPENDER: [
+    "Set a spending curfew — avoid purchases after 10pm.",
+    "Remove saved payment methods from late-night shopping apps.",
+    "Plan your next-day purchases before bed instead of buying impulsively.",
   ],
-  WEEKEND_SPIKER: [
-    "Plan weekend activities in advance and set a weekend budget cap.",
-    "Try free or low-cost weekend activities like parks, cooking at home, or free events.",
-    "Move money to savings on Friday before the weekend starts.",
-  ],
-  CATEGORY_FOCUSED_SPENDER: [
+  CATEGORY_FOCUSED: [
     "Review your top spending category — can you find cheaper alternatives?",
     "Set a hard cap for your dominant category and track it weekly.",
     "Diversify spending to avoid over-reliance on one area.",
   ],
+  BIG_SPENDER: [
+    "Set a monthly spending ceiling and track progress weekly.",
+    "Before big purchases, wait 48 hours and reconsider.",
+    "Try the 50/30/20 rule: 50% needs, 30% wants, 20% savings.",
+  ],
 }
+
+const DEFAULT_TIPS = [
+  "Track your spending daily to build awareness of your habits.",
+  "Set realistic budgets for each category and review weekly.",
+  "Consider automating savings to build a financial safety net.",
+]
 
 const PERSONA_COLORS = {
-  IMPULSIVE_SPENDER: "#ef4444",
+  ERRATIC_SPENDER: "#ef4444",
   CAUTIOUS_SAVER: "#3b82f6",
   WEEKEND_SPLURGER: "#f97316",
-  SUBSCRIPTION_HOARDER: "#8b5cf6",
-  BALANCED_BUDGETER: "#10b981",
+  BALANCED_SPENDER: "#10b981",
   VOLATILE_SPENDER: "#eab308",
-  DISCIPLINED_PLANNER: "#06b6d4",
-  WEEKEND_SPIKER: "#f97316",
-  CATEGORY_FOCUSED_SPENDER: "#ec4899",
+  LATE_NIGHT_SPENDER: "#8b5cf6",
+  CATEGORY_FOCUSED: "#ec4899",
+  BIG_SPENDER: "#f59e0b",
+  INSUFFICIENT_DATA: "#9ca3af",
 }
 
+const DEFAULT_COLOR = "#6b7280"
+
 const PERSONA_LABELS = {
-  IMPULSIVE_SPENDER: "Impulse Spender",
+  ERRATIC_SPENDER: "Erratic Spender",
   CAUTIOUS_SAVER: "Cautious Saver",
   WEEKEND_SPLURGER: "Weekend Splurger",
-  SUBSCRIPTION_HOARDER: "Subscription Hoarder",
-  BALANCED_BUDGETER: "Balanced Budgeter",
+  BALANCED_SPENDER: "Balanced Spender",
   VOLATILE_SPENDER: "Volatile Spender",
-  DISCIPLINED_PLANNER: "Disciplined Planner",
-  WEEKEND_SPIKER: "Weekend Spiker",
-  CATEGORY_FOCUSED_SPENDER: "Category-Focused Spender",
+  LATE_NIGHT_SPENDER: "Late Night Spender",
+  CATEGORY_FOCUSED: "Category Focused",
+  BIG_SPENDER: "Big Spender",
+  INSUFFICIENT_DATA: "Insufficient Data",
 }
 
 // Available options catalog
@@ -124,8 +127,29 @@ const SPIDER_AXIS_LABELS = {
   volatility: "Volatility",
   budget_discipline: "Budget Discipline",
   weekend_bias: "Weekend Bias",
-  emotional_influence: "Emotional Influence",
+  late_night_activity: "Late Night",
   category_concentration: "Category Focus",
+}
+
+const DOMAIN_TRAIT_LABELS = {
+  WEEKEND_BIAS: "Weekend Bias",
+  LATE_NIGHT_TENDENCY: "Late Night",
+  EMOTIONAL_SPENDER: "Emotional Spender",
+  HIGH_VOLATILITY: "High Volatility",
+  CATEGORY_HEAVY_FOOD: "Food Heavy",
+  CATEGORY_HEAVY_TRAVEL: "Travel Heavy",
+  CATEGORY_HEAVY_LEISURE: "Leisure Heavy",
+  CATEGORY_HEAVY_EDUCATION: "Education Heavy",
+  CATEGORY_HEAVY_OTHER: "Other Heavy",
+  AT_RISK_OF_OVERSPEND: "Overspend Risk",
+}
+
+const DOMAIN_TRAIT_COLORS = {
+  WEEKEND_BIAS: "#f97316",
+  LATE_NIGHT_TENDENCY: "#8b5cf6",
+  EMOTIONAL_SPENDER: "#ec4899",
+  HIGH_VOLATILITY: "#eab308",
+  AT_RISK_OF_OVERSPEND: "#ef4444",
 }
 
 const NUDGE_TYPE_COLORS = {
@@ -320,6 +344,7 @@ export default function Persona() {
   const [unlockedItems, setUnlockedItems] = useState(new Set())
   const [milestones, setMilestones] = useState([])
   const [saving, setSaving] = useState(false)
+  const [analysing, setAnalysing] = useState(false)
 
   useEffect(() => {
     if (user?.id) {
@@ -328,6 +353,32 @@ export default function Persona() {
       loadAvatarData()
     }
   }, [user?.id])
+
+  // Auto-analyse when user has enough expenses but no persona yet
+  useEffect(() => {
+    if (loading || analysing) return
+    const needsAnalysis = !personaData || personaData.persona_type === "INSUFFICIENT_DATA"
+    if (needsAnalysis && expenseCount >= 10) {
+      runAnalysis()
+    }
+  }, [loading, personaData, expenseCount])
+
+  const runAnalysis = async () => {
+    setAnalysing(true)
+    try {
+      await api.post(`/ml/analyse/${user.id}`)
+      const [personaRes, nudgesRes] = await Promise.all([
+        api.get(`/ml/persona/${user.id}`),
+        api.get(`/ml/nudges/${user.id}`),
+      ])
+      setPersonaData(personaRes.data)
+      setNudgesData(nudgesRes.data.nudges || [])
+    } catch {
+      // analysis failed, stay in current state
+    } finally {
+      setAnalysing(false)
+    }
+  }
 
   const loadPersonaData = async () => {
     try {
@@ -369,7 +420,7 @@ export default function Persona() {
       setUnlockedItems(new Set(Array.isArray(items) ? items : []))
       setMilestones(milestoneRes.data.milestones || [])
     } catch {
-      // silently ignore — backend may not be ready
+      // silently ignore, backend may not be ready
     }
   }
 
@@ -433,9 +484,9 @@ export default function Persona() {
   const confidenceData = personaData?.confidence_data || {}
   const confidenceScore = confidenceData.score !== undefined ? Math.round(confidenceData.score) : (personaData ? Math.round(personaData.confidence * 100) : 0)
   const confidenceLevel = (personaData?.confidence_level || confidenceData.level || (confidenceScore >= 70 ? "High" : confidenceScore >= 40 ? "Medium" : "Low")).toLowerCase()
-  const tips = activePersonaType ? (PERSONA_TIPS[activePersonaType] || PERSONA_TIPS[personaData?.persona_type] || []) : []
-  const accentColor = activePersonaType ? (PERSONA_COLORS[activePersonaType] || "#10b981") : "#10b981"
-  const displayLabel = activePersonaType ? (PERSONA_LABELS[activePersonaType] || personaData?.persona_label || activePersonaType.replace(/_/g, " ")) : ""
+  const tips = activePersonaType ? (PERSONA_TIPS[activePersonaType] || PERSONA_TIPS[personaData?.persona_type] || DEFAULT_TIPS) : []
+  const accentColor = activePersonaType ? (PERSONA_COLORS[activePersonaType] || DEFAULT_COLOR) : DEFAULT_COLOR
+  const displayLabel = activePersonaType ? (PERSONA_LABELS[activePersonaType] || personaData?.persona_label || activePersonaType.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())) : ""
 
   const discipline = personaData?.discipline || {}
   const disciplineScore = Math.round(discipline.discipline_score || 0)
@@ -771,12 +822,12 @@ export default function Persona() {
           <p>AI-powered insights into your financial behaviour</p>
         </div>
 
-        {loading ? (
+        {loading || analysing ? (
           <div className="persona-loading">
             <div className="persona-loading-spinner" />
-            <p>Analysing your spending patterns...</p>
+            <p>{analysing ? "Running AI analysis on your spending..." : "Loading your persona..."}</p>
           </div>
-        ) : !personaData ? (
+        ) : !personaData || activePersonaType === "INSUFFICIENT_DATA" ? (
           <div className="persona-locked">
             <div className="persona-locked-icon">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -784,21 +835,39 @@ export default function Persona() {
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
             </div>
-            <h2>Persona Locked</h2>
+            <h2>{personaData ? "More Data Needed" : "Persona Locked"}</h2>
             <p>
-              Log at least 30 expenses so our AI can analyse your spending patterns
-              and reveal your unique financial persona.
+              {personaData
+                ? "Log more expenses to discover your spending persona. We need a broader spending history for accurate analysis."
+                : "Log at least 10 expenses so our AI can start analysing your spending patterns."}
             </p>
             <div className="persona-progress-bar">
               <div
                 className="persona-progress-fill"
-                style={{ width: `${Math.min((expenseCount / 30) * 100, 100)}%` }}
+                style={{ width: `${Math.min((expenseCount / 10) * 100, 100)}%` }}
               />
             </div>
-            <span className="persona-progress-text">{expenseCount} / 30 expenses logged</span>
+            <span className="persona-progress-text">{expenseCount} / 10 expenses logged</span>
           </div>
         ) : (
           <>
+            {/* Provisional Banner */}
+            {personaData.provisional && (
+              <div className="persona-provisional-banner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <div>
+                  <strong>Provisional Persona</strong>
+                  <p>Based on {expenseCount} expenses. {expenseCount < 20
+                    ? `Log ${20 - expenseCount} more expenses over at least 2 weeks for a full persona.`
+                    : "Keep logging expenses over a longer period for a more stable persona."}</p>
+                </div>
+              </div>
+            )}
+
             {/* Profile Card */}
             <div className="persona-profile-card">
               <div className="persona-profile-top">
@@ -815,6 +884,19 @@ export default function Persona() {
                   </span>
                   <h2>{user.name}</h2>
                   <p className="persona-description">{personaData.description}</p>
+                  {personaData.domain_traits && personaData.domain_traits.length > 0 && (
+                    <div className="persona-domain-traits">
+                      {personaData.domain_traits.map((trait) => (
+                        <span
+                          key={trait}
+                          className="domain-trait-badge"
+                          style={{ borderColor: DOMAIN_TRAIT_COLORS[trait] || "var(--gray-300)", color: DOMAIN_TRAIT_COLORS[trait] || "var(--gray-600)" }}
+                        >
+                          {DOMAIN_TRAIT_LABELS[trait] || trait.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="persona-stats-row">
@@ -849,6 +931,55 @@ export default function Persona() {
                   <div className="radar-chart-container">
                     <RadarChart axes={personaData.spider_axes} />
                   </div>
+                </div>
+              )}
+
+              {personaData.spider_explanation && personaData.spider_explanation.topDrivers?.length > 0 && (
+                <div className="persona-detail-card spider-explanation-card">
+                  <h3>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    Understanding Your Profile
+                  </h3>
+
+                  <div className="spider-explanation-section">
+                    <h4>Why This Shape</h4>
+                    {personaData.spider_explanation.topDrivers.map((driver, i) => (
+                      <div key={driver.axis} className={`spider-driver-row ${driver.direction}`}>
+                        <div className="spider-driver-header">
+                          <span className="spider-driver-axis">{driver.label}</span>
+                          <span className="spider-driver-score">{Math.round(driver.score)}</span>
+                        </div>
+                        <span className="spider-driver-text">{driver.explanation}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {personaData.spider_explanation.meaningSummary && (
+                    <div className="spider-explanation-section">
+                      <h4>What This Means</h4>
+                      <p className="spider-meaning-text">{personaData.spider_explanation.meaningSummary}</p>
+                    </div>
+                  )}
+
+                  {personaData.spider_explanation.nextActions?.length > 0 && (
+                    <div className="spider-explanation-section">
+                      <h4>What To Do Next</h4>
+                      <ul className="spider-actions-list">
+                        {personaData.spider_explanation.nextActions.map((action, i) => (
+                          <li key={i}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            {action}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1007,22 +1138,40 @@ export default function Persona() {
                 )}
               </div>
 
-              {/* Top Features */}
-              <div className="persona-detail-card">
+              {/* Persona Explanation */}
+              <div className="persona-detail-card explanation-card">
                 <h3>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                   </svg>
-                  Key Spending Drivers
+                  Why This Persona?
                 </h3>
-                <div className="persona-feature-list">
-                  {personaData.top_features.map((feature, i) => (
-                    <div key={feature} className="persona-feature-item">
-                      <span className="persona-feature-rank">{i + 1}</span>
-                      <span className="persona-feature-name">{formatFeatureName(feature)}</span>
-                    </div>
-                  ))}
-                </div>
+                {personaData.explanation?.text && (
+                  <p className="explanation-text">{personaData.explanation.text}</p>
+                )}
+                {personaData.explanation?.reasons?.length > 0 && (
+                  <div className="explanation-reasons">
+                    {personaData.explanation.reasons.map((reason, i) => (
+                      <div key={i} className="explanation-reason-item">
+                        <span className="explanation-reason-icon">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                          </svg>
+                        </span>
+                        <span>{reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {personaData.top_features?.length > 0 && (
+                  <div className="explanation-drivers">
+                    <span className="explanation-drivers-label">Top drivers:</span>
+                    {personaData.top_features.map((feature) => (
+                      <span key={feature} className="explanation-driver-chip">{formatFeatureName(feature)}</span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Emotional Spender */}

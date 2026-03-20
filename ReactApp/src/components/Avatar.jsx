@@ -1,7 +1,7 @@
 import "../pages/css/Avatar.css"
 
 export const PERSONA_STYLES = {
-  IMPULSIVE_SPENDER: {
+  ERRATIC_SPENDER: {
     backgroundColor: "f87171",
     hair: "short04",
     hairColor: "c93305",
@@ -28,18 +28,7 @@ export const PERSONA_STYLES = {
     skinColor: "f2d3b1",
     eyebrows: "variant10",
   },
-  SUBSCRIPTION_HOARDER: {
-    backgroundColor: "a78bfa",
-    hair: "short01",
-    hairColor: "4a312c",
-    eyes: "variant01",
-    mouth: "variant01",
-    skinColor: "d08b5b",
-    eyebrows: "variant12",
-    glasses: "variant01",
-    glassesProbability: "100",
-  },
-  BALANCED_BUDGETER: {
+  BALANCED_SPENDER: {
     backgroundColor: "34d399",
     hair: "short16",
     hairColor: "724133",
@@ -47,6 +36,42 @@ export const PERSONA_STYLES = {
     mouth: "variant06",
     skinColor: "ae5d29",
     eyebrows: "variant03",
+  },
+  BIG_SPENDER: {
+    backgroundColor: "fbbf24",
+    hair: "short08",
+    hairColor: "b58143",
+    eyes: "variant08",
+    mouth: "variant15",
+    skinColor: "d08b5b",
+    eyebrows: "variant05",
+  },
+  VOLATILE_SPENDER: {
+    backgroundColor: "facc15",
+    hair: "short14",
+    hairColor: "4a312c",
+    eyes: "variant03",
+    mouth: "variant09",
+    skinColor: "f2d3b1",
+    eyebrows: "variant08",
+  },
+  LATE_NIGHT_SPENDER: {
+    backgroundColor: "a78bfa",
+    hair: "short01",
+    hairColor: "2c1b18",
+    eyes: "variant01",
+    mouth: "variant01",
+    skinColor: "d08b5b",
+    eyebrows: "variant12",
+  },
+  CATEGORY_FOCUSED: {
+    backgroundColor: "f472b6",
+    hair: "short22",
+    hairColor: "6c4545",
+    eyes: "variant20",
+    mouth: "variant07",
+    skinColor: "ecad80",
+    eyebrows: "variant09",
   },
 }
 

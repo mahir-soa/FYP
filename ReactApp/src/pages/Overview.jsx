@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../context/AuthContext"
 import axios from "axios"
 import Navbar from "../components/Navbar"
+import { fmt } from "../utils/format"
 import "./css/Overview.css"
 
 const API_BASE = "http://localhost:8080/api/expenses"
@@ -108,19 +109,19 @@ export default function Overview() {
             <div className="stats-grid four-col">
               <div className="stat-card">
                 <div className="stat-label">Today</div>
-                <div className="stat-value">£{todayTotal.toFixed(2)}</div>
+                <div className="stat-value">£{fmt(todayTotal)}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">This Week</div>
-                <div className="stat-value">£{weekTotal.toFixed(2)}</div>
+                <div className="stat-value">£{fmt(weekTotal)}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">This Month</div>
-                <div className="stat-value">£{monthTotal.toFixed(2)}</div>
+                <div className="stat-value">£{fmt(monthTotal)}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">This Year</div>
-                <div className="stat-value">£{yearTotal.toFixed(2)}</div>
+                <div className="stat-value">£{fmt(yearTotal)}</div>
               </div>
             </div>
 
@@ -140,7 +141,7 @@ export default function Overview() {
                           style={{ width: `${Math.min((item.amount / monthTotal) * 100, 100)}%` }}
                         />
                       </div>
-                      <div className="bar-amount">£{item.amount.toFixed(2)}</div>
+                      <div className="bar-amount">£{fmt(item.amount)}</div>
                     </div>
                   ))}
                 </div>
@@ -154,7 +155,7 @@ export default function Overview() {
               <div className="trend-chart">
                 {monthlyTrend.map(item => (
                   <div key={item.month} className="trend-bar">
-                    <div className="trend-value">£{item.total.toFixed(0)}</div>
+                    <div className="trend-value">£{fmt(item.total, 0)}</div>
                     <div className="trend-bar-container">
                       <div
                         className="trend-fill"

@@ -6,6 +6,134 @@ from datetime import datetime, timedelta
 CATEGORIES = ['Food', 'Travel', 'Leisure', 'Education', 'Other']
 MOODS = ['Happy', 'Sad', 'Stressed', 'Neutral', 'Excited']
 
+# App categories for clustering (matches Sparkov mapping)
+CLUSTERING_CATEGORIES = ['Food', 'Travel', 'Leisure', 'Health', 'Other']
+CLUSTERING_CATEGORY_MAP = {
+    'Food': 'food', 'Travel': 'travel', 'Leisure': 'leisure',
+    'Health': 'health', 'Education': 'health', 'Other': 'other',
+}
+
+MIN_CLUSTERING_TXNS = 10       # Under 10: truly insufficient, return None
+PROVISIONAL_TXNS = 20          # 10-19: provisional persona
+FULL_UNLOCK_DAYS = 14          # 20+ txns AND 14+ day spread: full unlock
+
+
+def extract_clustering_features(expenses):
+    if not expenses or len(expenses) < MIN_CLUSTERING_TXNS:
+        return None
+
+    df = pd.DataFrame([{
+        'amount': e.amount,
+        'category': e.category,
+        'date': pd.to_datetime(e.date),
+        'description': getattr(e, 'description', '') or '',
+    } for e in expenses])
+
+    df['hour'] = df['date'].dt.hour
+    df['dow'] = df['date'].dt.dayofweek
+    df['month'] = df['date'].dt.to_period('M')
+    df['is_weekend'] = df['dow'] >= 5
+
+    # Late night: check if timestamps have real hours (not all midnight)
+    has_real_hours = (df['hour'] != 0).any()
+    if has_real_hours:
+        df['is_late_night'] = ((df['hour'] >= 22) | (df['hour'] < 5))
+    else:
+        df['is_late_night'] = False
+
+    # Map app categories to clustering categories
+    df['cluster_cat'] = df['category'].map(CLUSTERING_CATEGORY_MAP).fillna('other')
+
+    n_txn = len(df)
+    active_months = df['month'].nunique()
+    total_spend = df['amount'].sum()
+
+    if total_spend <= 0:
+        return None
+
+    # Spend level & volatility
+    mean_spend = df['amount'].mean()
+    std_spend = df['amount'].std() if n_txn > 1 else 0.0
+    spend_cv = std_spend / mean_spend if mean_spend > 0 else 0.0
+    txn_frequency = n_txn / max(active_months, 1)
+
+    # Timing features
+    weekend_spend = df[df['is_weekend']]['amount'].sum()
+    weekend_ratio = weekend_spend / total_spend
+
+    late_night_spend = df[df['is_late_night']]['amount'].sum()
+    late_night_ratio = late_night_spend / total_spend
+
+    # Category percentages (4 of 5, pct_other dropped)
+    cat_spend = df.groupby('cluster_cat')['amount'].sum()
+    pct = {}
+    for cat in ['food', 'travel', 'leisure', 'health']:
+        pct[cat] = cat_spend.get(cat, 0) / total_spend
+
+    # Merchant diversity (use description as proxy for merchant)
+    unique_descriptions = df['description'].nunique()
+    merchant_diversity = unique_descriptions / n_txn if n_txn > 0 else 0.0
+
+    # Large transaction ratio
+    p75 = df['amount'].quantile(0.75)
+    large_txn_spend = df[df['amount'] > p75]['amount'].sum()
+    large_txn_ratio = large_txn_spend / total_spend
+
+    # Monthly consistency
+    monthly_totals = df.groupby('month')['amount'].sum().sort_index()
+    if len(monthly_totals) > 1:
+        monthly_mean = monthly_totals.mean()
+        monthly_std = monthly_totals.std()
+        monthly_spend_cv = monthly_std / monthly_mean if monthly_mean > 0 else 0.0
+    else:
+        monthly_spend_cv = 0.0
+
+    # Transaction regularity
+    dates_sorted = df['date'].sort_values()
+    if len(dates_sorted) > 1:
+        gaps = dates_sorted.diff().dropna().dt.total_seconds() / 86400
+        gap_std = gaps.std()
+        txn_regularity = 1.0 / (1.0 + gap_std)
+    else:
+        txn_regularity = 0.0
+
+    # Spend trend
+    if len(monthly_totals) > 1:
+        x = np.arange(len(monthly_totals))
+        spend_trend = np.polyfit(x, monthly_totals.values, 1)[0]
+    else:
+        spend_trend = 0.0
+
+    # Tiered unlock:
+    #   <10 txns: returned None above (insufficient)
+    #   10-19 txns: provisional (83% stability to N=30)
+    #   20+ txns but <14-day spread: provisional (temporal features unreliable)
+    #   20+ txns and 14+ day spread: full unlock (90%+ stability)
+    dates = df['date'].sort_values()
+    day_spread = (dates.iloc[-1] - dates.iloc[0]).days
+    provisional = n_txn < PROVISIONAL_TXNS or day_spread < FULL_UNLOCK_DAYS
+    low_confidence = provisional  # backward compat
+
+    return {
+        'mean_spend': round(mean_spend, 4),
+        'std_spend': round(std_spend, 4),
+        'spend_cv': round(spend_cv, 6),
+        'txn_frequency': round(txn_frequency, 4),
+        'weekend_ratio': round(weekend_ratio, 6),
+        'late_night_ratio': round(late_night_ratio, 6),
+        'pct_food': round(pct['food'], 6),
+        'pct_travel': round(pct['travel'], 6),
+        'pct_leisure': round(pct['leisure'], 6),
+        'pct_health': round(pct['health'], 6),
+        'merchant_diversity': round(merchant_diversity, 6),
+        'large_txn_ratio': round(large_txn_ratio, 6),
+        'monthly_spend_cv': round(monthly_spend_cv, 6),
+        'txn_regularity': round(txn_regularity, 6),
+        'spend_trend': round(spend_trend, 4),
+        'low_confidence': low_confidence,
+        'provisional': provisional,
+    }
+
 
 def extract_features(expenses, budgets, subscriptions, incomes):
     if not expenses:

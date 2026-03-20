@@ -228,26 +228,88 @@ public class ChatService {
         }
     }
 
-    public String parseGoal(String userInput) {
+    public String parsePlan(String userInput) {
         List<Map<String, String>> messages = new ArrayList<>();
 
-        String systemPrompt = "You are a financial goal parser. The user will describe a financial goal in natural language. " +
-                "Extract the following fields and return ONLY valid JSON (no markdown, no explanation):\n" +
+        String systemPrompt = "You are a financial plan parser for a budgeting app. " +
+                "The user describes a financial plan in plain English. Parse it into structured JSON.\n\n" +
+                "There are two families of plan:\n" +
+                "- OUTCOME_PLAN: plans that reserve money toward a target (saving, paying debt, buying something, emergency fund)\n" +
+                "- PRIORITY_PLAN: plans that temporarily adjust how budget is spread across spending categories " +
+                "(e.g. spend more on food, cut back on leisure, tight budget mode)\n\n" +
+                "CLASSIFY FAMILY FIRST before extracting any fields.\n\n" +
+                "Return ONLY valid JSON (no markdown, no explanation). For a single plan, return one JSON object. " +
+                "For explicit multi-direction input (e.g. 'increase food AND reduce leisure'), return a JSON array of objects.\n\n" +
+                "Each object has this schema:\n" +
                 "{\n" +
-                "  \"title\": \"short descriptive goal name\",\n" +
-                "  \"targetAmount\": number (in GBP, no currency symbol),\n" +
-                "  \"currentAmount\": number (default 0 if not mentioned),\n" +
-                "  \"targetDate\": \"YYYY-MM-DD\" or null if not mentioned,\n" +
-                "  \"type\": one of \"SAVINGS\", \"DEBT\", \"PURCHASE\", \"EMERGENCY\"\n" +
+                "  \"family\": \"OUTCOME_PLAN\" | \"PRIORITY_PLAN\" | \"UNKNOWN\",\n" +
+                "  \"confidence\": 0.0 to 1.0,\n" +
+                "  \"title\": \"short name, 3-6 words\",\n" +
+                "  \"cadence\": \"ONE_TIME\" | \"MONTHLY_RECURRING\",\n" +
+                "  \"termination\": \"ON_DATE\" | \"AFTER_PERIOD\" | \"UNTIL_TARGET\" | \"OPEN_ENDED\",\n" +
+                "  \"startDate\": \"YYYY-MM-DD\" or null,\n" +
+                "  \"endDate\": \"YYYY-MM-DD\" or null,\n" +
+                "  \"targetDate\": \"YYYY-MM-DD\" or null,\n" +
+                "  \"durationMonths\": integer or null,\n" +
+                "  \"reasonNote\": \"short reason\" or null,\n" +
+                "  \"missingFields\": [\"fieldName\", ...],\n" +
+                "  \"clarificationNeeded\": true or false,\n" +
+                "  \"clarificationQuestions\": [\"question\", ...] or [],\n" +
+                "  \"parserNotes\": \"internal notes\" or null,\n\n" +
+                "  // OUTCOME_PLAN-only fields:\n" +
+                "  \"outcomeCategory\": \"SAVINGS\" | \"DEBT\" | \"PURCHASE\" | \"EMERGENCY\" | null,\n" +
+                "  \"targetAmount\": number or null,\n" +
+                "  \"monthlyContribution\": number or null,\n\n" +
+                "  // PRIORITY_PLAN-only fields:\n" +
+                "  \"priorityCategories\": [\"Food\", \"Leisure\", ...] or null,\n" +
+                "  \"direction\": \"INCREASE\" | \"REDUCE\" | \"PROTECT\" | null,\n" +
+                "  \"intensity\": \"LOW\" | \"MEDIUM\" | \"HIGH\" | null,\n" +
+                "  \"priorityAmount\": number or null\n" +
                 "}\n\n" +
-                "Rules:\n" +
-                "- If the user mentions paying off debt or loans, use type DEBT\n" +
-                "- If the user mentions buying something specific, use type PURCHASE\n" +
-                "- If the user mentions emergency or rainy day, use type EMERGENCY\n" +
-                "- Otherwise default to SAVINGS\n" +
-                "- For relative dates like 'in 6 months' or 'by next year', calculate from today's date: " +
-                java.time.LocalDate.now().toString() + "\n" +
-                "- Return ONLY the JSON object, nothing else";
+                "CADENCE (how often):\n" +
+                "- ONE_TIME: single occurrence, this month only, one-time action\n" +
+                "- MONTHLY_RECURRING: repeating — 'every month', 'ongoing', 'recurring', 'each month'\n" +
+                "- Every well-formed plan has a cadence. If undetermined, add 'cadence' to missingFields and set clarificationNeeded=true.\n\n" +
+                "TERMINATION (when it stops):\n" +
+                "- ON_DATE: ends on a specific date — 'until [date]', 'by [date]' for time-bounded plans\n" +
+                "- AFTER_PERIOD: ends after N months — 'for 3 months', 'next 6 months'. Set durationMonths and compute endDate.\n" +
+                "- UNTIL_TARGET: ends when a milestone is reached — 'until I reach £X', 'pay off', 'save up to'\n" +
+                "- OPEN_ENDED: no defined end — 'ongoing', 'indefinitely', 'from now on'\n" +
+                "- Every well-formed plan has a termination. If undetermined, add 'termination' to missingFields and set clarificationNeeded=true.\n\n" +
+                "CRITICAL PARSER GUARD: NEVER output cadence=ONE_TIME with termination=OPEN_ENDED for new inputs. " +
+                "This combination means 'do it once, never ends' which is under-specified. " +
+                "Instead, set clarificationNeeded=true and add a clarification question asking whether they mean " +
+                "a one-time action with a target (UNTIL_TARGET) or by a date (ON_DATE).\n\n" +
+                "FAMILY classification:\n" +
+                "- Do NOT infer saving intent unless user explicitly says save/reserve/pay off/fund\n" +
+                "- Saving, paying off, buying, building a fund = OUTCOME_PLAN\n" +
+                "- Spending more/less on categories, lifestyle changes, temporary budget shifts = PRIORITY_PLAN\n" +
+                "- If ambiguous, return UNKNOWN with clarificationNeeded=true\n\n" +
+                "MULTI-DRAFT rules:\n" +
+                "- Implicit lifestyle prompts (e.g. 'I'm bulking') -> single draft only, primary intent only\n" +
+                "- Explicit multi-direction (e.g. 'increase food AND reduce leisure') -> return JSON array of multiple drafts, one per direction\n\n" +
+                "OUTCOME_PLAN rules:\n" +
+                "- outcomeCategory: DEBT (debt/loans/credit card), PURCHASE (buying something), EMERGENCY (emergency/rainy day), SAVINGS (otherwise)\n" +
+                "- Amounts in GBP, no currency symbols in output\n" +
+                "- Do NOT guess amounts or dates — leave null and add to missingFields\n\n" +
+                "PRIORITY_PLAN rules:\n" +
+                "- priorityCategories MUST only contain values from: Food, Travel, Education, Leisure, Other\n" +
+                "- Each draft is single-direction: one direction per draft\n" +
+                "- direction: INCREASE (spend more), REDUCE (spend less/cut back), PROTECT (keep stable)\n" +
+                "- intensity: LOW (slight), MEDIUM (moderate), HIGH (strong/significant)\n" +
+                "- 'bulking' / 'eating more' = priorityCategories=[\"Food\"], direction=INCREASE, intensity=MEDIUM\n" +
+                "- 'tight budget' / 'saving mode' = priorityCategories=[\"Leisure\",\"Travel\"], direction=REDUCE, intensity=HIGH\n" +
+                "- 'exam period' / 'studying' = priorityCategories=[\"Education\"], direction=INCREASE, intensity=MEDIUM\n" +
+                "- priorityAmount: optional target amount for the priority (e.g. 'spend £200 more on food' -> priorityAmount=200). Leave null if no specific amount mentioned.\n\n" +
+                "CONFIDENCE: numeric 0.0 to 1.0. 0.9=all fields clear, 0.6=reasonable inference, 0.3=vague/major assumptions.\n\n" +
+                "DATE RULES:\n" +
+                "- startDate: default to today if not stated\n" +
+                "- endDate: hard cutoff for ON_DATE/AFTER_PERIOD termination\n" +
+                "- targetDate: aspirational deadline for UNTIL_TARGET\n" +
+                "- Do NOT set both endDate and targetDate\n" +
+                "- For AFTER_PERIOD: set durationMonths AND compute endDate = startDate + durationMonths\n\n" +
+                "Relative dates from today: " + java.time.LocalDate.now().toString() + "\n" +
+                "Return ONLY the JSON, nothing else.";
 
         messages.add(Map.of("role", "system", "content", systemPrompt));
         messages.add(Map.of("role", "user", "content", userInput));
@@ -255,8 +317,8 @@ public class ChatService {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model);
         requestBody.put("messages", messages);
-        requestBody.put("max_tokens", 300);
-        requestBody.put("temperature", 0.3);
+        requestBody.put("max_tokens", 500);
+        requestBody.put("temperature", 0.2);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

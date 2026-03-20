@@ -41,6 +41,9 @@ public class Budget {
     @Column(name = "category_meta", length = 4000)
     private String categoryMeta;
 
+    @Column(name = "context_meta", length = 2000)
+    private String contextMeta;
+
     public Budget() {}
 
     public Long getId() { return id; }
@@ -62,4 +65,6 @@ public class Budget {
     public void setGoalOverrideAction(String goalOverrideAction) { this.goalOverrideAction = goalOverrideAction; }
     public String getCategoryMeta() { return categoryMeta; }
     public void setCategoryMeta(String categoryMeta) { this.categoryMeta = categoryMeta; }
+    public String getContextMeta() { return contextMeta; }
+    public void setContextMeta(String contextMeta) { this.contextMeta = contextMeta; }
 }

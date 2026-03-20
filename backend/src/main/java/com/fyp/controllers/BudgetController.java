@@ -4,6 +4,7 @@ import com.fyp.models.Budget;
 import com.fyp.models.Expense;
 import com.fyp.repos.BudgetRepository;
 import com.fyp.repos.ExpenseRepository;
+import com.fyp.services.AdaptiveBudgetEngine;
 import com.fyp.services.BudgetService;
 import com.fyp.services.ChatService;
 import org.springframework.http.ResponseEntity;
@@ -17,22 +18,25 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/budgets")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class BudgetController {
 
     private final BudgetRepository budgetRepository;
     private final ExpenseRepository expenseRepository;
     private final BudgetService budgetService;
     private final ChatService chatService;
+    private final AdaptiveBudgetEngine adaptiveBudgetEngine;
 
     public BudgetController(BudgetRepository budgetRepository,
                            ExpenseRepository expenseRepository,
                            BudgetService budgetService,
-                           ChatService chatService) {
+                           ChatService chatService,
+                           AdaptiveBudgetEngine adaptiveBudgetEngine) {
         this.budgetRepository = budgetRepository;
         this.expenseRepository = expenseRepository;
         this.budgetService = budgetService;
         this.chatService = chatService;
+        this.adaptiveBudgetEngine = adaptiveBudgetEngine;
     }
 
     @GetMapping
@@ -78,6 +82,9 @@ public class BudgetController {
                     if (budget.getCategoryMeta() != null) {
                         existing.setCategoryMeta(budget.getCategoryMeta());
                     }
+                    if (budget.getContextMeta() != null) {
+                        existing.setContextMeta(budget.getContextMeta());
+                    }
                     return ResponseEntity.ok(budgetRepository.save(existing));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -85,12 +92,12 @@ public class BudgetController {
 
     @GetMapping("/suggest")
     public Map<String, Object> suggestBudget(@RequestParam Long userId) {
-        return budgetService.buildSuggestion(userId);
+        return adaptiveBudgetEngine.buildAdaptiveSuggestion(userId);
     }
 
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getBudgetStatus(@RequestParam Long userId) {
-        return budgetService.buildBudgetStatus(userId)
+        return adaptiveBudgetEngine.buildAdaptiveStatus(userId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

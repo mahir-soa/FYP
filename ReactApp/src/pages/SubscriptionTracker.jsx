@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../context/AuthContext"
 import axios from "axios"
 import Navbar from "../components/Navbar"
+import { fmt } from "../utils/format"
 import "./css/SubscriptionTracker.css"
 
 const API_BASE = "http://localhost:8080/api/subscriptions"
@@ -517,11 +518,11 @@ export default function SubscriptionTracker() {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-label">Monthly Cost</div>
-            <div className="stat-value">£{totalMonthly.toFixed(2)}</div>
+            <div className="stat-value">£{fmt(totalMonthly)}</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Yearly Cost</div>
-            <div className="stat-value">£{totalYearly.toFixed(2)}</div>
+            <div className="stat-value">£{fmt(totalYearly)}</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Active</div>
@@ -549,7 +550,7 @@ export default function SubscriptionTracker() {
                     <div className="alert-info">
                       <span className="alert-name">{sub.name}</span>
                       <span className="alert-detail">
-                        £{sub.cost.toFixed(2)} · {daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`}
+                        £{fmt(sub.cost)} · {daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`}
                       </span>
                     </div>
                     <button className="alert-action" onClick={() => handleEdit(sub)}>Edit</button>
@@ -580,7 +581,7 @@ export default function SubscriptionTracker() {
                     <div className="alert-info">
                       <span className="alert-name">{sub.name}</span>
                       <span className="alert-detail">
-                        £{sub.cost.toFixed(2)}/{sub.billingCycle.toLowerCase()} · {daysSince === null ? "Never used" : `Last used ${daysSince} days ago`}
+                        £{fmt(sub.cost)}/{sub.billingCycle.toLowerCase()} · {daysSince === null ? "Never used" : `Last used ${daysSince} days ago`}
                       </span>
                     </div>
                     <div className="alert-actions">
@@ -659,7 +660,7 @@ export default function SubscriptionTracker() {
                             </div>
                             <div className="subscription-meta">
                               <span className="subscription-cycle">
-                                £{sub.cost.toFixed(2)} / {sub.billingCycle.toLowerCase()}
+                                £{fmt(sub.cost)} / {sub.billingCycle.toLowerCase()}
                               </span>
                               {sub.nextPaymentDate && (
                                 <span className="subscription-payment">
@@ -679,7 +680,7 @@ export default function SubscriptionTracker() {
                               </p>
                             )}
                           </div>
-                          <span className="subscription-cost">£{sub.cost.toFixed(2)}</span>
+                          <span className="subscription-cost">£{fmt(sub.cost)}</span>
                           <div className="subscription-actions">
                             {sub.status === "ACTIVE" && (
                               <button className="action-btn mark" onClick={() => handleMarkUsed(sub.id)}>Mark Used</button>
@@ -780,7 +781,7 @@ export default function SubscriptionTracker() {
                         onClick={() => handlePlanSelect(plan)}
                       >
                         <span className="plan-name">{plan.plan}</span>
-                        <span className="plan-price">£{plan.price.toFixed(2)}/{plan.cycle.toLowerCase()}</span>
+                        <span className="plan-price">£{fmt(plan.price)}/{plan.cycle.toLowerCase()}</span>
                       </div>
                     ))}
                     <div

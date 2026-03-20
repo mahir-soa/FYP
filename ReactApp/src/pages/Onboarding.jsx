@@ -2,6 +2,7 @@ import { useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { api } from "../api/api"
+import { fmt } from "../utils/format"
 import "./css/Onboarding.css"
 
 const STEPS = [
@@ -257,6 +258,7 @@ export default function Onboarding() {
 
         await api.post(`/plans?userId=${user.id}`, {
           title: data.goalTitle || GOAL_TYPES.find(g => g.type === data.goalType)?.label,
+          family: "OUTCOME_PLAN",
           type: data.goalType,
           targetAmount: Number(data.goalAmount),
           currentAmount: 0,
@@ -538,7 +540,7 @@ export default function Onboarding() {
                 </div>
                 {calculatedMonthlyIncome > 0 && (
                   <p className="form-hint">
-                    Suggested: £{Math.round(calculatedMonthlyIncome * 0.1).toLocaleString()} - £{Math.round(calculatedMonthlyIncome * 0.2).toLocaleString()} (10-20% of income)
+                    Suggested: £{fmt(Math.round(calculatedMonthlyIncome * 0.1), 0)} - £{fmt(Math.round(calculatedMonthlyIncome * 0.2), 0)} (10-20% of income)
                   </p>
                 )}
               </div>
@@ -653,13 +655,13 @@ export default function Onboarding() {
                   >
                     <span className="sub-icon">{sub.icon}</span>
                     <span className="sub-name">{sub.name}</span>
-                    <span className="sub-cost">£{sub.cost.toFixed(2)}/mo</span>
+                    <span className="sub-cost">£{fmt(sub.cost)}/mo</span>
                   </button>
                 ))}
               </div>
               {data.subscriptions.length > 0 && (
                 <div className="selected-total">
-                  {data.subscriptions.length} selected · £{data.subscriptions.reduce((sum, s) => sum + s.cost, 0).toFixed(2)}/month
+                  {data.subscriptions.length} selected · £{fmt(data.subscriptions.reduce((sum, s) => sum + s.cost, 0))}/month
                 </div>
               )}
             </div>

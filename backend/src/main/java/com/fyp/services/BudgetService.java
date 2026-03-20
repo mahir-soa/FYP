@@ -1,5 +1,6 @@
 package com.fyp.services;
 
+import com.fyp.constants.SpendingCategories;
 import com.fyp.models.Budget;
 import com.fyp.models.Expense;
 import com.fyp.repos.*;
@@ -18,7 +19,7 @@ public class BudgetService {
     private static final double SPENDING_REDUCTION_FACTOR = 0.90;
     private static final double DEFAULT_BUFFER_PERCENT = 0.05;
     private static final int SMART_BUDGET_THRESHOLD = 20;
-    private static final List<String> DEFAULT_CATEGORIES = List.of("Food", "Travel", "Education", "Leisure", "Other");
+    private static final List<String> DEFAULT_CATEGORIES = SpendingCategories.CATEGORIES;
 
     private static final Map<String, String> CATEGORY_TIERS = Map.of(
         "Food", "FLEXIBLE",
@@ -52,7 +53,7 @@ public class BudgetService {
         this.chatService = chatService;
     }
 
-    // ── Suggestion ──────────────────────────────────────────────
+    // Suggestion
 
     public Map<String, Object> buildSuggestion(Long userId) {
         Map<String, Object> suggestion = new LinkedHashMap<>();
@@ -79,7 +80,7 @@ public class BudgetService {
         Map<String, Map<String, Object>> explanations = new LinkedHashMap<>();
 
         if (expenseCount >= SMART_BUDGET_THRESHOLD) {
-            // ── Smart Mode: AI-generated budget ──
+            // Smart Mode: AI-generated budget
             Map<String, Double> categoryAverages = calculateCategoryAverages(userId);
 
             Map<String, Object> aiContext = new LinkedHashMap<>();
@@ -124,7 +125,7 @@ public class BudgetService {
                 }
             }
         } else {
-            // ── Basic Mode: even split across default categories ──
+            // Basic Mode: even split across default categories
             double evenSplit = round2(budgetAfterBuffer / DEFAULT_CATEGORIES.size());
             for (String cat : DEFAULT_CATEGORIES) {
                 categoryLimits.put(cat, evenSplit);
@@ -160,31 +161,39 @@ public class BudgetService {
         suggestion.put("expenseCount", expenseCount);
         suggestion.put("smartThreshold", SMART_BUDGET_THRESHOLD);
 
-        // ── Goal breakdown ──
+        // Goal breakdown (OUTCOME plans only)
         List<Map<String, Object>> goalBreakdown = new ArrayList<>();
-        planRepository.findByUserId(userId).forEach(plan -> {
-            if (plan.getTargetDate() == null || plan.getTargetDate().isEmpty()) return;
-            try {
-                LocalDate targetDate = LocalDate.parse(plan.getTargetDate());
-                if (targetDate.isBefore(today)) return;
-                double remaining = plan.getTargetAmount() - plan.getCurrentAmount();
-                if (remaining <= 0) return;
-                long monthsRemaining = ChronoUnit.MONTHS.between(currentYearMonth, YearMonth.from(targetDate));
-                if (monthsRemaining <= 0) monthsRemaining = 1;
-                double monthly = round2(remaining / monthsRemaining);
-                goalBreakdown.add(Map.of(
-                    "title", plan.getTitle(),
-                    "monthlyContribution", monthly,
-                    "type", plan.getType() != null ? plan.getType() : "SAVINGS"
-                ));
-            } catch (Exception ignored) {}
-        });
+        planRepository.findByUserId(userId).stream()
+            .filter(plan -> "OUTCOME_PLAN".equals(plan.getFamily()) && plan.getIsActive())
+            .forEach(plan -> {
+                try {
+                    double remaining = plan.getTargetAmount() - plan.getCurrentAmount();
+                    if (remaining <= 0) return;
+
+                    double monthly;
+                    if (plan.getMonthlyContribution() != null && plan.getMonthlyContribution() > 0) {
+                        monthly = Math.min(plan.getMonthlyContribution(), remaining);
+                    } else if (plan.getEndDate() != null && !plan.getEndDate().isBefore(today)) {
+                        long monthsRemaining = ChronoUnit.MONTHS.between(currentYearMonth, YearMonth.from(plan.getEndDate()));
+                        if (monthsRemaining <= 0) monthsRemaining = 1;
+                        monthly = round2(remaining / monthsRemaining);
+                    } else {
+                        monthly = round2(remaining / 12.0);
+                    }
+
+                    goalBreakdown.add(Map.of(
+                        "title", plan.getTitle(),
+                        "monthlyContribution", monthly,
+                        "type", plan.getCategory() != null ? plan.getCategory() : "SAVINGS"
+                    ));
+                } catch (Exception ignored) {}
+            });
         suggestion.put("goalBreakdown", goalBreakdown);
 
         return suggestion;
     }
 
-    // ── Smart Budget AI Response Parser ──────────────────────────
+    // Smart Budget AI Response Parser
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> parseSmartBudgetResponse(String aiResponse, double availableBudget) {
@@ -245,9 +254,9 @@ public class BudgetService {
         }
     }
 
-    // ── Budget Status ───────────────────────────────────────────
+    // Budget Status
 
-    public Optional<Map<String, Object>> buildBudgetStatus(Long userId) {
+    public Optional<Map<String, Object>> buildBudgetStatus(Long userId, double warningThreshold, double pacingThreshold) {
         String currentMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
         Optional<Budget> budgetOpt = budgetRepository.findByUserIdAndMonth(userId, currentMonth);
         if (budgetOpt.isEmpty()) return Optional.empty();
@@ -284,12 +293,12 @@ public class BudgetService {
         status.put("daysElapsed", dayOfMonth);
         status.put("daysInMonth", daysInMonth);
 
-        // ── Buffer state ──
+        // Buffer state
         double bufferAmount = budget.getBufferAmount();
         Map<String, Object> bufferState = calculateBufferState(categoryLimits, spentByCategory, bufferAmount);
         status.put("buffer", bufferState);
 
-        // ── Per-category status ──
+        // Per-category status
         Set<String> allCats = new LinkedHashSet<>(categoryLimits.keySet());
         allCats.addAll(spentByCategory.keySet());
 
@@ -334,7 +343,7 @@ public class BudgetService {
                 double adjustedRemaining = Math.max(0, budget.getTotalBudget() - totalSpent);
                 double dailyTarget = daysRemaining > 0 ? adjustedRemaining / daysRemaining : 0;
                 cs.put("nextAction", String.format("To stay on track: spend <= £%.2f/day", round2(dailyTarget)));
-            } else if (limit > 0 && spent >= limit * 0.8) {
+            } else if (limit > 0 && spent >= limit * warningThreshold) {
                 cs.put("status", "warning");
                 double left = round2(limit - spent);
                 cs.put("message", String.format("£%.2f left in this category", left));
@@ -362,17 +371,17 @@ public class BudgetService {
         status.put("activeCategories", activeCategories);
         status.put("unusedBudgetedCategories", unusedCategories);
 
-        // ── Pacing ──
-        status.put("pacing", calculatePacing(budget.getTotalBudget(), totalSpent, dayOfMonth, daysInMonth));
+        // Pacing
+        status.put("pacing", calculatePacing(budget.getTotalBudget(), totalSpent, dayOfMonth, daysInMonth, pacingThreshold));
 
-        // ── Goal protection ──
+        // Goal protection
         status.put("goalOverrideAction", budget.getGoalOverrideAction() != null ? budget.getGoalOverrideAction() : "KEEP");
         status.put("monthlyGoalAllocations", round2(calculateMonthlyGoalAllocations(userId)));
 
         return Optional.of(status);
     }
 
-    // ── Buffer ──────────────────────────────────────────────────
+    // Buffer
 
     public Map<String, Object> calculateBufferState(
             Map<String, Double> categoryLimits,
@@ -403,9 +412,9 @@ public class BudgetService {
         return state;
     }
 
-    // ── Pacing ──────────────────────────────────────────────────
+    // Pacing
 
-    public Map<String, Object> calculatePacing(double totalBudget, double totalSpent, int dayOfMonth, int daysInMonth) {
+    public Map<String, Object> calculatePacing(double totalBudget, double totalSpent, int dayOfMonth, int daysInMonth, double pacingThreshold) {
         Map<String, Object> pacing = new LinkedHashMap<>();
 
         double dailyBudget = totalBudget / daysInMonth;
@@ -416,18 +425,20 @@ public class BudgetService {
         double remaining = totalBudget - totalSpent;
         double safeToSpendPerDay = daysRemaining > 0 ? Math.max(0, remaining / daysRemaining) : 0;
 
+        double threshold = Math.max(15, expectedSpentByNow * pacingThreshold);
+
         pacing.put("dailyBudget", round2(dailyBudget));
         pacing.put("expectedSpentByNow", round2(expectedSpentByNow));
         pacing.put("actualSpent", round2(totalSpent));
         pacing.put("safeToSpendPerDay", round2(safeToSpendPerDay));
         pacing.put("daysRemaining", daysRemaining);
 
-        if (difference > 5) { // small threshold to avoid noise
+        if (difference > threshold) {
             pacing.put("pacingStatus", "AHEAD");
             pacing.put("bonusAvailable", round2(difference));
             pacing.put("pacingMessage", String.format(
                 "You're £%.2f ahead of pace — small bonus available today", difference));
-        } else if (difference < -5) {
+        } else if (difference < -threshold) {
             pacing.put("pacingStatus", "BEHIND");
             pacing.put("behindBy", round2(Math.abs(difference)));
             pacing.put("pacingMessage", String.format(
@@ -441,7 +452,7 @@ public class BudgetService {
         return pacing;
     }
 
-    // ── Helper: income/bills/subs/goals calculators ─────────────
+    // Helper: income/bills/subs/goals calculators
 
     public double calculateMonthlyIncome(Long userId) {
         return incomeRepository.findByUserId(userId).stream()
@@ -478,16 +489,23 @@ public class BudgetService {
         LocalDate today = LocalDate.now();
         YearMonth currentYearMonth = YearMonth.from(today);
         return planRepository.findByUserId(userId).stream()
+                .filter(plan -> "OUTCOME_PLAN".equals(plan.getFamily()) && plan.getIsActive())
                 .mapToDouble(plan -> {
-                    if (plan.getTargetDate() == null || plan.getTargetDate().isEmpty()) return 0;
                     try {
-                        LocalDate targetDate = LocalDate.parse(plan.getTargetDate());
-                        if (targetDate.isBefore(today)) return 0;
                         double remaining = plan.getTargetAmount() - plan.getCurrentAmount();
                         if (remaining <= 0) return 0;
-                        long monthsRemaining = ChronoUnit.MONTHS.between(currentYearMonth, YearMonth.from(targetDate));
-                        if (monthsRemaining <= 0) monthsRemaining = 1;
-                        return remaining / monthsRemaining;
+
+                        if (plan.getMonthlyContribution() != null && plan.getMonthlyContribution() > 0) {
+                            return Math.min(plan.getMonthlyContribution(), remaining);
+                        }
+
+                        if (plan.getEndDate() != null && !plan.getEndDate().isBefore(today)) {
+                            long monthsRemaining = ChronoUnit.MONTHS.between(currentYearMonth, YearMonth.from(plan.getEndDate()));
+                            if (monthsRemaining <= 0) monthsRemaining = 1;
+                            return remaining / monthsRemaining;
+                        }
+
+                        return remaining / 12.0;
                     } catch (Exception e) {
                         return 0;
                     }
@@ -511,7 +529,7 @@ public class BudgetService {
         return averages;
     }
 
-    // ── Helpers ─────────────────────────────────────────────────
+    // Helpers
 
     public Map<String, Double> parseCategoryLimits(String limitsJson) {
         Map<String, Double> limits = new LinkedHashMap<>();
@@ -528,7 +546,7 @@ public class BudgetService {
         return limits;
     }
 
-    private double round2(double value) {
+    public double round2(double value) {
         return Math.round(value * 100.0) / 100.0;
     }
 }
