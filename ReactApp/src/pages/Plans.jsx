@@ -50,9 +50,9 @@ const SPENDING_CATEGORIES = ["Food", "Travel", "Education", "Leisure", "Other"]
 
 const aiExamples = [
   "Save £5,000 for a holiday by December",
-  "Pay off my £2,000 credit card in 6 months",
   "I'm bulking this month, spend more on food",
-  "Reduce leisure spending for the next 3 months",
+  "It's Ramadan, increase food budget and reduce leisure",
+  "Exam season — cut leisure and focus spending on education",
   "Build a £10,000 emergency fund",
   "Tight budget until payday"
 ]
@@ -79,6 +79,9 @@ export default function Plans() {
   // Show completed
   const [showCompleted, setShowCompleted] = useState(false)
 
+  // Budget affordability
+  const [budgetWarning, setBudgetWarning] = useState(null)
+
   const reloadPlans = async () => {
     if (!user?.id) return
     setLoading(true)
@@ -91,6 +94,51 @@ export default function Plans() {
       setErrorMsg("Could not load plans.")
     } finally {
       setLoading(false)
+    }
+    checkAffordability()
+  }
+
+  const checkAffordability = async () => {
+    if (!user?.id) return
+    try {
+      const res = await api.get(`/budgets/suggest?userId=${user.id}`)
+      const sg = res.data
+      const spendable = sg.totalCapacity || 0
+      const goalTotal = sg.monthlyGoalAllocations || 0
+      const afterGoals = sg.budgetAfterGoals ?? (spendable - goalTotal)
+      const goalBreakdown = sg.goalBreakdown || []
+
+      if (goalTotal > 0 && spendable > 0) {
+        const pct = (goalTotal / spendable) * 100
+        if (afterGoals <= 0) {
+          setBudgetWarning({
+            level: "critical",
+            message: `Your plan contributions (£${fmt(goalTotal)}/mo) exceed your available budget of £${fmt(spendable)}/mo.`,
+            suggestions: [
+              "Extend deadlines to reduce monthly contributions",
+              "Pause or remove lower-priority plans",
+              "Reduce target amounts on flexible goals"
+            ],
+            goalTotal, spendable, afterGoals, goalBreakdown
+          })
+        } else if (pct > 50) {
+          setBudgetWarning({
+            level: "warning",
+            message: `Your plans take up ${pct.toFixed(0)}% of your budget (£${fmt(goalTotal)} of £${fmt(spendable)}/mo), leaving only £${fmt(afterGoals)}/mo for spending.`,
+            suggestions: [
+              "Consider extending plan deadlines to lower monthly amounts",
+              "Mark less urgent goals as flexible so the budget engine can adjust them"
+            ],
+            goalTotal, spendable, afterGoals, goalBreakdown
+          })
+        } else {
+          setBudgetWarning(null)
+        }
+      } else {
+        setBudgetWarning(null)
+      }
+    } catch {
+      setBudgetWarning(null)
     }
   }
 
@@ -343,7 +391,7 @@ export default function Plans() {
           <p>Describe any financial goal or spending priority and AI will set it up</p>
         </div>
 
-        {/* AI Input */}
+        
         <div className="ai-goal-section">
           <form onSubmit={handleAiSubmit} className="ai-goal-form">
             <div className="ai-input-wrapper">
@@ -378,7 +426,7 @@ export default function Plans() {
           )}
         </div>
 
-        {/* Clarification State (first-class UI) */}
+        
         {clarificationState && (
           <div className="clarification-card">
             <div className="clarification-header">
@@ -393,7 +441,7 @@ export default function Plans() {
 
             {clarificationState.drafts.map((draft, di) => (
               <div key={di} className="clarification-draft">
-                {/* Clarification questions */}
+                
                 {draft.clarificationQuestions && draft.clarificationQuestions.length > 0 && (
                   <div className="clarification-questions">
                     {draft.clarificationQuestions.map((q, qi) => (
@@ -405,7 +453,7 @@ export default function Plans() {
                   </div>
                 )}
 
-                {/* Family choice if UNKNOWN */}
+                
                 {draft.family === "UNKNOWN" && (
                   <div className="clarification-family-choice">
                     <p>Is this a savings goal or a spending priority?</p>
@@ -422,7 +470,7 @@ export default function Plans() {
                   </div>
                 )}
 
-                {/* Missing fields */}
+                
                 {draft.missingFields && draft.missingFields.length > 0 && (
                   <div className="clarification-missing">
                     <span className="clarification-label">Missing:</span>
@@ -432,7 +480,7 @@ export default function Plans() {
                   </div>
                 )}
 
-                {/* Cadence / Termination selectors if missing */}
+                
                 {draft.missingFields?.includes("cadence") && (
                   <div className="clarification-inline-field">
                     <label>How often?</label>
@@ -470,7 +518,7 @@ export default function Plans() {
           </div>
         )}
 
-        {/* Draft Cards */}
+        
         {parsedDrafts.map((draft, di) => (
           <div key={di} className="draft-card">
             <div className="draft-header">
@@ -644,7 +692,7 @@ export default function Plans() {
                 </>
               )}
 
-              {/* Duration months for AFTER_PERIOD */}
+              
               {draft.termination === "AFTER_PERIOD" && (
                 <div className="draft-field">
                   <label>Duration (months)</label>
@@ -712,7 +760,46 @@ export default function Plans() {
           <div className="loading-msg">Loading plans...</div>
         ) : (
           <>
-            {/* OUTCOME Plans - Goals */}
+            
+            {budgetWarning && (
+              <div className={`plan-affordability-warning ${budgetWarning.level}`}>
+                <div className="affordability-header">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  <span>{budgetWarning.level === "critical" ? "Plans exceed your budget" : "Plans are stretching your budget"}</span>
+                  <button className="affordability-dismiss" onClick={() => setBudgetWarning(null)}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+                <p className="affordability-message">{budgetWarning.message}</p>
+                {budgetWarning.goalBreakdown.length > 0 && (
+                  <div className="affordability-breakdown">
+                    {budgetWarning.goalBreakdown.map((g, i) => (
+                      <span key={i} className="affordability-goal-chip">
+                        {g.title}: £{fmt(g.monthlyContribution)}/mo
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="affordability-suggestions">
+                  {budgetWarning.suggestions.map((s, i) => (
+                    <div key={i} className="affordability-suggestion">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
+                      {s}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            
             {outcomeActive.length > 0 && (
               <div className="plans-section">
                 <h2 className="section-title">Goals</h2>
@@ -807,7 +894,7 @@ export default function Plans() {
               </div>
             )}
 
-            {/* PRIORITY Plans - Spending Priorities */}
+            
             {priorityActive.length > 0 && (
               <div className="plans-section">
                 <h2 className="section-title">Spending Priorities</h2>
@@ -846,7 +933,7 @@ export default function Plans() {
                           </div>
                         </div>
 
-                        {/* New: show direction, intensity, categories as chips */}
+                        
                         {plan.direction && (
                           <div className="priority-adjustments">
                             {priorityCats.map((cat, i) => (
@@ -867,7 +954,7 @@ export default function Plans() {
                           </div>
                         )}
 
-                        {/* Legacy fallback for old priorityAdjustments */}
+                        
                         {!plan.direction && plan.priorityAdjustments && (() => {
                           let adjustments = []
                           try { adjustments = JSON.parse(plan.priorityAdjustments) } catch {}
@@ -901,7 +988,7 @@ export default function Plans() {
               </div>
             )}
 
-            {/* Empty State */}
+            
             {activePlans.length === 0 && !loading && (
               <div className="empty-state">
                 <div className="empty-illustration">
@@ -919,7 +1006,7 @@ export default function Plans() {
               </div>
             )}
 
-            {/* Completed Plans */}
+            
             {completedPlans.length > 0 && (
               <div className="plans-section completed-section">
                 <button
@@ -970,7 +1057,7 @@ export default function Plans() {
         )}
       </main>
 
-      {/* Edit Modal */}
+      
       {editPlan && (
         <div className="modal-overlay" onClick={() => setEditPlan(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

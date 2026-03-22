@@ -10,199 +10,65 @@ import "./css/Home.css"
 function LandingPage() {
   return (
     <div className="landing">
-      {/* Hero - Budget Focused with Visual */}
       <section className="hero">
         <div className="hero-content">
-          <div className="hero-badge">
-            <span className="badge-dot"></span>
-            Smart Budget Planning
-          </div>
           <h1 className="hero-title">
-            Budget smarter,<br />
-            <span className="gradient-text">spend better</span>
+            Behaviour-aware<br />
+            <span className="gradient-text">budgeting</span>
           </h1>
           <p className="hero-subtitle">
-            Set spending limits, track every pound, and stay on top of your finances with intelligent budgeting tools.
+            Nudge learns how you spend and gives you timely guidance, not just charts and categories.
           </p>
           <div className="hero-actions">
             <Link to="/register" className="btn-primary">
-              Start Budgeting
+              Get Started
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
             </Link>
-            <Link to="/login" className="btn-ghost">
-              Sign In
-            </Link>
-          </div>
-        </div>
-        <div className="hero-visual">
-          <div className="budget-preview">
-            <div className="preview-header">
-              <span className="preview-title">Monthly Budget</span>
-              <span className="preview-badge">Feb 2025</span>
-            </div>
-            <div className="preview-amount">
-              <span className="amount-value">£1,850</span>
-              <span className="amount-label">remaining of £2,500</span>
-            </div>
-            <div className="preview-progress">
-              <div className="progress-track">
-                <div className="progress-fill" style={{width: '26%'}}></div>
-              </div>
-              <span className="progress-text">26% spent</span>
-            </div>
-            <div className="preview-categories">
-              <div className="cat-row">
-                <span className="cat-dot green"></span>
-                <span className="cat-name">Groceries</span>
-                <div className="cat-bar"><div className="cat-fill" style={{width: '65%'}}></div></div>
-                <span className="cat-value">£195</span>
-              </div>
-              <div className="cat-row">
-                <span className="cat-dot orange"></span>
-                <span className="cat-name">Transport</span>
-                <div className="cat-bar"><div className="cat-fill warning" style={{width: '85%'}}></div></div>
-                <span className="cat-value">£127</span>
-              </div>
-              <div className="cat-row">
-                <span className="cat-dot purple"></span>
-                <span className="cat-name">Entertainment</span>
-                <div className="cat-bar"><div className="cat-fill" style={{width: '40%'}}></div></div>
-                <span className="cat-value">£80</span>
-              </div>
-            </div>
+            <Link to="/login" className="btn-ghost">Sign In</Link>
           </div>
         </div>
       </section>
 
-      {/* Features - Budget Focused */}
       <section className="features-section">
-        <div className="section-header">
-          <span className="section-label">Features</span>
-          <h2 className="section-title">Budgeting that actually works</h2>
-        </div>
-
         <div className="features-bento">
-          {/* Main Budget Card */}
-          <div className="feature-card feature-main">
-            <div className="feature-main-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-            </div>
-            <h3>Category Budgets</h3>
-            <p>Set individual spending limits for groceries, transport, entertainment, and more. Get real-time alerts when approaching your limits.</p>
-            <div className="feature-mini-visual">
-              <div className="mini-cat">
-                <span>Food</span>
-                <div className="mini-track"><div className="mini-fill" style={{width: '70%'}}></div></div>
-              </div>
-              <div className="mini-cat">
-                <span>Bills</span>
-                <div className="mini-track"><div className="mini-fill warn" style={{width: '92%'}}></div></div>
-              </div>
-              <div className="mini-cat">
-                <span>Shopping</span>
-                <div className="mini-track"><div className="mini-fill" style={{width: '45%'}}></div></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Other Features */}
           <div className="feature-card">
             <div className="feature-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
-            <h3>Expense Tracking</h3>
-            <p>Log transactions and categorize spending automatically</p>
+            <h3>Adaptive Budgets</h3>
+            <p>Your budget adjusts based on your actual spending patterns, not fixed rules.</p>
           </div>
 
           <div className="feature-card">
             <div className="feature-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg>
             </div>
-            <h3>Income Tracking</h3>
-            <p>Monitor all your income sources in one place</p>
-          </div>
-
-          <div className="feature-card feature-dark">
-            <div className="feature-icon-light">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313-12.454z"/><path d="M17 4a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2"/></svg>
-            </div>
-            <h3>AI Budget Advisor</h3>
-            <p>Get smart suggestions to optimize your budget</p>
-            <span className="feature-badge">New</span>
+            <h3>Spending Persona</h3>
+            <p>Find out if you're a cautious saver, weekend splurger, or something else entirely.</p>
           </div>
 
           <div className="feature-card">
             <div className="feature-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
             </div>
-            <h3>Subscriptions</h3>
-            <p>Track recurring payments and find savings</p>
+            <h3>Smart Nudges</h3>
+            <p>Timely warnings when you're overspending, not a wall of notifications.</p>
           </div>
 
           <div className="feature-card">
             <div className="feature-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             </div>
-            <h3>Savings Plans</h3>
-            <p>Set targets and track your progress</p>
+            <h3>Plans & Goals</h3>
+            <p>Describe what you want in plain English and the AI sets it up for you.</p>
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="how-section">
-        <div className="how-content">
-          <span className="section-label">How it works</span>
-          <h2 className="section-title">Start budgeting in 3 steps</h2>
-          <div className="steps-list">
-            <div className="step-row">
-              <div className="step-num">1</div>
-              <div className="step-text">
-                <h4>Set your monthly budget</h4>
-                <p>Define your total spending limit for the month</p>
-              </div>
-            </div>
-            <div className="step-row">
-              <div className="step-num">2</div>
-              <div className="step-text">
-                <h4>Allocate by category</h4>
-                <p>Split your budget across different spending categories</p>
-              </div>
-            </div>
-            <div className="step-row">
-              <div className="step-num">3</div>
-              <div className="step-text">
-                <h4>Track in real-time</h4>
-                <p>Log expenses and watch your budget update instantly</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="how-visual">
-          <div className="phone-mock">
-            <div className="phone-screen">
-              <span className="phone-label">Budget Status</span>
-              <div className="phone-ring-wrap">
-                <svg viewBox="0 0 36 36" className="phone-ring">
-                  <path className="ring-bg" d="M18 2.0845a 15.9155 15.9155 0 0 1 0 31.831a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                  <path className="ring-fill" strokeDasharray="74, 100" d="M18 2.0845a 15.9155 15.9155 0 0 1 0 31.831a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                </svg>
-                <div className="ring-center">
-                  <span className="ring-percent">74%</span>
-                  <span className="ring-text">remaining</span>
-                </div>
-              </div>
-              <span className="phone-amount">£1,850 left</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
       <section className="cta">
         <div className="cta-inner">
-          <h2>Ready to take control of your spending?</h2>
-          <p>Join thousands already budgeting smarter with Nudge</p>
+          <h2>Start tracking, the rest follows</h2>
+          <p>Add your income and expenses. Nudge handles the budgeting.</p>
           <Link to="/register" className="btn-cta">
             Create Free Account
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
@@ -210,7 +76,6 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="footer">
         <span className="footer-logo">Nudge</span>
         <div className="footer-links">
@@ -293,7 +158,7 @@ function Dashboard({ user }) {
 
   return (
     <div className="dashboard">
-      {/* Header */}
+      
       <header className="dash-header">
         <div className="dash-greeting">
           <span className="greeting-label">{getGreeting()}</span>
@@ -311,7 +176,7 @@ function Dashboard({ user }) {
         </div>
       </header>
 
-      {/* Budget Hero Card - Main Focus */}
+      
       {totalBudget > 0 ? (
         <Link to="/budget" className="budget-hero">
           <div className="budget-hero-left">
@@ -357,7 +222,7 @@ function Dashboard({ user }) {
         </Link>
       )}
 
-      {/* Quick Stats */}
+      
       {expenses.length > 0 && (
         <div className="quick-stats">
           <div className="quick-stat">
@@ -371,7 +236,7 @@ function Dashboard({ user }) {
         </div>
       )}
 
-      {/* Persona Banner */}
+      
       <Link to="/persona" className="persona-banner">
         <div className="persona-banner-icon">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -400,7 +265,7 @@ function Dashboard({ user }) {
         </div>
       </Link>
 
-      {/* Secondary Cards */}
+      
       <div className="dash-grid">
         <Link to="/overview" className="dash-card">
           <div className="dash-card-icon">

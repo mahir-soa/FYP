@@ -233,7 +233,7 @@ export default function Chat() {
                       <img src={budgetBot} alt="AI Assistant" />
                     </div>
                   ) : (
-                    <Avatar user={user} size="sm" persona={user?.persona} customOptions={user?.avatarOptions} frame={user?.avatarFrame} />
+                    <Avatar user={user} size="sm" />
                   )}
                 </div>
                 <div className="message-content">

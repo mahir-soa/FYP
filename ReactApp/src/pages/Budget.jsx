@@ -165,48 +165,10 @@ export default function Budget() {
       if (budgetRes.data) {
         const currentBudget = budgetRes.data
 
-        // Check if budget total or category limits changed
-        const currentLimits = JSON.parse(currentBudget.categoryLimits || "{}")
-        const limitsChanged = Object.keys(suggestedLimits).some(
-          cat => Math.abs((suggestedLimits[cat] || 0) - (currentLimits[cat] || 0)) > 0.01
-        )
-        const totalChanged = Math.abs(currentBudget.totalBudget - effectiveBudget) > 0.01
-
-        if (autoApply && effectiveBudget > 0 && (totalChanged || limitsChanged)) {
-          const bufAmt = sg.bufferAmount || Math.round(effectiveBudget * 0.05 * 100) / 100
-          const limitsTotal = Object.values(suggestedLimits).reduce((sum, v) => sum + (Number(v) || 0), 0)
-          const safeToSpend = Math.max(0, effectiveBudget - limitsTotal - bufAmt)
-
-          const payload = {
-            month: currentMonth,
-            totalBudget: effectiveBudget,
-            categoryLimits: JSON.stringify(suggestedLimits),
-            safeToSpend,
-            bufferAmount: bufAmt,
-            bufferRemaining: bufAmt,
-            categoryMeta: JSON.stringify(sg.categoryExplanations || {}),
-            contextMeta: JSON.stringify({
-              contextImpact: sg.contextImpact || {},
-              totalContextShift: sg.totalContextShift || 0,
-              contextBreakdown: sg.contextBreakdown || []
-            })
-          }
-
-          try {
-            await api.put(`/budgets/${currentBudget.id}?userId=${user.id}`, payload)
-            setBudget({ ...currentBudget, totalBudget: effectiveBudget })
-            setCategoryLimits(suggestedLimits)
-            setTotalBudget(effectiveBudget)
-          } catch {
-            setBudget(currentBudget)
-            setCategoryLimits(JSON.parse(currentBudget.categoryLimits || "{}"))
-            setTotalBudget(currentBudget.totalBudget)
-          }
-        } else {
-          setBudget(currentBudget)
-          setCategoryLimits(JSON.parse(currentBudget.categoryLimits || "{}"))
-          setTotalBudget(currentBudget.totalBudget)
-        }
+        // Always use the saved budget — respect user edits
+        setBudget(currentBudget)
+        setCategoryLimits(JSON.parse(currentBudget.categoryLimits || "{}"))
+        setTotalBudget(currentBudget.totalBudget)
 
         try {
           const statusRes = await api.get(`/budgets/status?userId=${user.id}`)
@@ -380,6 +342,50 @@ export default function Budget() {
     }
   }
 
+  const handleApplyRebalance = async () => {
+    const realloc = budgetStatus?.reallocation
+    if (!budget?.id || !realloc?.suggestions?.length) return
+    setSaving(true)
+    setErrorMsg("")
+    try {
+      const newLimits = { ...categoryLimits }
+
+      // Raise overspent category limits to match actual spending
+      const categories = budgetStatus?.categories || {}
+      for (const [cat, info] of Object.entries(categories)) {
+        const spent = info.spent || 0
+        const limit = newLimits[cat] || 0
+        if (spent > limit) {
+          newLimits[cat] = Math.round(spent * 100) / 100
+        }
+      }
+
+      // Reduce donor categories as suggested
+      for (const s of realloc.suggestions) {
+        if (s.category && s.suggestedLimit != null) {
+          newLimits[s.category] = Number(s.suggestedLimit)
+        }
+      }
+
+      const bufferAmount = budget.bufferAmount || Math.round(totalBudget * 0.05 * 100) / 100
+      const limitsTotal = Object.values(newLimits).reduce((sum, v) => sum + (Number(v) || 0), 0)
+      const safeToSpend = Math.max(0, totalBudget - limitsTotal - bufferAmount)
+      await api.put(`/budgets/${budget.id}?userId=${user.id}`, {
+        month: currentMonth,
+        totalBudget,
+        categoryLimits: JSON.stringify(newLimits),
+        safeToSpend,
+        bufferAmount,
+        bufferRemaining: budget.bufferRemaining ?? bufferAmount
+      })
+      await loadData()
+    } catch {
+      setErrorMsg("Failed to apply rebalance.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleGoalOverride = async (action) => {
     if (!budget?.id) return
     try {
@@ -419,7 +425,7 @@ export default function Budget() {
     switch (status) {
       case "exceeded": return "Exceeded"
       case "warning": return "Warning"
-      case "buffer-absorbing": return "Buffer"
+      case "buffer-absorbing": return "Over Limit"
       case "on-track": return "On Track"
       default: return ""
     }
@@ -469,7 +475,7 @@ export default function Budget() {
               </div>
             </div>
             <div className="limit-values">
-              <span className={status !== "on-track" && status !== "buffer-absorbing" ? status : ""}>
+              <span className={status !== "on-track" ? status : ""}>
                 £{fmt(spent)}
               </span>
               <span className="limit-of">/ £{fmt(limit)}</span>
@@ -530,8 +536,7 @@ export default function Budget() {
           <>
             {hasBudget && (
               <>
-                {/* ── 1. HERO SUMMARY ── */}
-                <div className={`hero-card ${overallStatus}`}>
+                                <div className={`hero-card ${overallStatus}`}>
                   <div className="hero-top">
                     <div className="hero-remaining">
                       <span className="hero-label">Remaining this month</span>
@@ -589,8 +594,7 @@ export default function Budget() {
                   </div>
                 </div>
 
-                {/* ── 2. ACTIVE PLANS ── */}
-                {allPlans.length > 0 ? (
+                                {allPlans.length > 0 ? (
                   <div className="plans-strip">
                     <div className="plans-strip-header">
                       <button className="collapse-toggle" onClick={() => setShowPlans(!showPlans)}>
@@ -603,8 +607,7 @@ export default function Budget() {
                     </div>
 
                     {showPlans && <>
-                    {/* Outcome plans (goals) */}
-                    {outcomePlans.length > 0 && (
+                                        {outcomePlans.length > 0 && (
                       <div className="plans-group">
                         <span className="plans-group-label">
                           <span className="plans-group-dot goal" />
@@ -638,8 +641,7 @@ export default function Budget() {
                       </div>
                     )}
 
-                    {/* Priority plans */}
-                    {priorityPlans.length > 0 && (
+                                        {priorityPlans.length > 0 && (
                       <div className="plans-group">
                         <span className="plans-group-label">
                           <span className="plans-group-dot priority" />
@@ -714,29 +716,43 @@ export default function Budget() {
 
                 {errorMsg && <div className="error-msg">{errorMsg}</div>}
 
-                {/* ── 3. NUDGE (what should I do next?) ── */}
-                {budgetStatus?.nudges?.nudges?.length > 0 && (
-                  <div className={`nudge-card severity-${budgetStatus.nudges.nudges[0].severity}`}>
+                                {budgetStatus?.nudges?.nudges?.length > 0 && (() => {
+                  const allNudges = budgetStatus.nudges.nudges
+                  const reallocationNudge = allNudges.find(n => n.nudgeType === "REALLOCATION_ACTION")
+                  const hasReallocation = reallocationNudge && budgetStatus?.reallocation?.suggestions?.length > 0
+                  const displayNudge = hasReallocation ? reallocationNudge : allNudges[0]
+                  return (
+                  <div className={`nudge-card severity-${displayNudge.severity}`}>
                     <div className="nudge-card-header">
-                      <h4>{budgetStatus.nudges.nudges[0].title}</h4>
-                      <span className={`nudge-type-badge ${budgetStatus.nudges.nudges[0].nudgeType}`}>
-                        {budgetStatus.nudges.nudges[0].nudgeType.replace(/_/g, " ")}
+                      <h4>{displayNudge.title}</h4>
+                      <span className={`nudge-type-badge ${displayNudge.nudgeType}`}>
+                        {displayNudge.nudgeType.replace(/_/g, " ")}
                       </span>
                     </div>
-                    <p className="nudge-message">{budgetStatus.nudges.nudges[0].message}</p>
+                    <p className="nudge-message">{displayNudge.message}</p>
                     <div className="nudge-meta">
-                      <span className="nudge-explanation">{budgetStatus.nudges.nudges[0].explanationReason}</span>
-                      {budgetStatus.nudges.nudges[0].actionType && (
-                        <span className="nudge-action-chip">
-                          {budgetStatus.nudges.nudges[0].actionType.replace(/_/g, " ")}
-                        </span>
+                      <span className="nudge-explanation">{displayNudge.explanationReason}</span>
+                      {displayNudge.actionType && (
+                        hasReallocation && displayNudge.nudgeType === "REALLOCATION_ACTION" ? (
+                          <button
+                            className="nudge-action-chip clickable"
+                            onClick={handleApplyRebalance}
+                            disabled={saving}
+                          >
+                            {saving ? "Applying..." : displayNudge.actionType.replace(/_/g, " ")}
+                          </button>
+                        ) : (
+                          <span className="nudge-action-chip">
+                            {displayNudge.actionType.replace(/_/g, " ")}
+                          </span>
+                        )
                       )}
                     </div>
                   </div>
-                )}
+                  )
+                })()}
 
-                {/* ── 3. GOAL PROTECTION PROMPT ── */}
-                {budgetStatus && totalSpent > totalBudget &&
+                                {budgetStatus && totalSpent > totalBudget &&
                  budgetStatus.monthlyGoalAllocations > 0 &&
                  budgetStatus.goalOverrideAction === "KEEP" && !budget?.goalOverrideAction && (
                   <div className="goal-protection-prompt">
@@ -759,8 +775,7 @@ export default function Budget() {
                   </div>
                 )}
 
-                {/* ── 4. CATEGORY BUDGETS (main body) ── */}
-                <div className="budget-section">
+                                <div className="budget-section">
                   <div className="section-header">
                     <button className="collapse-toggle" onClick={() => setShowCategories(!showCategories)}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={showCategories ? "rotated" : ""}>
@@ -795,43 +810,9 @@ export default function Budget() {
                     )}
                   </div>
 
-                  {showCategories && <>
-                  {/* Reallocation alert (folded in from standalone card) */}
-                  {budgetStatus?.reallocation?.active && !editMode && (
-                    <div className="reallocation-alert">
-                      <div className="reallocation-alert-header">
-                        <span className={`reallocation-badge ${budgetStatus.reallocation.fullyResolved ? "amber" : "red"}`}>
-                          {budgetStatus.reallocation.fullyResolved ? "Rebalance Available" : "Pressure Detected"}
-                        </span>
-                        <span className="reallocation-summary-text">{budgetStatus.reallocation.summary}</span>
-                      </div>
-                      <div className="pressure-bar-track">
-                        <div
-                          className={`pressure-bar-fill ${budgetStatus.reallocation.fullyResolved ? "full" : "partial"}`}
-                          style={{ width: `${Math.min((budgetStatus.reallocation.totalFreed / budgetStatus.reallocation.pressure) * 100, 100)}%` }}
-                        />
-                      </div>
-                      {budgetStatus.reallocation.suggestions?.length > 0 && (
-                        <div className="reallocation-suggestions">
-                          {budgetStatus.reallocation.suggestions.map((s, i) => (
-                            <div key={i} className="reallocation-suggestion-item">
-                              <span className="category-dot" style={{ background: categoryColors[s.category] || "#6b7280" }} />
-                              <span className="realloc-cat">{s.category}</span>
-                              <span className="reallocation-reduction-chip">
-                                -£{fmt(s.reduction)}
-                              </span>
-                              <span className="reallocation-limits">
-                                £{fmt(s.currentLimit)} &rarr; £{fmt(s.suggestedLimit)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
 
-                  {/* Explanations Panel */}
-                  {showExplanations && suggestion?.categoryExplanations && (
+                  {showCategories && <>
+                                    {showExplanations && suggestion?.categoryExplanations && (
                     <div className="explanations-panel">
                       {Object.entries(suggestion.categoryExplanations).map(([cat, info]) => (
                         <div key={cat} className="explanation-item">
@@ -859,8 +840,7 @@ export default function Budget() {
                     </div>
                   )}
 
-                  {/* Essential tier */}
-                  {(billsTotal > 0 || subsTotal > 0) && !editMode && (
+                                    {(billsTotal > 0 || subsTotal > 0) && !editMode && (
                     <div className="tier-section">
                       <div className="tier-header">
                         <span className="tier-dot essential" />
@@ -892,8 +872,7 @@ export default function Budget() {
                     </div>
                   )}
 
-                  {/* Flexible + Discretionary tiers */}
-                  {TIER_ORDER.map(tier => {
+                                    {TIER_ORDER.map(tier => {
                     const cats = editMode
                       ? Object.keys(categoryLimits).filter(c => getCategoryTier(c) === tier)
                       : (categoriesByTier[tier] || [])
@@ -919,8 +898,7 @@ export default function Budget() {
                     </div>
                   )}
 
-                  {/* Active plans affecting this budget */}
-                  {(allPlans.length > 0 || suggestion?.monthlyGoalAllocations > 0) && !editMode && (
+                                    {(allPlans.length > 0 || suggestion?.monthlyGoalAllocations > 0) && !editMode && (
                     <div className="tier-section">
                       <div className="tier-header">
                         <span className="tier-dot plans" />
@@ -930,8 +908,7 @@ export default function Budget() {
                         )}
                       </div>
                       <div className="plans-tier-list">
-                        {/* Outcome plans (goals) */}
-                        {suggestion?.goalBreakdown?.length > 0 && suggestion.goalBreakdown.map((goal, i) => (
+                                                {suggestion?.goalBreakdown?.length > 0 && suggestion.goalBreakdown.map((goal, i) => (
                           <div key={`goal-${i}`} className="plans-tier-item goal">
                             <span className="plans-tier-dot goal" />
                             <span className="plans-tier-title">{goal.title}</span>
@@ -942,8 +919,7 @@ export default function Budget() {
                           </div>
                         ))}
 
-                        {/* Priority plans */}
-                        {priorityPlans.map(plan => {
+                                                {priorityPlans.map(plan => {
                           let cats = []
                           if (plan.priorityCategories) {
                             try { cats = JSON.parse(plan.priorityCategories) } catch {}
@@ -995,8 +971,7 @@ export default function Budget() {
                     </div>
                   )}
 
-                  {/* Unused categories */}
-                  {unusedCategories.length > 0 && !editMode && (
+                                    {unusedCategories.length > 0 && !editMode && (
                     <div className="unused-section">
                       <button className="unused-toggle" onClick={() => setShowUnused(!showUnused)}>
                         <span>Unused this month ({unusedCategories.length})</span>
@@ -1025,8 +1000,7 @@ export default function Budget() {
                   </>}
                 </div>
 
-                {/* ── 5. HOW THIS BUDGET WAS BUILT ── */}
-                {explanationTrace.length > 0 && (
+                                {explanationTrace.length > 0 && (
                   <div className="waterfall-section">
                     <div className="waterfall-title-row">
                       <button className="collapse-toggle" onClick={() => setShowWaterfall(!showWaterfall)}>
@@ -1052,21 +1026,66 @@ export default function Budget() {
                             <div className="waterfall-layer-header" style={{ borderLeftColor: LAYER_COLORS[layer] }}>
                               <span className="waterfall-layer-dot" style={{ background: LAYER_COLORS[layer] }} />
                               <span className="waterfall-layer-name">{LAYER_LABELS[layer]}</span>
+                              {layer === "CONTEXT" && (suggestion?.totalContextShift || 0) !== 0 && (
+                                <span className={`waterfall-layer-total ${suggestion.totalContextShift > 0 ? "positive" : "negative"}`}>
+                                  Net shift: {suggestion.totalContextShift > 0 ? "+" : ""}£{fmt(suggestion.totalContextShift)}
+                                </span>
+                              )}
                             </div>
                             <div className="waterfall-steps">
-                              {layerSteps.map((step, i) => (
-                                <div key={i} className="waterfall-step">
-                                  <div className="waterfall-step-reason">{step.reason}</div>
-                                  <div className="waterfall-step-values">
-                                    {step.adjustment !== 0 && (
-                                      <span className={`waterfall-adj ${step.adjustment > 0 ? "positive" : "negative"}`}>
-                                        {step.adjustment > 0 ? "+" : ""}£{fmt(step.adjustment)}
-                                      </span>
-                                    )}
-                                    <span className="waterfall-result">£{fmt(step.result)}</span>
+                              {layerSteps.map((step, i) => {
+                                // For CONTEXT layer, compute and show per-category £ impacts
+                                if (layer === "CONTEXT" && step.field !== "none") {
+                                  const ctxImpact = suggestion?.contextImpact || {}
+                                  const ctxBreakdown = suggestion?.contextBreakdown || []
+                                  const matchingCtx = ctxBreakdown.find(c => c.title === step.field)
+                                  const affectedCats = matchingCtx
+                                    ? [...Object.keys(matchingCtx.adjustments || {}), ...Object.keys(matchingCtx.fixedAmounts || {})]
+                                    : []
+                                  const uniqueCats = [...new Set(affectedCats)]
+                                  const netImpact = uniqueCats.reduce((sum, cat) => sum + (ctxImpact[cat] || 0), 0)
+
+                                  return (
+                                    <div key={i} className="waterfall-step">
+                                      <div className="waterfall-step-reason">{step.reason}</div>
+                                      <div className="waterfall-step-values">
+                                        {Math.abs(netImpact) >= 0.01 && (
+                                          <span className={`waterfall-adj ${netImpact > 0 ? "positive" : "negative"}`}>
+                                            {netImpact > 0 ? "+" : ""}£{fmt(netImpact)}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {uniqueCats.length > 0 && (
+                                        <div className="waterfall-context-cats">
+                                          {uniqueCats.map(cat => {
+                                            const impact = ctxImpact[cat] || 0
+                                            if (Math.abs(impact) < 0.01) return null
+                                            return (
+                                              <span key={cat} className={`waterfall-context-cat ${impact > 0 ? "positive" : "negative"}`}>
+                                                {cat}: {impact > 0 ? "+" : ""}£{fmt(impact)}
+                                              </span>
+                                            )
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                }
+
+                                return (
+                                  <div key={i} className="waterfall-step">
+                                    <div className="waterfall-step-reason">{step.reason}</div>
+                                    <div className="waterfall-step-values">
+                                      {step.adjustment !== 0 && (
+                                        <span className={`waterfall-adj ${step.adjustment > 0 ? "positive" : "negative"}`}>
+                                          {step.adjustment > 0 ? "+" : ""}£{fmt(step.adjustment)}
+                                        </span>
+                                      )}
+                                      <span className="waterfall-result">£{fmt(step.result)}</span>
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                )
+                              })}
                             </div>
                           </div>
                         )
@@ -1076,8 +1095,7 @@ export default function Budget() {
                   </div>
                 )}
 
-                {/* ── 7. AI INSIGHTS ── */}
-                <div className="insights-section">
+                                <div className="insights-section">
                   <div className="section-header">
                     <button className="collapse-toggle" onClick={() => setShowInsights(!showInsights)}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={showInsights ? "rotated" : ""}>
@@ -1135,8 +1153,7 @@ export default function Budget() {
               </>
             )}
 
-            {/* No budget yet */}
-            {!hasBudget && (
+                        {!hasBudget && (
               <div className="empty-state">
                 <div className="empty-illustration">
                   <svg width="64" height="64" viewBox="0 0 64 64" fill="none">

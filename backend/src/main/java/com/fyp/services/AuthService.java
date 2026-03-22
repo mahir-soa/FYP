@@ -355,7 +355,27 @@ public class AuthService {
                 .map(UserPreferences::isOnboardingCompleted)
                 .orElse(false);
         userMap.put("onboardingCompleted", onboardingCompleted);
+        userMap.put("isGoogleUser", user.getGoogleId() != null);
 
         return userMap;
+    }
+
+    public Map<String, Object> setPassword(String token, String newPassword) {
+        if (!jwtUtil.isTokenValid(token)) {
+            throw new RuntimeException("Invalid token");
+        }
+
+        Long userId = jwtUtil.extractUserId(token);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getGoogleId() == null) {
+            throw new RuntimeException("Use change password instead");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        return Map.of("message", "Password set successfully");
     }
 }

@@ -205,6 +205,29 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/set-password")
+    public ResponseEntity<?> setPassword(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody Map<String, String> request) {
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Invalid authorization header"));
+            }
+
+            String token = authHeader.substring(7);
+            String newPassword = request.get("newPassword");
+
+            if (newPassword == null || newPassword.length() < 6) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Password must be at least 6 characters"));
+            }
+
+            Map<String, Object> response = authService.setPassword(token, newPassword);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/delete-account")
     public ResponseEntity<?> deleteAccount(
             @RequestHeader("Authorization") String authHeader,

@@ -267,6 +267,7 @@ export default function Persona() {
   const [analysing, setAnalysing] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
   const [showAxisGuide, setShowAxisGuide] = useState(false)
+  const [showConfidence, setShowConfidence] = useState(false)
   const [analysisError, setAnalysisError] = useState(null)
   const [autoAnalysisDone, setAutoAnalysisDone] = useState(false)
 
@@ -400,7 +401,7 @@ export default function Persona() {
           </div>
         ) : (
           <>
-            {/* Provisional Banner */}
+            
             {personaData.provisional && (
               <div className="persona-provisional-banner">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -417,7 +418,7 @@ export default function Persona() {
               </div>
             )}
 
-            {/* Profile Card */}
+            
             <div className="persona-profile-card">
               <div className="persona-profile-top">
                 <div className="persona-profile-info">
@@ -460,7 +461,7 @@ export default function Persona() {
               </div>
             </div>
 
-            {/* Detail Cards */}
+            
             <div className="persona-details-grid">
               {personaData.spider_axes && Object.keys(personaData.spider_axes).length > 0 && (
                 <div className="persona-detail-card radar-chart-card">
@@ -530,62 +531,11 @@ export default function Persona() {
 
 
 
-              {/* Confidence Meter */}
-              <div className="persona-detail-card">
-                <h3>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                  </svg>
-                  Confidence Score
-                </h3>
-                <div className="confidence-value">
-                  {confidenceScore}%
-                  <span className={`confidence-level-inline ${confidenceLevel}`}>{confidenceLevel}</span>
-                </div>
-                <div className="confidence-label-text">
-                  {confidenceLevel === "high" ? "Strong match" : confidenceLevel === "medium" ? "Moderate match" : "More data needed"}
-                </div>
-                <div className="confidence-meter">
-                  <div className="confidence-bar-bg">
-                    <div
-                      className={`confidence-bar-fill ${confidenceLevel}`}
-                      style={{ width: `${confidenceScore}%` }}
-                    />
-                  </div>
-                  <div className="confidence-labels">
-                    <span>Low</span>
-                    <span>Medium</span>
-                    <span>High</span>
-                  </div>
-                </div>
-                {confidenceData.data_sufficiency !== undefined && (
-                  <div className="confidence-breakdown">
-                    <div className="confidence-factor">
-                      <span className="confidence-factor-label">Data Sufficiency</span>
-                      <div className="confidence-factor-bar-bg">
-                        <div className="confidence-factor-bar-fill" style={{ width: `${confidenceData.data_sufficiency}%` }} />
-                      </div>
-                      <span className="confidence-factor-value">{Math.round(confidenceData.data_sufficiency)}</span>
-                    </div>
-                    <div className="confidence-factor">
-                      <span className="confidence-factor-label">Stability</span>
-                      <div className="confidence-factor-bar-bg">
-                        <div className="confidence-factor-bar-fill" style={{ width: `${confidenceData.stability}%` }} />
-                      </div>
-                      <span className="confidence-factor-value">{Math.round(confidenceData.stability)}</span>
-                    </div>
-                    <div className="confidence-factor">
-                      <span className="confidence-factor-label">Cluster Fit</span>
-                      <div className="confidence-factor-bar-bg">
-                        <div className="confidence-factor-bar-fill" style={{ width: `${confidenceData.cluster_fit}%` }} />
-                      </div>
-                      <span className="confidence-factor-value">{Math.round(confidenceData.cluster_fit)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <NudgeList nudges={nudgesData} />
 
-              {/* Persona Explanation */}
+              
+
+              
               <div className="persona-detail-card explanation-card">
                 <h3>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -621,7 +571,7 @@ export default function Persona() {
                 )}
               </div>
 
-              {/* Emotional Spending */}
+              
               {(() => {
                 const emo = personaData.emotional_spending || {}
                 const score = Math.round(emo.score || 0)
@@ -697,9 +647,7 @@ export default function Persona() {
                 )
               })()}
 
-              <NudgeList nudges={nudgesData} />
-
-              {/* Analysis Info */}
+              
               <div className="persona-detail-card">
                 <h3>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -729,10 +677,71 @@ export default function Persona() {
                     </span>
                   </div>
                 </div>
+
+                <button
+                  className="confidence-toggle-btn"
+                  onClick={() => setShowConfidence(!showConfidence)}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                  </svg>
+                  Confidence: {confidenceScore}%
+                  <span className={`confidence-dot ${confidenceLevel}`} />
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={showConfidence ? "rotated" : ""}>
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+
+                {showConfidence && (
+                  <div className="confidence-expanded">
+                    <div className="confidence-label-text">
+                      {confidenceLevel === "high" ? "Strong match" : confidenceLevel === "medium" ? "Moderate match" : "More data needed"}
+                    </div>
+                    <div className="confidence-meter">
+                      <div className="confidence-bar-bg">
+                        <div
+                          className={`confidence-bar-fill ${confidenceLevel}`}
+                          style={{ width: `${confidenceScore}%` }}
+                        />
+                      </div>
+                      <div className="confidence-labels">
+                        <span>Low</span>
+                        <span>Medium</span>
+                        <span>High</span>
+                      </div>
+                    </div>
+                    {confidenceData.data_sufficiency !== undefined && (
+                      <div className="confidence-breakdown">
+                        <div className="confidence-factor">
+                          <span className="confidence-factor-label">Data Sufficiency</span>
+                          <div className="confidence-factor-bar-bg">
+                            <div className="confidence-factor-bar-fill" style={{ width: `${confidenceData.data_sufficiency}%` }} />
+                          </div>
+                          <span className="confidence-factor-value">{Math.round(confidenceData.data_sufficiency)}</span>
+                        </div>
+                        <div className="confidence-factor">
+                          <span className="confidence-factor-label">Stability</span>
+                          <div className="confidence-factor-bar-bg">
+                            <div className="confidence-factor-bar-fill" style={{ width: `${confidenceData.stability}%` }} />
+                          </div>
+                          <span className="confidence-factor-value">{Math.round(confidenceData.stability)}</span>
+                        </div>
+                        <div className="confidence-factor">
+                          <span className="confidence-factor-label">Cluster Fit</span>
+                          <div className="confidence-factor-bar-bg">
+                            <div className="confidence-factor-bar-fill" style={{ width: `${confidenceData.cluster_fit}%` }} />
+                          </div>
+                          <span className="confidence-factor-value">{Math.round(confidenceData.cluster_fit)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+
             </div>
 
-            {/* Tips Card */}
+            
             <div className="persona-tips-card">
               <h3>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -222,6 +222,9 @@
 }
 
 .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   padding: 80px 20px;
   background: var(--white);

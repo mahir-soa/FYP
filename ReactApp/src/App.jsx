@@ -16,7 +16,7 @@ import Income from "./pages/Income"
 import Plans from "./pages/Plans"
 import Budget from "./pages/Budget"
 import Persona from "./pages/Persona"
-// import Onboarding from "./pages/Onboarding"
+import Onboarding from "./pages/Onboarding"
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -43,7 +43,6 @@ function AppRoutes() {
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      {/* Onboarding hidden
       <Route
         path="/onboarding"
         element={
@@ -51,7 +50,7 @@ function AppRoutes() {
             <Onboarding />
           </ProtectedRoute>
         }
-      /> */}
+      />
       <Route
         path="/expenses"
         element={

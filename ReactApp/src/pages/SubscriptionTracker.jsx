@@ -390,6 +390,10 @@ export default function SubscriptionTracker() {
       setErrorMsg("Enter a valid cost.")
       return
     }
+    if (!nextPaymentDate) {
+      setErrorMsg("Next payment date is required.")
+      return
+    }
 
     const payload = {
       name: name.trim(),
@@ -768,11 +772,12 @@ export default function SubscriptionTracker() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Next Payment Date</label>
+                  <label>Next Payment Date <span style={{ color: "var(--red-500)" }}>*</span></label>
                   <input
                     type="date"
                     value={nextPaymentDate}
                     onChange={(e) => setNextPaymentDate(e.target.value)}
+                    required
                   />
                 </div>
                 <div className="form-group">

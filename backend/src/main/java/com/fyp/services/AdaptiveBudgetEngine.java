@@ -9,7 +9,9 @@ import com.fyp.models.dto.PersonaBudgetProfile;
 import com.fyp.repos.BudgetRepository;
 import com.fyp.repos.ExpenseRepository;
 import com.fyp.repos.FinancialProfileRepository;
+import com.fyp.repos.NudgeRepository;
 import com.fyp.repos.PlanRepository;
+import com.fyp.models.Nudge;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
@@ -52,6 +54,7 @@ public class AdaptiveBudgetEngine {
     private final PlanRepository planRepository;
     private final ExpenseRepository expenseRepository;
     private final BudgetRepository budgetRepository;
+    private final NudgeRepository nudgeRepository;
     private final ObjectMapper objectMapper;
 
     public AdaptiveBudgetEngine(BudgetService budgetService,
@@ -61,7 +64,8 @@ public class AdaptiveBudgetEngine {
                                  BudgetNudgeService budgetNudgeService,
                                  PlanRepository planRepository,
                                  ExpenseRepository expenseRepository,
-                                 BudgetRepository budgetRepository) {
+                                 BudgetRepository budgetRepository,
+                                 NudgeRepository nudgeRepository) {
         this.budgetService = budgetService;
         this.financialProfileRepository = financialProfileRepository;
         this.planService = planService;
@@ -70,6 +74,7 @@ public class AdaptiveBudgetEngine {
         this.planRepository = planRepository;
         this.expenseRepository = expenseRepository;
         this.budgetRepository = budgetRepository;
+        this.nudgeRepository = nudgeRepository;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -760,11 +765,55 @@ public class AdaptiveBudgetEngine {
         Map<String, Object> reallocation = computeReallocationSuggestions(status, layer5.getReallocationStyle());
         status.put("reallocation", reallocation);
 
+        // Auto-dismiss nudges whose conditions are no longer true (before generating new ones)
+        dismissResolvedNudges(userId, status);
+
         // Persona-aware nudges: downstream consumer of all Layer 1-5 outputs
         Map<String, Object> nudges = budgetNudgeService.generatePersonaAwareNudges(status, userId);
         status.put("nudges", nudges);
 
         return Optional.of(status);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void dismissResolvedNudges(Long userId, Map<String, Object> status) {
+        Map<String, Map<String, Object>> categories = (Map<String, Map<String, Object>>) status.get("categories");
+        Map<String, Object> reallocation = (Map<String, Object>) status.get("reallocation");
+        boolean reallocationActive = reallocation != null && Boolean.TRUE.equals(reallocation.get("active"));
+
+        // Find categories that are on-track
+        Set<String> onTrackCategories = new HashSet<>();
+        if (categories != null) {
+            for (Map.Entry<String, Map<String, Object>> entry : categories.entrySet()) {
+                String catStatus = (String) entry.getValue().get("status");
+                if ("on-track".equals(catStatus)) {
+                    onTrackCategories.add(entry.getKey());
+                }
+            }
+        }
+
+        List<Nudge> activeNudges = nudgeRepository.findActiveNudges(userId, java.time.LocalDateTime.now());
+        for (Nudge nudge : activeNudges) {
+            boolean shouldDismiss = false;
+
+            if ("BUDGET_WARNING".equals(nudge.getType()) && nudge.getTrigger() != null) {
+                // Dismiss if the category mentioned in the trigger is now on-track
+                for (String cat : onTrackCategories) {
+                    if (nudge.getTrigger().toLowerCase().contains(cat.toLowerCase()) ||
+                        nudge.getTitle().toLowerCase().contains(cat.toLowerCase())) {
+                        shouldDismiss = true;
+                        break;
+                    }
+                }
+            } else if ("REALLOCATION_ACTION".equals(nudge.getType()) && !reallocationActive) {
+                shouldDismiss = true;
+            }
+
+            if (shouldDismiss) {
+                nudge.setIsDismissed(true);
+                nudgeRepository.save(nudge);
+            }
+        }
     }
 
     // Reallocation Suggestions

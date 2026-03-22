@@ -1,11 +1,12 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import { api } from "../api/api"
 import Avatar from "./Avatar"
 import nudgeLogo from "../assets/nudge logo.PNG"
 
 export default function Navbar() {
-  const { user, logout, updateProfile, changePassword, deleteAccount } = useAuth()
+  const { user, logout, updateProfile, changePassword, setPasswordForGoogle, deleteAccount } = useAuth()
   const location = useLocation()
   const [showDropdown, setShowDropdown] = useState(false)
   const [showProfileModal, setShowProfileModal] = useState(false)
@@ -13,6 +14,22 @@ export default function Navbar() {
   const [editPicture, setEditPicture] = useState(null)
   const [previewPicture, setPreviewPicture] = useState(null)
   const fileInputRef = useRef(null)
+
+  // Notification states
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [nudges, setNudges] = useState([])
+  const [nudgeLoading, setNudgeLoading] = useState(false)
+  const dismissedRef = useRef(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("dismissedNudges") || "[]")
+      return new Set(saved)
+    } catch { return new Set() }
+  })
+  // Initialize ref on first render
+  if (typeof dismissedRef.current === "function") {
+    dismissedRef.current = dismissedRef.current()
+  }
+  const notifRef = useRef(null)
 
   // Password change states
   const [currentPassword, setCurrentPassword] = useState("")
@@ -27,6 +44,102 @@ export default function Navbar() {
   const [deletePassword, setDeletePassword] = useState("")
   const [deleteError, setDeleteError] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
+
+  const [upcomingSubs, setUpcomingSubs] = useState([])
+
+  const fetchNudges = useCallback(async () => {
+    if (!user?.id) return
+    setNudgeLoading(true)
+    try {
+      const [nudgeRes, subsRes] = await Promise.all([
+        api.get(`/ml/nudges/${user.id}`),
+        api.get(`/subscriptions?userId=${user.id}`).catch(() => ({ data: [] }))
+      ])
+      const all = nudgeRes.data.nudges || []
+      setNudges(all.filter(n => !dismissedRef.current.has(n.id)))
+
+      const now = new Date()
+      now.setHours(0, 0, 0, 0)
+      const upcoming = (subsRes.data || [])
+        .filter(s => s.status === "ACTIVE" && s.nextPaymentDate)
+        .map(s => {
+          const d = new Date(s.nextPaymentDate)
+          d.setHours(0, 0, 0, 0)
+          const days = Math.ceil((d - now) / 86400000)
+          return { ...s, daysUntil: days }
+        })
+        .filter(s => s.daysUntil >= 0 && s.daysUntil <= 7 && !dismissedRef.current.has(`sub_${s.id}`))
+        .sort((a, b) => a.daysUntil - b.daysUntil)
+      setUpcomingSubs(upcoming)
+    } catch {
+      setNudges([])
+      setUpcomingSubs([])
+    } finally {
+      setNudgeLoading(false)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchNudges()
+    const interval = setInterval(fetchNudges, 60000)
+    return () => clearInterval(interval)
+  }, [fetchNudges])
+
+  // Close notifications on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false)
+      }
+    }
+    if (showNotifications) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [showNotifications])
+
+  const unreadCount = nudges.filter(n => !n.is_read).length + upcomingSubs.length
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case "HIGH": return "var(--red-500)"
+      case "MEDIUM": return "var(--emerald-500)"
+      default: return "var(--gray-400)"
+    }
+  }
+
+  const getTimeAgo = (dateStr) => {
+    if (!dateStr) return ""
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return "just now"
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    return `${Math.floor(hrs / 24)}d ago`
+  }
+
+  const saveDismissed = () => {
+    localStorage.setItem("dismissedNudges", JSON.stringify([...dismissedRef.current]))
+  }
+
+  const handleClearNudges = () => {
+    nudges.forEach(n => dismissedRef.current.add(n.id))
+    saveDismissed()
+    setNudges([])
+  }
+
+  const handleDismissNudge = (nudgeId) => {
+    dismissedRef.current.add(nudgeId)
+    saveDismissed()
+    setNudges(prev => prev.filter(n => n.id !== nudgeId))
+  }
+
+  const handleDismissSub = (subId) => {
+    dismissedRef.current.add(`sub_${subId}`)
+    saveDismissed()
+    setUpcomingSubs(prev => prev.filter(s => s.id !== subId))
+  }
 
   const openProfileModal = () => {
     setEditName(user.name || "")
@@ -76,34 +189,48 @@ export default function Navbar() {
     closeProfileModal()
   }
 
+  const isGoogleUser = user?.isGoogleUser
+
   const handleChangePassword = async () => {
     setPasswordError("")
     setPasswordSuccess("")
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError("All password fields are required")
-      return
+    if (isGoogleUser) {
+      if (!newPassword || !confirmPassword) {
+        setPasswordError("Both password fields are required")
+        return
+      }
+    } else {
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        setPasswordError("All password fields are required")
+        return
+      }
     }
 
     if (newPassword.length < 6) {
-      setPasswordError("New password must be at least 6 characters")
+      setPasswordError("Password must be at least 6 characters")
       return
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError("New passwords do not match")
+      setPasswordError("Passwords do not match")
       return
     }
 
     setIsChangingPassword(true)
     try {
-      await changePassword(currentPassword, newPassword)
-      setPasswordSuccess("Password changed successfully")
+      if (isGoogleUser) {
+        await setPasswordForGoogle(newPassword)
+        setPasswordSuccess("Password set successfully! You can now log in with email and password too.")
+      } else {
+        await changePassword(currentPassword, newPassword)
+        setPasswordSuccess("Password changed successfully")
+      }
       setCurrentPassword("")
       setNewPassword("")
       setConfirmPassword("")
     } catch (error) {
-      setPasswordError(error.response?.data?.message || "Failed to change password")
+      setPasswordError(error.response?.data?.message || "Failed to update password")
     } finally {
       setIsChangingPassword(false)
     }
@@ -184,12 +311,119 @@ export default function Navbar() {
                     </Link>
                   </div>
                 </div>
+                <div className="nav-divider" />
+                <div className="notif-wrapper" ref={notifRef}>
+                  <button
+                    className="notif-bell-btn"
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    aria-label="Notifications"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    {unreadCount > 0 && (
+                      <span className="notif-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
+                    )}
+                  </button>
+
+                  {showNotifications && (
+                    <div className="notif-dropdown">
+                      <div className="notif-dropdown-header">
+                        <h3>Nudges</h3>
+                        <div className="notif-header-actions">
+                          <span className="notif-count">{nudges.length} notification{nudges.length !== 1 ? "s" : ""}</span>
+                          {nudges.length > 0 && (
+                            <button className="notif-clear-btn" onClick={handleClearNudges}>
+                              Clear all
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="notif-dropdown-body">
+                        {nudgeLoading ? (
+                          <div className="notif-empty">Loading...</div>
+                        ) : (
+                          <>
+                          {nudges.slice(0, 10).map((nudge) => (
+                            <div
+                              key={nudge.id}
+                              className={`notif-item ${!nudge.is_read ? "unread" : ""}`}
+                            >
+                              <div className="notif-item-indicator" style={{ background: getPriorityColor(nudge.priority) }} />
+                              <div className="notif-item-content">
+                                <div className="notif-item-top">
+                                  <div className="notif-item-title">{nudge.title}</div>
+                                  <button
+                                    className="notif-dismiss-btn"
+                                    onClick={() => handleDismissNudge(nudge.id)}
+                                    aria-label="Dismiss"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <line x1="18" y1="6" x2="6" y2="18"/>
+                                      <line x1="6" y1="6" x2="18" y2="18"/>
+                                    </svg>
+                                  </button>
+                                </div>
+                                <div className="notif-item-message">{nudge.message}</div>
+                                <div className="notif-item-meta">
+                                  <span className={`notif-priority ${nudge.priority?.toLowerCase()}`}>{nudge.priority}</span>
+                                  <span className="notif-time">{getTimeAgo(nudge.created_at)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        {upcomingSubs.length > 0 && (
+                          <>
+                            <div className="notif-section-label">Upcoming Charges</div>
+                            {upcomingSubs.map(sub => (
+                              <div key={sub.id} className="notif-item">
+                                <div className="notif-item-indicator" style={{ background: sub.daysUntil <= 1 ? "var(--red-500)" : "#f59e0b" }} />
+                                <div className="notif-item-content">
+                                  <div className="notif-item-top">
+                                    <div className="notif-item-title">{sub.name}</div>
+                                    <button
+                                      className="notif-dismiss-btn"
+                                      onClick={() => handleDismissSub(sub.id)}
+                                      aria-label="Dismiss"
+                                    >
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"/>
+                                        <line x1="6" y1="6" x2="18" y2="18"/>
+                                      </svg>
+                                    </button>
+                                  </div>
+                                  <div className="notif-item-message">
+                                    £{(sub.cost || 0).toFixed(2)} · {sub.daysUntil === 0 ? "Due today" : sub.daysUntil === 1 ? "Due tomorrow" : `In ${sub.daysUntil} days`}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                        {nudges.length === 0 && upcomingSubs.length === 0 && (
+                          <div className="notif-empty">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" strokeWidth="1.5">
+                              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                            </svg>
+                            <p>Nothing right now</p>
+                          </div>
+                        )}
+                        </>
+                        )}
+                      </div>
+
+                    </div>
+                  )}
+                </div>
+
                 <div className="profile-wrapper">
                   <button
                     className="profile-avatar"
                     onClick={() => setShowDropdown(!showDropdown)}
                   >
-                    <Avatar user={user} size="md" persona={user.persona} customOptions={user.avatarOptions} frame={user.avatarFrame} />
+                    <Avatar user={user} size="md" />
                   </button>
                   {showDropdown && (
                     <>
@@ -197,7 +431,7 @@ export default function Navbar() {
                       <div className="profile-dropdown">
                         <div className="dropdown-header">
                           <div className="dropdown-avatar">
-                            <Avatar user={user} size="lg" persona={user.persona} customOptions={user.avatarOptions} frame={user.avatarFrame} />
+                            <Avatar user={user} size="lg" />
                           </div>
                           <div className="dropdown-info">
                             <span className="dropdown-name">{user.name}</span>
@@ -247,7 +481,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Profile Edit Modal */}
       {showProfileModal && (
         <div className="profile-modal-overlay" onClick={closeProfileModal}>
           <div className="profile-modal" onClick={(e) => e.stopPropagation()}>
@@ -267,7 +500,7 @@ export default function Navbar() {
                   {previewPicture ? (
                     <img src={previewPicture} alt="Profile preview" />
                   ) : (
-                    <Avatar user={{ ...user, name: editName || user.name, profilePicture: null }} size="xl" persona={user.persona} customOptions={user.avatarOptions} frame={user.avatarFrame} />
+                    <Avatar user={{ ...user, name: editName || user.name, profilePicture: null }} size="xl" />
                   )}
                 </div>
                 {user.persona && (
@@ -333,8 +566,14 @@ export default function Navbar() {
 
               <div className="password-section">
                 <div className="password-section-header">
-                  <h3>Change Password</h3>
+                  <h3>{isGoogleUser ? "Set a Password" : "Change Password"}</h3>
                 </div>
+
+                {isGoogleUser && (
+                  <p className="form-hint" style={{ marginBottom: 12 }}>
+                    You signed in with Google. Set a password to also log in with email and password.
+                  </p>
+                )}
 
                 {passwordError && (
                   <div className="password-message error">{passwordError}</div>
@@ -343,33 +582,35 @@ export default function Navbar() {
                   <div className="password-message success">{passwordSuccess}</div>
                 )}
 
-                <div className="profile-form-group">
-                  <label>Current Password</label>
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Enter current password"
-                  />
-                </div>
+                {!isGoogleUser && (
+                  <div className="profile-form-group">
+                    <label>Current Password</label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Enter current password"
+                    />
+                  </div>
+                )}
 
                 <div className="profile-form-group">
-                  <label>New Password</label>
+                  <label>{isGoogleUser ? "Password" : "New Password"}</label>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
+                    placeholder={isGoogleUser ? "Choose a password" : "Enter new password"}
                   />
                 </div>
 
                 <div className="profile-form-group">
-                  <label>Confirm New Password</label>
+                  <label>Confirm Password</label>
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
+                    placeholder="Confirm password"
                   />
                 </div>
 
@@ -378,16 +619,11 @@ export default function Navbar() {
                   onClick={handleChangePassword}
                   disabled={isChangingPassword}
                 >
-                  {isChangingPassword ? "Changing..." : "Change Password"}
+                  {isChangingPassword ? "Saving..." : isGoogleUser ? "Set Password" : "Change Password"}
                 </button>
               </div>
 
-              {/* Delete Account Section */}
               <div className="delete-account-section">
-                <div className="delete-section-header">
-                  <h3>Danger Zone</h3>
-                </div>
-
                 {!showDeleteConfirm ? (
                   <button
                     className="delete-account-btn"

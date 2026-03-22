@@ -36,4 +36,5 @@ public interface NudgeRepository extends JpaRepository<Nudge, Long> {
                                             @Param("type") String type,
                                             @Param("trigger") String trigger,
                                             @Param("since") LocalDateTime since);
+
 }

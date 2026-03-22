@@ -167,21 +167,6 @@
   gap: 24px;
 }
 
-.persona-avatar-wrapper {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  border: 3px solid var(--white);
-}
-
-.persona-avatar-wrapper img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
 
 .persona-profile-info {
   flex: 1;
@@ -559,6 +544,54 @@
   flex-shrink: 0;
 }
 
+/* Confidence toggle in Analysis Info */
+.confidence-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.confidence-toggle-btn:hover {
+  background: var(--gray-100);
+}
+
+.confidence-toggle-btn svg:last-child {
+  margin-left: auto;
+  transition: transform 0.2s;
+}
+
+.confidence-toggle-btn svg.rotated {
+  transform: rotate(180deg);
+}
+
+.confidence-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.confidence-dot.high { background: var(--emerald-500); }
+.confidence-dot.medium { background: #f59e0b; }
+.confidence-dot.low { background: var(--red-500); }
+
+.confidence-expanded {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gray-100);
+}
+
 /* Confidence meter */
 .confidence-meter {
   margin-top: 8px;
@@ -834,217 +867,8 @@
   color: var(--gray-500);
 }
 
-/* === Avatar Editor === */
 
-.avatar-editor-card {
-  grid-column: 1 / -1;
-}
-
-.avatar-editor-card h3 {
-  justify-content: space-between;
-}
-
-.avatar-edit-toggle {
-  padding: 4px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid var(--gray-200);
-  border-radius: 8px;
-  background: var(--white);
-  color: var(--emerald-600);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.avatar-edit-toggle:hover {
-  background: rgba(16, 185, 129, 0.05);
-  border-color: var(--emerald-300);
-}
-
-.avatar-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.avatar-editor-preview {
-  display: flex;
-  justify-content: center;
-  padding: 16px 0;
-}
-
-.avatar-editor-preview-inner {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  overflow: hidden;
-}
-
-.avatar-editor-tabs {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.avatar-editor-tabs button {
-  padding: 8px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid var(--gray-200);
-  border-radius: 8px;
-  background: var(--white);
-  color: var(--gray-600);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s;
-}
-
-.avatar-editor-tabs button:hover {
-  border-color: var(--emerald-300);
-  color: var(--emerald-600);
-}
-
-.avatar-editor-tabs button.active {
-  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
-  color: var(--white);
-  border-color: transparent;
-}
-
-.avatar-editor-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-  gap: 8px;
-  max-height: 240px;
-  overflow-y: auto;
-  padding: 4px;
-}
-
-.avatar-option {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  border: 2px solid var(--gray-200);
-  border-radius: 12px;
-  background: var(--white);
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-  overflow: hidden;
-}
-
-.avatar-option:hover:not(:disabled) {
-  border-color: var(--emerald-300);
-  transform: scale(1.05);
-}
-
-.avatar-option.selected {
-  border-color: var(--emerald-500);
-  background: rgba(16, 185, 129, 0.08);
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-}
-
-.avatar-option.locked {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.avatar-option.locked:hover {
-  transform: none;
-  border-color: var(--gray-200);
-}
-
-.avatar-option img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.avatar-option .lock-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 10px;
-}
-
-.avatar-option .lock-overlay svg {
-  color: var(--gray-500);
-}
-
-/* Color swatch option */
-.avatar-option.color-swatch {
-  padding: 0;
-}
-
-.avatar-option .color-circle {
-  width: 70%;
-  height: 70%;
-  border-radius: 50%;
-}
-
-.avatar-option .color-circle-none {
-  background: var(--gray-200);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--gray-500);
-}
-
-/* Frame option */
-.avatar-option.frame-option .frame-preview {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--gray-100);
-}
-
-.avatar-editor-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.avatar-reset-btn {
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  border: 1px solid var(--gray-200);
-  border-radius: 8px;
-  background: var(--white);
-  color: var(--gray-600);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.avatar-reset-btn:hover {
-  background: var(--gray-50);
-}
-
-.avatar-save-btn {
-  padding: 8px 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
-  color: var(--white);
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-}
-
-.avatar-save-btn:hover {
-  background: linear-gradient(135deg, var(--emerald-600), #059669);
-}
-
-/* === Milestones Card === */
+/* Milestones */
 
 .milestones-card {
   grid-column: 1 / -1;
@@ -1444,7 +1268,7 @@
   line-height: 1.5;
 }
 
-/* === Spider Explanation Card === */
+/* Spider explanation */
 
 .spider-explanation-card {
   grid-column: 1 / -1;
@@ -1577,10 +1401,6 @@
     padding: 24px 20px 20px;
   }
 
-  .persona-avatar-wrapper {
-    width: 100px;
-    height: 100px;
-  }
 
   .persona-stats-row {
     grid-template-columns: 1fr;
@@ -1597,10 +1417,6 @@
 
   .persona-details-grid {
     grid-template-columns: 1fr;
-  }
-
-  .avatar-editor-options {
-    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
   }
 
   .milestone-item {

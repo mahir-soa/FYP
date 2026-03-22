@@ -422,6 +422,51 @@ public class BudgetNudgeService {
             nudge.remove("onCooldown");
         }
 
+        // If no new nudges generated (cooldown), fall back to active persisted nudges
+        // but only if their conditions still hold
+        if (topNudges.isEmpty()) {
+            @SuppressWarnings("unchecked")
+            Map<String, Map<String, Object>> cats =
+                    (Map<String, Map<String, Object>>) status.get("categories");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> realloc = (Map<String, Object>) status.get("reallocation");
+            boolean reallocActive = realloc != null && Boolean.TRUE.equals(realloc.get("active"));
+
+            List<Nudge> activeFromDb = nudgeRepository.findActiveNudges(userId, now);
+            for (Nudge n : activeFromDb) {
+                if (topNudges.size() >= MAX_NUDGES) break;
+
+                // Validate: skip budget warnings unless the category is still exceeded/buffer-absorbing
+                if ("BUDGET_WARNING".equals(n.getType()) && n.getTrigger() != null && cats != null) {
+                    String triggerCat = n.getTrigger().replace("category:", "");
+                    Map<String, Object> catInfo = cats.get(triggerCat);
+                    if (catInfo != null) {
+                        String catStatus = (String) catInfo.get("status");
+                        if (!"exceeded".equals(catStatus) && !"buffer-absorbing".equals(catStatus)) {
+                            n.setIsDismissed(true);
+                            nudgeRepository.save(n);
+                            continue;
+                        }
+                    }
+                }
+                // Skip reallocation nudges if reallocation is no longer active
+                if ("REALLOCATION_ACTION".equals(n.getType()) && !reallocActive) {
+                    n.setIsDismissed(true);
+                    nudgeRepository.save(n);
+                    continue;
+                }
+
+                Map<String, Object> fallback = new LinkedHashMap<>();
+                fallback.put("nudgeType", n.getType());
+                fallback.put("title", n.getTitle());
+                fallback.put("message", n.getMessage());
+                fallback.put("severity", n.getSeverity() != null ? n.getSeverity() : "medium");
+                fallback.put("triggerSource", n.getTrigger());
+                fallback.put("actionType", "REALLOCATION_ACTION".equals(n.getType()) ? "rebalance" : null);
+                topNudges.add(fallback);
+            }
+        }
+
         result.put("nudges", topNudges);
         result.put("count", topNudges.size());
         result.put("personaType", personaType);
@@ -508,7 +553,8 @@ public class BudgetNudgeService {
             if (limit <= 0) continue;
 
             double pct = round2((spent / limit) * 100);
-            double overflow = getDouble(cs, "overflowAmount", 0);
+            double overflow = round2(spent - limit);
+            if (overflow < 0) overflow = 0;
             boolean isExceeded = "exceeded".equals(catStatus) || "buffer-absorbing".equals(catStatus);
 
             String severity;
@@ -527,12 +573,15 @@ public class BudgetNudgeService {
             String variant = isExceeded ? "exceeded" : "warning";
             NudgeTemplate t = resolveTemplate("BUDGET_WARNING", variant, personaType);
 
-            Map<String, String> vars = Map.of(
-                "category", cat,
-                "overflow", fmt(overflow),
-                "pct", String.valueOf(Math.round(pct)),
-                "daysRemaining", String.valueOf(daysRemaining)
-            );
+            double remaining = round2(Math.max(0, limit - spent));
+            Map<String, String> vars = new HashMap<>();
+            vars.put("category", cat);
+            vars.put("overflow", fmt(overflow));
+            vars.put("spent", fmt(spent));
+            vars.put("limit", fmt(limit));
+            vars.put("remaining", fmt(remaining));
+            vars.put("pct", String.valueOf(Math.round(pct)));
+            vars.put("daysRemaining", String.valueOf(daysRemaining));
 
             nudges.add(buildNudge("BUDGET_WARNING",
                     renderTemplate(t.title(), vars),
@@ -660,6 +709,10 @@ public class BudgetNudgeService {
         boolean anyExceeded = categories.values().stream()
                 .anyMatch(cs -> "exceeded".equals(cs.get("status")) || "buffer-absorbing".equals(cs.get("status")));
         if (anyExceeded) return nudges;
+
+        boolean anyProjectedExceed = categories.values().stream()
+                .anyMatch(cs -> Boolean.TRUE.equals(cs.get("projectedExceeds")));
+        if (anyProjectedExceed) return nudges;
 
         long onTrackCount = categories.values().stream()
                 .filter(cs -> "on-track".equals(cs.get("status")) || "unused".equals(cs.get("status")))

@@ -34,7 +34,7 @@
   font-size: 14px;
 }
 
-/* ── HERO CARD ── */
+/* Hero card */
 .hero-card {
   background: var(--white);
   border: 1px solid var(--gray-200);
@@ -203,7 +203,7 @@
   color: #b91c1c;
 }
 
-/* ── ERROR ── */
+/* Error */
 .error-msg {
   background: var(--red-100);
   color: var(--red-500);
@@ -213,7 +213,7 @@
   font-size: 14px;
 }
 
-/* ── NUDGE CARD ── */
+/* Nudge card */
 .nudge-card {
   background: var(--white);
   border: 1px solid var(--gray-200);
@@ -225,8 +225,10 @@
 }
 
 .nudge-card.severity-strong {
-  border-left-color: #ef4444;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, var(--white) 100%);
+  border-left-color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-left: 3px solid #dc2626;
 }
 
 .nudge-card.severity-medium {
@@ -296,9 +298,27 @@
   font-weight: 600;
   background: var(--gray-100);
   color: var(--gray-600);
+  border: none;
 }
 
-/* ── GOAL PROTECTION PROMPT ── */
+.nudge-action-chip.clickable {
+  cursor: pointer;
+  background: var(--red-100);
+  color: var(--red-500);
+  transition: all 0.15s;
+}
+
+.nudge-action-chip.clickable:hover:not(:disabled) {
+  background: var(--red-500);
+  color: var(--white);
+}
+
+.nudge-action-chip.clickable:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Goal protection */
 .goal-protection-prompt {
   background: var(--white);
   border: 1px solid #fcd34d;
@@ -358,7 +378,7 @@
   margin-top: 2px;
 }
 
-/* ── BUDGET SECTION (category budgets) ── */
+/* Category budgets */
 .budget-section {
   background: var(--white);
   border-radius: 14px;
@@ -454,8 +474,8 @@
 
 /* Reallocation alert (folded into category section) */
 .reallocation-alert {
-  background: rgba(239, 68, 68, 0.03);
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
   border-radius: 10px;
   padding: 14px 16px;
   margin-bottom: 18px;
@@ -631,9 +651,12 @@
 
 .category-limit-item.on-track { background: rgba(16, 185, 129, 0.05); }
 .category-limit-item.warning { background: rgba(245, 158, 11, 0.08); }
-.category-limit-item.exceeded { background: rgba(239, 68, 68, 0.08); }
-.category-limit-item.exceeded .category-name { color: var(--red-600); }
-.category-limit-item.buffer-absorbing { background: rgba(59, 130, 246, 0.05); }
+.category-limit-item.exceeded {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.category-limit-item.exceeded .category-name { color: var(--red-500); font-weight: 600; }
+.category-limit-item.buffer-absorbing { background: rgba(245, 158, 11, 0.05); }
 
 .category-info {
   display: flex;
@@ -696,7 +719,7 @@
 .limit-fill.on-track { background: linear-gradient(135deg, var(--emerald-400), var(--emerald-500)); }
 .limit-fill.warning { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
 .limit-fill.exceeded { background: linear-gradient(135deg, #f87171, #ef4444); }
-.limit-fill.buffer-absorbing { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
+.limit-fill.buffer-absorbing { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
 
 .limit-values {
   display: flex;
@@ -709,6 +732,7 @@
 }
 
 .limit-values span.warning { color: #d97706; }
+.limit-values span.buffer-absorbing { color: #d97706; }
 .limit-values span.exceeded { color: var(--red-500); }
 .limit-of { color: var(--gray-400); font-weight: 400; }
 
@@ -734,7 +758,7 @@
 .category-status-badge.on-track { background: var(--emerald-100); color: var(--emerald-700); }
 .category-status-badge.warning { background: #fef3c7; color: #b45309; }
 .category-status-badge.exceeded { background: #fee2e2; color: #b91c1c; }
-.category-status-badge.buffer-absorbing { background: #dbeafe; color: #1d4ed8; }
+.category-status-badge.buffer-absorbing { background: #fef3c7; color: #b45309; }
 
 .status-detail { font-size: 11px; color: var(--gray-500); text-align: right; }
 .next-action { font-size: 11px; color: var(--emerald-600); font-weight: 500; text-align: right; }
@@ -863,7 +887,7 @@
   background: var(--gray-50);
 }
 
-/* ── WATERFALL (How This Budget Was Built) ── */
+/* Waterfall */
 .waterfall-section {
   background: var(--white);
   border-radius: 14px;
@@ -960,12 +984,13 @@
 
 .waterfall-step {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   padding: 6px 10px;
   border-radius: 6px;
   background: var(--gray-50);
-  gap: 12px;
+  gap: 6px 12px;
 }
 
 .waterfall-step-reason {
@@ -1000,8 +1025,51 @@
   text-align: right;
 }
 
-/* ── ACTIVE PRIORITIES (compact strip) ── */
-/* ── ACTIVE PLANS CARD ── */
+.waterfall-layer-total {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-left: auto;
+}
+
+.waterfall-layer-total.positive {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.waterfall-layer-total.negative {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+}
+
+.waterfall-context-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  padding-top: 4px;
+}
+
+.waterfall-context-cat {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.waterfall-context-cat.positive {
+  background: rgba(16, 185, 129, 0.08);
+  color: #059669;
+}
+
+.waterfall-context-cat.negative {
+  background: rgba(239, 68, 68, 0.06);
+  color: #dc2626;
+}
+
+
+/* Active plans */
 .plans-strip {
   background: var(--white);
   border: 1px solid var(--gray-200);
@@ -1191,7 +1259,7 @@
   opacity: 0.85;
 }
 
-/* ── PLANS TIER (inside category budgets) ── */
+/* Plans tier */
 .plans-tier-list {
   display: flex;
   flex-direction: column;
@@ -1244,7 +1312,7 @@
   flex-shrink: 0;
 }
 
-/* ── AI INSIGHTS ── */
+/* AI insights */
 .insights-section {
   background: var(--white);
   border-radius: 14px;
@@ -1344,8 +1412,11 @@
 .insights-empty p { color: var(--gray-400); font-size: 14px; margin: 0; }
 .insights-error { padding: 12px 16px; background: var(--red-100); color: var(--red-500); border-radius: 8px; font-size: 14px; }
 
-/* ── EMPTY STATE ── */
+/* Empty state */
 .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   padding: 60px 20px;
   background: var(--white);

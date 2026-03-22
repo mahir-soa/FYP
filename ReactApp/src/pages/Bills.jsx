@@ -227,7 +227,7 @@ export default function Bills() {
           <div className="loading-msg">Loading bills...</div>
         ) : (
           <>
-            {/* Summary Cards */}
+            
             {summary && (
               <div className="summary-grid">
                 <div className="summary-card total">
@@ -258,7 +258,7 @@ export default function Bills() {
 
             {errorMsg && <div className="error-msg">{errorMsg}</div>}
 
-            {/* Unpaid Bills */}
+            
             {unpaidBills.length > 0 && (
               <div className="bills-section">
                 <h2>Due This Month</h2>
@@ -314,7 +314,7 @@ export default function Bills() {
               </div>
             )}
 
-            {/* Paid Bills */}
+            
             {paidBills.length > 0 && (
               <div className="bills-section paid-section">
                 <h2>Paid This Month</h2>
@@ -364,7 +364,7 @@ export default function Bills() {
               </div>
             )}
 
-            {/* Empty State */}
+            
             {bills.length === 0 && (
               <div className="empty-state">
                 <div className="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
@@ -376,7 +376,7 @@ export default function Bills() {
           </>
         )}
 
-        {/* Form Modal */}
+        
         {showForm && (
           <div className="modal-overlay" onClick={closeForm}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>

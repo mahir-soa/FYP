@@ -99,6 +99,65 @@ public class ChatService {
         prompt.append("and offer personalized financial insights. Be friendly, concise, and supportive. ");
         prompt.append("When discussing finances, be encouraging rather than judgmental. ");
 
+        // App knowledge so the assistant can answer questions about Nudge features
+        prompt.append("\n\nHere is everything you need to know about the Nudge app and its features:\n\n");
+
+        prompt.append("OVERVIEW: Nudge is a smart personal finance app that tracks expenses, income, subscriptions, bills, ");
+        prompt.append("and budgets. It uses ML-driven persona analysis to understand each user's spending personality and ");
+        prompt.append("adapts its budgeting, nudges, and advice accordingly.\n\n");
+
+        prompt.append("BUDGET ENGINE — The budget is built in 5 layers (the 'waterfall'):\n");
+        prompt.append("- Layer 1 (Financial Capacity): Monthly income + usable cash - bills - subscriptions - debt minimums = 'True Spendable'.\n");
+        prompt.append("- Layer 2 (Goal Contributions): Deducts savings/outcome plan contributions from the spendable amount.\n");
+        prompt.append("- Layer 3 (Context Modifiers): Active Priority Plans adjust category allocations (e.g. 'increase Food by 25%'). ");
+        prompt.append("Adjustments can be percentage-based (LOW ±10%, MEDIUM ±25%, HIGH ±40%) or fixed £ amounts, capped at ±50%.\n");
+        prompt.append("- Layer 4 (Adaptive Allocation): Splits budget across categories (Food, Travel, Leisure, Education, Other) ");
+        prompt.append("using historical 3-month spending weights, applies context adjustments, and normalises. ");
+        prompt.append("No category drops below a 5% floor. A 5% emergency buffer is reserved first.\n");
+        prompt.append("- Layer 5 (Persona Modifiers): Applies persona-specific warning/pacing thresholds. Does NOT change the budget amounts.\n\n");
+
+        prompt.append("BUFFER: The buffer is a 5% emergency reserve automatically set aside from the allocatable budget before ");
+        prompt.append("category limits are calculated. It acts as a safety net for unexpected expenses. ");
+        prompt.append("If you overspend in a category, the buffer absorbs the excess before it's flagged as truly over budget. ");
+        prompt.append("The buffer remaining decreases as overspend occurs. Think of it as a financial cushion.\n\n");
+
+        prompt.append("SAFE TO SPEND: The amount left after all category limits and the buffer are subtracted from the total budget. ");
+        prompt.append("It's discretionary money not allocated to any category.\n\n");
+
+        prompt.append("CATEGORIES: Food, Travel, Leisure, Education, Other. Each gets a limit based on historical spending patterns ");
+        prompt.append("adjusted by any active context modifiers. Categories are tiered: ESSENTIAL, FLEXIBLE, or DISCRETIONARY.\n\n");
+
+        prompt.append("PERSONA SYSTEM: ML analyses the user's spending patterns and assigns a persona type: ");
+        prompt.append("Erratic Spender, Big Spender, Balanced Spender, Cautious Saver, Weekend Splurger, Volatile Spender, ");
+        prompt.append("Late Night Spender, or Category Focused. Each persona gets tailored nudge styles, warning thresholds, ");
+        prompt.append("and pacing guidance. Users can view their persona on the Persona page with a spider chart of traits.\n\n");
+
+        prompt.append("PLANS: Users can create two types of plans:\n");
+        prompt.append("- Outcome Plans (savings goals): Have a target amount, monthly contribution, and deadline. ");
+        prompt.append("Contributions are deducted from the budget in Layer 2.\n");
+        prompt.append("- Priority Plans (spending context): Modify budget allocation for specific categories. ");
+        prompt.append("E.g. 'Holiday' plan that increases Food and Leisure. These are the context modifiers in Layer 3. ");
+        prompt.append("They can have start/end dates and direction (INCREASE, REDUCE, PROTECT) with intensity.\n\n");
+
+        prompt.append("NUDGES: Smart, persona-aware notifications. Types include: Budget Warning, Pacing Warning, ");
+        prompt.append("Reallocation Suggested, Positive Reinforcement, and Weekend Pacing. ");
+        prompt.append("Nudges have priority (HIGH/MEDIUM/LOW), cooldown windows (6-24h), and a max of 3 active at a time. ");
+        prompt.append("They are scored by severity, persona fit, timing, and actionability.\n\n");
+
+        prompt.append("REALLOCATION: When a user underspends in one category and overspends in another, ");
+        prompt.append("Nudge can suggest reallocating unused budget between categories to stay on track overall.\n\n");
+
+        prompt.append("SUBSCRIPTIONS & BILLS: Users track recurring subscriptions and bills/utilities. ");
+        prompt.append("These are automatically deducted from income in Layer 1 of the budget engine.\n\n");
+
+        prompt.append("EXPENSES & INCOME: Users log individual transactions with date, amount, category, and description. ");
+        prompt.append("Income sources can be salary, freelance, or other, and can be recurring.\n\n");
+
+        prompt.append("AI INSIGHTS: The budget page shows AI-generated insights that analyse spending patterns and offer tips.\n\n");
+
+        prompt.append("When users ask about any of these features, explain them clearly using the information above. ");
+        prompt.append("Always relate explanations back to the user's own financial situation when possible.\n");
+
         if (includeExpenseContext && userId != null) {
             List<Expense> expenses = expenseRepository.findByUserId(userId);
             if (!expenses.isEmpty()) {
